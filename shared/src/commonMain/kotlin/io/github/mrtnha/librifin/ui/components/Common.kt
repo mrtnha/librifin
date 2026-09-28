@@ -2,6 +2,16 @@ package io.github.mrtnha.librifin.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,30 +23,46 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.mrtnha.librifin.api.Server
 
-/** Small logo, heading and a back button, shared by the connect and login screens. */
+/**
+ * Screen with the platform-standard top bar: back arrow on the left, title next to it.
+ * The content scrolls and moves up with the keyboard.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FlowHeader(title: String, backLabel: String, onBack: () -> Unit) {
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            imageVector = LibrifinIcons.Book,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 32.dp, bottom = 20.dp).size(75.dp),
+fun FlowScaffold(
+    title: String,
+    onBack: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(LibrifinIcons.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            content = content,
         )
-        Text(title, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
-        TextButton(onClick = onBack, modifier = Modifier.align(Alignment.Start).padding(top = 20.dp, bottom = 12.dp)) {
-            Icon(LibrifinIcons.ChevronLeft, contentDescription = null, modifier = Modifier.size(20.dp))
-            Text(backLabel)
-        }
     }
 }
 

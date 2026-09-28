@@ -11,11 +11,14 @@ import androidx.compose.ui.unit.dp
 
 /** Thin outline icons drawn in code, so we don't need an icon library. Tint them via `Icon(tint = …)`. */
 object LibrifinIcons {
-    val ChevronLeft: ImageVector by lazy {
-        outlineIcon("ChevronLeft") {
-            moveTo(15f, 6f)
-            lineTo(9f, 12f)
-            lineTo(15f, 18f)
+    /** Standard "back" arrow for the top bar. */
+    val ArrowBack: ImageVector by lazy {
+        outlineIcon("ArrowBack", strokeWidth = 2f) {
+            moveTo(19f, 12f)
+            lineTo(5f, 12f)
+            moveTo(11f, 6f)
+            lineTo(5f, 12f)
+            lineTo(11f, 18f)
         }
     }
 
@@ -52,8 +55,8 @@ object LibrifinIcons {
         }
     }
 
-    /** A 24×24 icon made of rounded 1.5-wide strokes. */
-    private fun outlineIcon(name: String, pathBuilder: PathBuilder.() -> Unit): ImageVector =
+    /** A 24×24 icon made of rounded strokes. */
+    private fun outlineIcon(name: String, strokeWidth: Float = 1.5f, pathBuilder: PathBuilder.() -> Unit): ImageVector =
         ImageVector.Builder(
             name = name,
             defaultWidth = 24.dp,
@@ -62,7 +65,7 @@ object LibrifinIcons {
             viewportHeight = 24f,
         ).path(
             stroke = SolidColor(Color.Black),
-            strokeLineWidth = 1.5f,
+            strokeLineWidth = strokeWidth,
             strokeLineCap = StrokeCap.Round,
             strokeLineJoin = StrokeJoin.Round,
             pathBuilder = pathBuilder,

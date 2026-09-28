@@ -3,18 +3,13 @@ package io.github.mrtnha.librifin.ui.login
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,7 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Server
 import io.github.mrtnha.librifin.api.Session
-import io.github.mrtnha.librifin.ui.components.FlowHeader
+import io.github.mrtnha.librifin.ui.components.FlowScaffold
 import io.github.mrtnha.librifin.ui.components.HugeButton
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 
@@ -48,22 +43,12 @@ fun LoginScreen(
     val vm = viewModel { LoginViewModel(server, services.jellyfin) }
     val submit = { vm.login(onLoggedIn) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        FlowHeader(title = "Log in to your account", backLabel = "Back to server selection", onBack = onBack)
-
+    FlowScaffold(title = "Log in", onBack = onBack) {
+        Text(server.name, style = MaterialTheme.typography.titleMedium)
         Text(
-            "${server.name} · ${server.baseUrl}",
+            server.baseUrl,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(16.dp))
 
@@ -92,10 +77,12 @@ fun LoginScreen(
             }
         }
 
-        if (vm.isLoggingIn) {
-            CircularProgressIndicator(Modifier.padding(vertical = 18.dp).size(32.dp))
-        } else {
-            HugeButton(text = "Log in", icon = LibrifinIcons.Book, onClick = submit)
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            if (vm.isLoggingIn) {
+                CircularProgressIndicator(Modifier.padding(vertical = 18.dp).size(32.dp))
+            } else {
+                HugeButton(text = "Log in", icon = LibrifinIcons.Book, onClick = submit)
+            }
         }
         Spacer(Modifier.height(24.dp))
     }

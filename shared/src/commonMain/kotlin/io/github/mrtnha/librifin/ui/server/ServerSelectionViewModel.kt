@@ -34,6 +34,18 @@ class ServerSelectionViewModel(
     // Discovery
     val isDiscoverySupported = discovery != null
     val discoveredServers = mutableStateListOf<Server>()
+
+    /** Set when discovery has run for a while without finding anything. */
+    var isNothingFound by mutableStateOf(false)
+        private set
+
+    /** Discovered servers come first; manual entry is opened on request (or always shown without discovery). */
+    var isManualEntryVisible by mutableStateOf(!isDiscoverySupported)
+        private set
+
+    fun showManualEntry() {
+        isManualEntryVisible = true
+    }
     private val verifyingIds = mutableSetOf<String>()
 
     private var testJob: Job? = null
@@ -74,6 +86,10 @@ class ServerSelectionViewModel(
     fun startDiscovery() {
         if (discovery == null || discoveryJob?.isActive == true) return
         discoveryJob = viewModelScope.launch {
+            launch {
+                delay(NOTHING_FOUND_AFTER_MS)
+                isNothingFound = discoveredServers.isEmpty()
+            }
             discovery.replies().collect { text ->
                 val reply = parseReply(text) ?: return@collect
                 val id = reply.id ?: return@collect
@@ -128,5 +144,6 @@ class ServerSelectionViewModel(
 
     private companion object {
         const val URL_TEST_DEBOUNCE_MS = 500L
+        const val NOTHING_FOUND_AFTER_MS = 6_000L
     }
 }

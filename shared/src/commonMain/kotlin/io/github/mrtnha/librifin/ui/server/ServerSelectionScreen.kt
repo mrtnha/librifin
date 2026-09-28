@@ -1,17 +1,12 @@
 package io.github.mrtnha.librifin.ui.server
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,20 +17,22 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Server
-import io.github.mrtnha.librifin.ui.components.FlowHeader
+import io.github.mrtnha.librifin.ui.components.FlowScaffold
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import io.github.mrtnha.librifin.ui.components.ProgressRow
 import io.github.mrtnha.librifin.ui.components.ServerCard
@@ -54,71 +51,79 @@ fun ServerSelectionScreen(
         onDispose { vm.stopDiscovery() }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 32.dp),
-    ) {
-        FlowHeader(title = "Connect to Jellyfin", backLabel = "Back", onBack = onBack)
+    FlowScaffold(title = "Connect to Jellyfin", onBack = onBack) {
+        if (vm.isDiscoverySupported) {
+            SectionTitle("Servers on your local network")
+            vm.discoveredServers.forEach { server ->
+                ServerCard(server, onClick = { onServerSelected(server) }, modifier = Modifier.padding(bottom = 8.dp))
+            }
+            ProgressRow("Scanning for servers…", Modifier.padding(vertical = 12.dp))
+            if (vm.isNothingFound && vm.discoveredServers.isEmpty()) {
+                Text(
+                    "No servers found yet. Make sure you're on the same Wi-Fi as your Jellyfin server, " +
+                        "or enter its address below.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+            if (!vm.isManualEntryVisible) {
+                TextButton(onClick = vm::showManualEntry, modifier = Modifier.padding(top = 4.dp)) {
+                    Text("Server not listed? Enter its address")
+                }
+            }
+        }
 
-        Text(
-            "Server URL",
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        )
-        ServerUrlField(value = vm.urlInput, onValueChange = vm::onUrlChanged)
+        AnimatedVisibility(visible = vm.isManualEntryVisible) {
+            ManualEntry(vm, onServerSelected, requestFocus = vm.isDiscoverySupported)
+        }
+    }
+}
 
-        // Result of the manual entry
-        Column(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 95.dp).padding(top = 12.dp),
-            verticalArrangement = Arrangement.Top,
-        ) {
+@Composable
+private fun ManualEntry(vm: ServerSelectionViewModel, onServerSelected: (Server) -> Unit, requestFocus: Boolean) {
+    Column(Modifier.fillMaxWidth()) {
+        SectionTitle("Server address")
+        ServerUrlField(value = vm.urlInput, onValueChange = vm::onUrlChanged, requestFocus = requestFocus)
+
+        Column(Modifier.fillMaxWidth().heightIn(min = 80.dp).padding(top = 12.dp)) {
             val manual = vm.manualServer
+            val error = vm.urlError
             when {
                 manual != null -> ServerCard(manual, onClick = { onServerSelected(manual) })
                 vm.isTestingUrl -> ProgressRow("Connecting to server…")
-                vm.urlError != null -> Text(
-                    vm.urlError!!,
+                error != null -> Text(
+                    error,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 8.dp),
                 )
             }
         }
-
-        Text(
-            "Servers on your local network:",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 16.dp),
-        )
-        if (vm.isDiscoverySupported) {
-            vm.discoveredServers.forEach { server ->
-                ServerCard(server, onClick = { onServerSelected(server) }, modifier = Modifier.padding(bottom = 8.dp))
-            }
-            ProgressRow("Scanning for servers…", Modifier.padding(top = 12.dp, bottom = 24.dp))
-        } else {
-            Text(
-                "Automatic discovery isn't available on this device yet. Please enter the server URL above.",
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-            )
-        }
     }
 }
 
 @Composable
-private fun ServerUrlField(value: String, onValueChange: (String) -> Unit) {
+private fun SectionTitle(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+    )
+}
+
+@Composable
+private fun ServerUrlField(value: String, onValueChange: (String) -> Unit, requestFocus: Boolean) {
     var showInfo by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    if (requestFocus) {
+        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    }
 
     TextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
         placeholder = { Text("e.g. 192.168.1.10") },
         singleLine = true,
         shape = RoundedCornerShape(16.dp),
@@ -133,7 +138,7 @@ private fun ServerUrlField(value: String, onValueChange: (String) -> Unit) {
         ),
         trailingIcon = {
             IconButton(onClick = { showInfo = true }) {
-                Icon(LibrifinIcons.Info, contentDescription = "About the server URL")
+                Icon(LibrifinIcons.Info, contentDescription = "About the server address")
             }
         },
     )
