@@ -73,6 +73,7 @@ fun LibraryScreen(session: Session, services: AppServices, onLoggedOut: () -> Un
     if (vm.isProfileSheetOpen) {
         ProfileSheet(
             session = session,
+            userImageUrl = services.jellyfin.userImageUrl(session),
             isLoggingOut = vm.isLoggingOut,
             onLogout = { vm.logout(onLoggedOut) },
             onDismiss = { vm.isProfileSheetOpen = false },

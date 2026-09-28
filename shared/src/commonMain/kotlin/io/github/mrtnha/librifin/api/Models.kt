@@ -30,6 +30,8 @@ data class AuthenticationResult(
 data class UserDto(
     @SerialName("Id") val id: String,
     @SerialName("Name") val name: String? = null,
+    /** Set only if the user uploaded a profile picture. */
+    @SerialName("PrimaryImageTag") val primaryImageTag: String? = null,
 )
 
 /** A library (from /UserViews) or a book (from /Items). */

@@ -40,7 +40,15 @@ class LoginViewModel(
                 if (user == null || token == null) {
                     error = "The server sent an unexpected response."
                 } else {
-                    onLoggedIn(Session(server, user.id, user.name ?: name, token))
+                    onLoggedIn(
+                        Session(
+                            server = server,
+                            userId = user.id,
+                            userName = user.name ?: name,
+                            userImageTag = user.primaryImageTag,
+                            accessToken = token,
+                        ),
+                    )
                 }
             } catch (e: CancellationException) {
                 throw e

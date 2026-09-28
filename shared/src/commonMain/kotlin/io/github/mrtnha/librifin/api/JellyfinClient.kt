@@ -67,6 +67,12 @@ class JellyfinClient(private val platform: Platform) {
         return "$baseUrl/Items/${item.id}/Images/Primary?tag=$tag&maxWidth=$maxWidth&quality=90"
     }
 
+    /** The user's profile picture, or null if they haven't uploaded one. */
+    fun userImageUrl(session: Session): String? {
+        val tag = session.userImageTag ?: return null
+        return "${session.server.baseUrl}/UserImage?userId=${session.userId}&tag=$tag"
+    }
+
     /** Ends the session on the server, which invalidates the access token. */
     suspend fun logout(session: Session) {
         http.post("${session.server.baseUrl}/Sessions/Logout") { authorize(session.accessToken) }
