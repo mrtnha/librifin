@@ -34,6 +34,11 @@ class AndroidPlatform(context: Context) : Platform {
         override fun clear() = prefs.edit().remove(KEY_SESSION).apply()
     }
 
+    override val settingsStore: SettingsStore = object : SettingsStore {
+        override fun read(key: String): String? = prefs.getString(key, null)
+        override fun write(key: String, value: String) = prefs.edit().putString(key, value).apply()
+    }
+
     override val filesDir: String = appContext.filesDir.absolutePath
 
     private companion object {

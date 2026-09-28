@@ -18,6 +18,9 @@ interface Platform {
     /** Where the logged-in session (including the access token) is kept between app starts. */
     val sessionStore: SessionStore
 
+    /** Small app settings kept between app starts, e.g. the reading theme. */
+    val settingsStore: SettingsStore
+
     /** App-private directory for files kept until the app is uninstalled (downloaded books, the saved book list). */
     val filesDir: String
 }
@@ -27,6 +30,12 @@ interface SessionStore {
     fun read(): String?
     fun write(value: String)
     fun clear()
+}
+
+/** Stores small settings as text under a key. Nothing secret goes here. */
+interface SettingsStore {
+    fun read(key: String): String?
+    fun write(key: String, value: String)
 }
 
 /**

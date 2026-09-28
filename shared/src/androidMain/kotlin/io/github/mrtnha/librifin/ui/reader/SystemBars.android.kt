@@ -16,7 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 @Composable
-actual fun SystemBarsVisible(visible: Boolean) {
+actual fun SystemBarsVisible(visible: Boolean, darkBackground: Boolean) {
     val view = LocalView.current
     val window = remember(view) { view.context.findActivity()?.window } ?: return
     val controller = remember(window, view) {
@@ -31,6 +31,16 @@ actual fun SystemBarsVisible(visible: Boolean) {
             controller.show(WindowInsetsCompat.Type.systemBars())
         } else {
             controller.hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+    DisposableEffect(controller, darkBackground) {
+        val lightStatusBars = controller.isAppearanceLightStatusBars
+        val lightNavigationBars = controller.isAppearanceLightNavigationBars
+        controller.isAppearanceLightStatusBars = !darkBackground
+        controller.isAppearanceLightNavigationBars = !darkBackground
+        onDispose {
+            controller.isAppearanceLightStatusBars = lightStatusBars
+            controller.isAppearanceLightNavigationBars = lightNavigationBars
         }
     }
     DisposableEffect(controller) {

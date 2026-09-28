@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 
 // Nothing to hide yet: there is no reader on iOS.
 @Composable
-actual fun SystemBarsVisible(visible: Boolean) = Unit
+actual fun SystemBarsVisible(visible: Boolean, darkBackground: Boolean) = Unit
 
 // The bars are never hidden on iOS yet.
 @Composable

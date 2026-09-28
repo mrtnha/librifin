@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentFactory
 import androidx.fragment.compose.AndroidFragment
@@ -32,8 +33,11 @@ import org.json.JSONException
 import org.json.JSONObject
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
+import org.readium.r2.navigator.epub.EpubPreferences
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
+import org.readium.r2.navigator.preferences.Color
+import org.readium.r2.navigator.preferences.Theme
 import org.readium.r2.navigator.util.DirectionalNavigationAdapter
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
@@ -53,6 +57,7 @@ actual fun EpubView(
     file: Path,
     initialLocator: String?,
     initialProgress: Double?,
+    theme: ReaderTheme,
     jumpToProgress: Double?,
     onJumped: () -> Unit,
     onReachedEnd: () -> Unit,
@@ -63,7 +68,7 @@ actual fun EpubView(
     modifier: Modifier,
 ) {
     val application = LocalContext.current.applicationContext as Application
-    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, initialProgress) }
+    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, initialProgress, theme) }
     val currentOnReachedEnd by rememberUpdatedState(onReachedEnd)
     DisposableEffect(vm) {
         vm.onReachedEnd = { currentOnReachedEnd() }
@@ -82,6 +87,11 @@ actual fun EpubView(
             val currentOnPagesLoaded by rememberUpdatedState(onPagesLoaded)
             LaunchedEffect(vm) { currentOnPagesLoaded(vm.pages) }
             var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
+
+            // The first theme is set when the book opens; later ones change the page in place.
+            LaunchedEffect(theme, navigatorNow) {
+                navigatorNow?.submitPreferences(theme.toEpubPreferences())
+            }
 
             LaunchedEffect(jumpToProgress, navigatorNow) {
                 val progress = jumpToProgress ?: return@LaunchedEffect
@@ -118,6 +128,16 @@ actual fun EpubView(
     }
 }
 
+/**
+ * Readium's night mode for the dark themes, with our colors on top: it also recolors headings and
+ * links, which keep the book's own (often black) colors otherwise.
+ */
+private fun ReaderTheme.toEpubPreferences() = EpubPreferences(
+    theme = if (isDark) Theme.DARK else Theme.LIGHT,
+    backgroundColor = Color(background.toArgb()),
+    textColor = Color(text.toArgb()),
+)
+
 private sealed interface EpubState {
     data object Opening : EpubState
     data object Opened : EpubState
@@ -133,6 +153,7 @@ private class EpubViewModel(
     private val file: File,
     private val initialLocator: String?,
     private val initialProgress: Double?,
+    private val initialTheme: ReaderTheme,
 ) : ViewModel() {
     var state by mutableStateOf<EpubState>(EpubState.Opening)
         private set
@@ -181,6 +202,7 @@ private class EpubViewModel(
         val lastChapter = publication.readingOrder.lastOrNull()?.url()
         val factory = EpubNavigatorFactory(publication).createFragmentFactory(
             initialLocator = startLocator,
+            initialPreferences = initialTheme.toEpubPreferences(),
             // Tells the page within the chapter: the most reliable way to see the book's last page.
             paginationListener = object : EpubNavigatorFragment.PaginationListener {
                 override fun onPageChanged(pageIndex: Int, totalPages: Int, locator: Locator) {

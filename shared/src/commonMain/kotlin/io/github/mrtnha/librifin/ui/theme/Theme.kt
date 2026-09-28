@@ -1,6 +1,7 @@
 package io.github.mrtnha.librifin.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -66,3 +67,16 @@ private val DarkColors = darkColorScheme(
 fun LibrifinTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = if (darkTheme) DarkColors else LightColors, content = content)
 }
+
+/** The app's colors on a reader page, in the page's [background] and [text] colors. */
+fun readerColorScheme(dark: Boolean, background: Color, text: Color): ColorScheme =
+    (if (dark) DarkColors else LightColors).copy(
+        background = background,
+        onBackground = text,
+        surface = background,
+        onSurface = text,
+    )
+
+/** The app's dark colors on the reader's bars, in their [background] color. */
+fun readerBarsColorScheme(background: Color): ColorScheme =
+    DarkColors.copy(background = background, surface = background)

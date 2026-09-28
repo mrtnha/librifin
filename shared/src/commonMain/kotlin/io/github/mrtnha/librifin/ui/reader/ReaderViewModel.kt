@@ -10,6 +10,7 @@ import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.UserItemDataDto
 import io.github.mrtnha.librifin.api.toUserMessage
+import io.github.mrtnha.librifin.platform.SettingsStore
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.storage.ReadingPosition
 import io.github.mrtnha.librifin.sync.ProgressSync
@@ -52,6 +53,7 @@ class ReaderViewModel(
     private val jellyfin: JellyfinClient,
     private val bookStore: BookStore,
     private val progressSync: ProgressSync,
+    private val settings: SettingsStore,
     /** Outlives this screen, so the last position is still saved when the reader is left right away. */
     private val appScope: CoroutineScope,
 ) : ViewModel() {
@@ -60,6 +62,12 @@ class ReaderViewModel(
 
     /** App bar and system bars over the book. The book opens full screen; a tap in the middle toggles them. */
     var areBarsVisible by mutableStateOf(false)
+        private set
+
+    /** The page colors, the same for all books and kept between app starts. */
+    var theme by mutableStateOf(
+        ReaderTheme.entries.find { it.name == settings.read(KEY_THEME) } ?: ReaderTheme.DARK,
+    )
         private set
 
     /**
@@ -148,6 +156,12 @@ class ReaderViewModel(
         areBarsVisible = !areBarsVisible
     }
 
+    /** The eye button: the next theme. */
+    fun cycleTheme() {
+        theme = theme.next()
+        settings.write(KEY_THEME, theme.name)
+    }
+
     /** The downloaded file isn't a book we can show. Deleted, so the next attempt gets a fresh copy. */
     fun onOpenFailed(message: String) {
         bookStore.deleteBook(bookId)
@@ -226,5 +240,7 @@ class ReaderViewModel(
     private companion object {
         /** Asking Jellyfin must not keep a downloaded book from opening offline for long. */
         const val SERVER_POSITION_TIMEOUT_MS = 2_000L
+
+        const val KEY_THEME = "reader_theme"
     }
 }

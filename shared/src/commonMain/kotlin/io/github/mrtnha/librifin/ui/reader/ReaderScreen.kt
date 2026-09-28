@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
@@ -43,6 +44,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
+import io.github.mrtnha.librifin.ui.theme.readerBarsColorScheme
+import io.github.mrtnha.librifin.ui.theme.readerColorScheme
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
@@ -57,7 +60,15 @@ fun ReaderScreen(
     onBack: () -> Unit,
 ) {
     val vm = viewModel {
-        ReaderViewModel(session, bookId, services.jellyfin, services.bookStore, services.progressSync, services.scope)
+        ReaderViewModel(
+            session,
+            bookId,
+            services.jellyfin,
+            services.bookStore,
+            services.progressSync,
+            services.platform.settingsStore,
+            services.scope,
+        )
     }
 
     // Back in the app: the book may have been read further elsewhere meanwhile.
@@ -65,65 +76,82 @@ fun ReaderScreen(
 
     // Full screen only while the book is shown; while loading or on errors the bars stay, so the way back is visible.
     val showBars = vm.state !is ReaderState.Ready || vm.areBarsVisible
-    SystemBarsVisible(showBars)
+    val theme = vm.theme
+    SystemBarsVisible(showBars, darkBackground = theme.bars.luminance() < 0.5f)
+    val barsColors = readerBarsColorScheme(theme.bars)
 
-    Box(Modifier.fillMaxSize()) {
-        when (val state = vm.state) {
-            is ReaderState.Ready -> EpubView(
-                file = state.file,
-                initialLocator = state.startLocator,
-                initialProgress = state.startProgress,
-                jumpToProgress = vm.jumpToProgress,
-                onJumped = vm::onJumped,
-                onReachedEnd = vm::onReachedEnd,
-                onPagesLoaded = vm::onPagesLoaded,
-                onPositionChanged = vm::onPositionChanged,
-                onCenterTap = vm::toggleBars,
-                onOpenFailed = vm::onOpenFailed,
-                modifier = Modifier.fillMaxSize(),
-            )
-            else -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                when (state) {
-                    is ReaderState.Downloading ->
-                        if (state.progress == null) {
-                            CircularProgressIndicator()
-                        } else {
-                            CircularProgressIndicator(progress = { state.progress })
-                        }
-                    is ReaderState.Error -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.message, textAlign = TextAlign.Center)
-                        if (state.canRetry) {
-                            TextButton(onClick = vm::load, modifier = Modifier.padding(top = 8.dp)) { Text("Try again") }
+    // The whole screen in the page's colors, also while loading; the bars stand apart in their own.
+    MaterialTheme(colorScheme = readerColorScheme(theme.isDark, theme.background, theme.text)) {
+        Surface(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize()) {
+                when (val state = vm.state) {
+                    is ReaderState.Ready -> EpubView(
+                        file = state.file,
+                        initialLocator = state.startLocator,
+                        initialProgress = state.startProgress,
+                        theme = theme,
+                        jumpToProgress = vm.jumpToProgress,
+                        onJumped = vm::onJumped,
+                        onReachedEnd = vm::onReachedEnd,
+                        onPagesLoaded = vm::onPagesLoaded,
+                        onPositionChanged = vm::onPositionChanged,
+                        onCenterTap = vm::toggleBars,
+                        onOpenFailed = vm::onOpenFailed,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    else -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                        when (state) {
+                            is ReaderState.Downloading ->
+                                if (state.progress == null) {
+                                    CircularProgressIndicator()
+                                } else {
+                                    CircularProgressIndicator(progress = { state.progress })
+                                }
+                            is ReaderState.Error -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(state.message, textAlign = TextAlign.Center)
+                                if (state.canRetry) {
+                                    TextButton(onClick = vm::load, modifier = Modifier.padding(top = 8.dp)) { Text("Try again") }
+                                }
+                            }
+                            is ReaderState.Ready -> Unit
                         }
                     }
-                    is ReaderState.Ready -> Unit
+                }
+
+                // Along the bottom, with the app bar: drag to move through the whole book.
+                AnimatedVisibility(
+                    visible = showBars && vm.pages.size > 1,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                ) {
+                    MaterialTheme(colorScheme = barsColors) {
+                        PageSlider(pages = vm.pages, currentPage = vm.currentPage, onPageSelected = vm::jumpToPage)
+                    }
+                }
+
+                AnimatedVisibility(visible = showBars, enter = fadeIn(), exit = fadeOut()) {
+                    MaterialTheme(colorScheme = barsColors) {
+                        TopAppBar(
+                            title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            // Reserve room for the status bar even while it's hidden, so the app bar doesn't jump
+                            // down once the status bar has finished appearing.
+                            windowInsets = systemBarsIgnoringVisibility()
+                                .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
+                            navigationIcon = {
+                                IconButton(onClick = onBack) {
+                                    Icon(LibrifinIcons.ArrowBack, contentDescription = "Back")
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = vm::cycleTheme) {
+                                    Icon(LibrifinIcons.Visibility, contentDescription = "Change theme")
+                                }
+                            },
+                        )
+                    }
                 }
             }
-        }
-
-        // Along the bottom, with the app bar: drag to move through the whole book.
-        AnimatedVisibility(
-            visible = showBars && vm.pages.size > 1,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter),
-        ) {
-            PageSlider(pages = vm.pages, currentPage = vm.currentPage, onPageSelected = vm::jumpToPage)
-        }
-
-        AnimatedVisibility(visible = showBars, enter = fadeIn(), exit = fadeOut()) {
-            TopAppBar(
-                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                // Reserve room for the status bar even while it's hidden, so the app bar doesn't jump
-                // down once the status bar has finished appearing.
-                windowInsets = systemBarsIgnoringVisibility()
-                    .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(LibrifinIcons.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
         }
     }
 }

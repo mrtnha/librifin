@@ -24,6 +24,8 @@ class IosPlatform : Platform {
 
     override val sessionStore: SessionStore = IosSessionStore()
 
+    override val settingsStore: SettingsStore = IosSettingsStore()
+
     override val filesDir: String =
         NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true).first() as String
 
