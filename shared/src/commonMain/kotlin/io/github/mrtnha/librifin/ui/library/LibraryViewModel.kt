@@ -170,7 +170,7 @@ class LibraryViewModel(
 
     /**
      * This device's progress where there is one (exact, and newest for books read here), else
-     * Jellyfin's (e.g. read on another device). Finished if either says so.
+     * Jellyfin's (e.g. read on another device). The same for whether it's finished.
      */
     private suspend fun progressOf(books: List<Book>): Map<String, BookProgress> {
         val positions = withContext(Dispatchers.IO) { bookStore.readAllPositions() }
@@ -178,7 +178,7 @@ class LibraryViewModel(
             val local = positions[book.id]
             val progress = BookProgress(
                 fraction = (local?.progress ?: book.serverProgress ?: 0.0).toFloat(),
-                isFinished = local?.isFinished == true || book.isPlayed,
+                isFinished = local?.isFinished ?: book.isPlayed,
             )
             (book.id to progress).takeIf { progress.isFinished || progress.fraction > 0f }
         }.toMap()

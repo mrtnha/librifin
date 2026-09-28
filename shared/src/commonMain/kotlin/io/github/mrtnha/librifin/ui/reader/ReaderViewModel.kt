@@ -126,15 +126,19 @@ class ReaderViewModel(
         // and saving it would overwrite progress made elsewhere meanwhile.
         if (locator == lastLocator) return
         lastLocator = locator
-        val position = ReadingPosition(locator, progress, Clock.System.now().toEpochMilliseconds())
+        val position = ReadingPosition(
+            locator,
+            progress,
+            Clock.System.now().toEpochMilliseconds(),
+            isFinished = progress >= FINISHED_PROGRESS,
+        )
         appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.savePosition(bookId, position) }
         progressSync.schedule(session, bookId)
-        if (progress >= FINISHED_PROGRESS) onReachedEnd()
     }
 
     /**
-     * The last page of the book is shown, or nearly all of it was read (see [FINISHED_PROGRESS]):
-     * it counts as finished, here and in Jellyfin.
+     * The last page of the book is shown: it counts as finished, here and in Jellyfin, also if that's
+     * before [FINISHED_PROGRESS] (a very short book). Paging back makes it unfinished again.
      */
     fun onReachedEnd() {
         appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.markFinished(bookId) }
@@ -265,8 +269,8 @@ class ReaderViewModel(
 
         /**
          * From here on a book counts as finished, even if its last page is never shown: after the story
-         * often come notes, acknowledgements or ads, which many readers skip. Not lower, as finished is
-         * never undone.
+         * often come notes, acknowledgements or ads, which many readers skip. Paging back before it
+         * makes the book unfinished again.
          */
         const val FINISHED_PROGRESS = 0.95
 

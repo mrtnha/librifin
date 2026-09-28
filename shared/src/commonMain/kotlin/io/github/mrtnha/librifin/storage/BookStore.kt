@@ -72,8 +72,8 @@ class BookStore(filesDir: String) {
     }
 
     /**
-     * Saves a newly read [position] (not synced yet). Keeps what Jellyfin had at the last sync, and
-     * whether the book was finished (paging back doesn't undo that).
+     * Saves a newly read [position] (not synced yet). Keeps what Jellyfin had at the last sync.
+     * Whether the book is finished comes with [position]: paging back from the end undoes it.
      * Call with [kotlinx.coroutines.CoroutineStart.UNDISPATCHED] to keep the order of rapid page turns.
      */
     suspend fun savePosition(bookId: String, position: ReadingPosition) = positionLock.withLock {
@@ -83,13 +83,15 @@ class BookStore(filesDir: String) {
             val saved = position.copy(
                 isSynced = false,
                 serverTicks = previous?.serverTicks,
-                isFinished = previous?.isFinished == true,
             )
             writeText(positionFile(bookId), JellyfinClient.json.encodeToString(saved))
         }
     }
 
-    /** The last page was reached. Call like [savePosition]; later positions keep it. */
+    /**
+     * The last page is shown: the current position counts as finished. Call like [savePosition];
+     * the next saved position decides for itself again.
+     */
     suspend fun markFinished(bookId: String) = positionLock.withLock {
         withContext(Dispatchers.IO) {
             val position = readPosition(bookId)
@@ -153,7 +155,7 @@ class BookStore(filesDir: String) {
  *
  * [serverTicks] is the progress Jellyfin had after this device's last sync. If Jellyfin has a
  * different value later, the book was read elsewhere since (e.g. in Jellyfin's web reader).
- * [isFinished]: the last page, or 95 % of the book, was reached at some point.
+ * [isFinished]: this position is at the end of the book: its last page, or 95 % of it.
  */
 @Serializable
 data class ReadingPosition(
