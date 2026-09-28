@@ -29,3 +29,7 @@ Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+
+### Credits
+
+Some icons are [Material Symbols](https://fonts.google.com/icons) by Google, licensed under the Apache License 2.0.

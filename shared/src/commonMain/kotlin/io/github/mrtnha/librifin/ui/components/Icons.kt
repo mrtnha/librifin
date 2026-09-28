@@ -9,7 +9,10 @@ import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
-/** Thin outline icons drawn in code, so we don't need an icon library. Tint them via `Icon(tint = …)`. */
+/**
+ * Icons drawn in code, so we don't need an icon library. Tint them via `Icon(tint = …)`.
+ * Most are our own outline drawings; [Logout] is a Material Symbol by Google (Apache-2.0).
+ */
 object LibrifinIcons {
     /** Standard "back" arrow for the top bar. */
     val ArrowBack: ImageVector by lazy {
@@ -20,6 +23,45 @@ object LibrifinIcons {
             lineTo(5f, 12f)
             lineTo(11f, 18f)
         }
+    }
+
+    /** "logout" from Material Symbols Outlined (weight 400), by Google, Apache-2.0. A filled shape, not a stroke. */
+    val Logout: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Logout",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).path(fill = SolidColor(Color.Black)) {
+            // Door frame
+            moveTo(5f, 21f)
+            quadTo(4.18f, 21f, 3.59f, 20.41f)
+            reflectiveQuadTo(3f, 19f)
+            verticalLineTo(5f)
+            quadTo(3f, 4.17f, 3.59f, 3.59f)
+            reflectiveQuadTo(5f, 3f)
+            horizontalLineToRelative(7f)
+            verticalLineTo(5f)
+            horizontalLineTo(5f)
+            verticalLineTo(19f)
+            horizontalLineToRelative(7f)
+            verticalLineToRelative(2f)
+            horizontalLineTo(5f)
+            close()
+            // Arrow pointing out
+            moveTo(16f, 17f)
+            lineTo(14.63f, 15.55f)
+            lineTo(17.18f, 13f)
+            horizontalLineTo(9f)
+            verticalLineTo(11f)
+            horizontalLineToRelative(8.18f)
+            lineTo(14.63f, 8.45f)
+            lineTo(16f, 7f)
+            lineToRelative(5f, 5f)
+            lineToRelative(-5f, 5f)
+            close()
+        }.build()
     }
 
     /** Magnifying glass. */
