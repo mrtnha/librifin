@@ -1,0 +1,32 @@
+package io.github.mrtnha.librifin.platform
+
+import kotlinx.coroutines.flow.Flow
+
+/** Everything the shared code needs from the operating system. Implemented once per platform. */
+interface Platform {
+    /** Human-readable device name, shown in the Jellyfin dashboard. */
+    val deviceName: String
+
+    /** Random id generated on first launch and kept for the lifetime of the installation. */
+    val deviceId: String
+
+    val appVersion: String
+
+    /** Local network server discovery, or null if the platform doesn't support it (yet). */
+    val serverDiscovery: ServerDiscovery?
+}
+
+/**
+ * Jellyfin UDP server discovery (https://jellyfin.org/docs/general/networking/).
+ * Implementations broadcast [MESSAGE] to [PORT] repeatedly and emit the raw text of every reply,
+ * until the collecting coroutine is cancelled.
+ */
+interface ServerDiscovery {
+    fun replies(): Flow<String>
+
+    companion object {
+        const val MESSAGE = "Who is JellyfinServer?"
+        const val PORT = 7359
+        const val RESEND_INTERVAL_MS = 1_500L
+    }
+}

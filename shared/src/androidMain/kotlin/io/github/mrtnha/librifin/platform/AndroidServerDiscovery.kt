@@ -1,0 +1,83 @@
+package io.github.mrtnha.librifin.platform
+
+import android.content.Context
+import android.net.wifi.WifiManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import java.io.IOException
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.net.NetworkInterface
+import java.net.SocketTimeoutException
+
+/**
+ * Sends the discovery message as UDP broadcast every [ServerDiscovery.RESEND_INTERVAL_MS]
+ * (UDP is unreliable and servers may come online later) and emits every reply.
+ */
+internal class AndroidServerDiscovery(private val context: Context) : ServerDiscovery {
+
+    override fun replies(): Flow<String> = flow {
+        val wifi = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        // Some devices filter broadcast traffic while the screen is on Wi-Fi power save.
+        val lock = wifi?.createMulticastLock("librifin-discovery")?.apply {
+            setReferenceCounted(false)
+            acquire()
+        }
+        val socket = DatagramSocket().apply {
+            broadcast = true
+            soTimeout = RECEIVE_TIMEOUT_MS // lets us check for cancellation and resend regularly
+        }
+        try {
+            val message = ServerDiscovery.MESSAGE.encodeToByteArray()
+            val buffer = ByteArray(4096)
+            var nextSendAt = 0L
+            while (true) {
+                currentCoroutineContext().ensureActive()
+                val now = System.currentTimeMillis()
+                if (now >= nextSendAt) {
+                    for (address in broadcastAddresses()) {
+                        try {
+                            socket.send(DatagramPacket(message, message.size, address, ServerDiscovery.PORT))
+                        } catch (_: IOException) {
+                            // Interface went away or isn't routable; try the others.
+                        }
+                    }
+                    nextSendAt = now + ServerDiscovery.RESEND_INTERVAL_MS
+                }
+                val packet = DatagramPacket(buffer, buffer.size)
+                try {
+                    socket.receive(packet)
+                } catch (_: SocketTimeoutException) {
+                    continue
+                }
+                emit(String(packet.data, packet.offset, packet.length, Charsets.UTF_8))
+            }
+        } finally {
+            socket.close()
+            lock?.release()
+        }
+    }.flowOn(Dispatchers.IO)
+
+    /** The global broadcast address plus the broadcast address of every active IPv4 interface. */
+    private fun broadcastAddresses(): Set<InetAddress> {
+        val result = linkedSetOf(InetAddress.getByName("255.255.255.255"))
+        try {
+            NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
+                .filter { it.isUp && !it.isLoopback }
+                .flatMap { it.interfaceAddresses }
+                .mapNotNullTo(result) { it.broadcast }
+        } catch (_: IOException) {
+            // Fall back to the global broadcast address only.
+        }
+        return result
+    }
+
+    private companion object {
+        const val RECEIVE_TIMEOUT_MS = 250
+    }
+}
