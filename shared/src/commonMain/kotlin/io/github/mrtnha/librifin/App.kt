@@ -22,6 +22,7 @@ import io.github.mrtnha.librifin.navigation.Screen
 import io.github.mrtnha.librifin.platform.Platform
 import io.github.mrtnha.librifin.ui.library.LibraryScreen
 import io.github.mrtnha.librifin.ui.login.LoginScreen
+import io.github.mrtnha.librifin.ui.reader.ReaderScreen
 import io.github.mrtnha.librifin.ui.server.ServerSelectionScreen
 import io.github.mrtnha.librifin.ui.theme.LibrifinTheme
 import io.github.mrtnha.librifin.ui.welcome.WelcomeScreen
@@ -91,6 +92,13 @@ fun App(platform: Platform) {
                                     Screen.Login(screen.session.server, screen.session.userName),
                                 )
                             },
+                            onBookClick = { book ->
+                                navigator.push(Screen.Reader(screen.session, book.id, book.title))
+                            },
+                        )
+                        is Screen.Reader -> ReaderScreen(
+                            title = screen.title,
+                            onBack = navigator::pop,
                         )
                     }
                 }

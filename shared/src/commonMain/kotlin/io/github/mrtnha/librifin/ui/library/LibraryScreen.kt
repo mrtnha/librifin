@@ -1,6 +1,7 @@
 package io.github.mrtnha.librifin.ui.library
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ fun LibraryScreen(
     services: AppServices,
     onLoggedOut: () -> Unit,
     onSessionExpired: () -> Unit,
+    onBookClick: (Book) -> Unit,
 ) {
     val vm = viewModel { LibraryViewModel(session, services.jellyfin) }
 
@@ -75,7 +77,7 @@ fun LibraryScreen(
                         Message(state.message, actionLabel = "Try again", onAction = vm::load)
                     }
                 is LibraryState.Loaded ->
-                    if (state.books.isEmpty()) Message("No books yet.") else BookGrid(state.books)
+                    if (state.books.isEmpty()) Message("No books yet.") else BookGrid(state.books, onBookClick)
             }
         }
     }
@@ -92,7 +94,7 @@ fun LibraryScreen(
 }
 
 @Composable
-private fun BookGrid(books: List<Book>) {
+private fun BookGrid(books: List<Book>, onBookClick: (Book) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
@@ -101,14 +103,14 @@ private fun BookGrid(books: List<Book>) {
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         items(books, key = { it.id }) { book ->
-            BookItem(book)
+            BookItem(book, onClick = { onBookClick(book) })
         }
     }
 }
 
 @Composable
-private fun BookItem(book: Book) {
-    Column {
+private fun BookItem(book: Book, onClick: () -> Unit) {
+    Column(Modifier.clickable(onClick = onClick)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()

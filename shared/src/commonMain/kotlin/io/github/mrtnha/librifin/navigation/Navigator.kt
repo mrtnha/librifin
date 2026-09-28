@@ -17,6 +17,7 @@ sealed interface Screen {
     /** [username] prefills the form, e.g. when the saved session has expired. */
     data class Login(val server: Server, val username: String = "") : Screen
     data class Library(val session: Session) : Screen
+    data class Reader(val session: Session, val bookId: String, val title: String) : Screen
 }
 
 /**
