@@ -67,6 +67,11 @@ class JellyfinClient(private val platform: Platform) {
         return "$baseUrl/Items/${item.id}/Images/Primary?tag=$tag&maxWidth=$maxWidth&quality=90"
     }
 
+    /** Ends the session on the server, which invalidates the access token. */
+    suspend fun logout(session: Session) {
+        http.post("${session.server.baseUrl}/Sessions/Logout") { authorize(session.accessToken) }
+    }
+
     fun close() = http.close()
 
     private fun HttpRequestBuilder.authorize(token: String?) {

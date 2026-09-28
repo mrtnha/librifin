@@ -40,7 +40,7 @@ import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LibraryScreen(session: Session, services: AppServices) {
+fun LibraryScreen(session: Session, services: AppServices, onLoggedOut: () -> Unit) {
     val vm = viewModel { LibraryViewModel(session, services.jellyfin) }
 
     Scaffold(
@@ -48,11 +48,11 @@ fun LibraryScreen(session: Session, services: AppServices) {
             TopAppBar(
                 title = { Text("Librifin", fontWeight = FontWeight.SemiBold) },
                 actions = {
-                    // Not wired up yet: search and the profile sheet come in later steps.
+                    // Search isn't wired up yet.
                     IconButton(onClick = {}) {
                         Icon(LibrifinIcons.Search, contentDescription = "Search books")
                     }
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = { vm.isProfileSheetOpen = true }) {
                         Icon(LibrifinIcons.Profile, contentDescription = "Profile")
                     }
                 },
@@ -68,6 +68,15 @@ fun LibraryScreen(session: Session, services: AppServices) {
                     if (state.books.isEmpty()) Message("No books yet.") else BookGrid(state.books)
             }
         }
+    }
+
+    if (vm.isProfileSheetOpen) {
+        ProfileSheet(
+            session = session,
+            isLoggingOut = vm.isLoggingOut,
+            onLogout = { vm.logout(onLoggedOut) },
+            onDismiss = { vm.isProfileSheetOpen = false },
+        )
     }
 }
 

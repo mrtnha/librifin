@@ -11,6 +11,7 @@ import io.github.mrtnha.librifin.api.toUserMessage
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** What the grid shows for one book. */
 data class Book(val id: String, val title: String, val coverUrl: String?)
@@ -29,8 +30,31 @@ class LibraryViewModel(
     var state by mutableStateOf<LibraryState>(LibraryState.Loading)
         private set
 
+    var isProfileSheetOpen by mutableStateOf(false)
+    var isLoggingOut by mutableStateOf(false)
+        private set
+
     init {
         load()
+    }
+
+    /**
+     * Tells the server to end the session, then calls [onLoggedOut]. If the server can't be
+     * reached, the user is still logged out locally: the token is simply forgotten.
+     */
+    fun logout(onLoggedOut: () -> Unit) {
+        if (isLoggingOut) return
+        isLoggingOut = true
+        viewModelScope.launch {
+            try {
+                withTimeoutOrNull(LOGOUT_TIMEOUT_MS) { jellyfin.logout(session) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Server unreachable or token already invalid: nothing left to end on the server.
+            }
+            onLoggedOut()
+        }
     }
 
     fun load() {
@@ -70,5 +94,6 @@ class LibraryViewModel(
     private companion object {
         /** Half the width of a large phone screen in pixels, so covers stay sharp in a two-column grid. */
         const val COVER_MAX_WIDTH = 600
+        const val LOGOUT_TIMEOUT_MS = 5_000L
     }
 }

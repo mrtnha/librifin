@@ -69,7 +69,11 @@ fun App(platform: Platform) {
                             onBack = navigator::pop,
                             onLoggedIn = { navigator.replaceAll(Screen.Library(it)) },
                         )
-                        is Screen.Library -> LibraryScreen(session = screen.session, services = services)
+                        is Screen.Library -> LibraryScreen(
+                            session = screen.session,
+                            services = services,
+                            onLoggedOut = { navigator.replaceAll(Screen.Welcome) },
+                        )
                     }
                 }
             }
