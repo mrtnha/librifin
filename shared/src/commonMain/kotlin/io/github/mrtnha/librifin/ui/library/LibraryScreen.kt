@@ -21,13 +21,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +47,7 @@ import coil3.compose.AsyncImage
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,9 +58,30 @@ fun LibraryScreen(
     onSessionExpired: () -> Unit,
     onBookClick: (Book) -> Unit,
 ) {
-    val vm = viewModel { LibraryViewModel(session, services.jellyfin) }
+    val vm = viewModel { LibraryViewModel(session, services.jellyfin, services.bookStore) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Offline, a book that isn't downloaded can't be opened: say why, and offer to reconnect.
+    fun explainNotDownloaded() {
+        scope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                message = "This book isn't downloaded yet. Connect to your Jellyfin server to read it.",
+                actionLabel = "Try again",
+                duration = SnackbarDuration.Long,
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                vm.load().join()
+                if ((vm.state as? LibraryState.Loaded)?.isOffline == true) {
+                    snackbarHostState.showSnackbar("Still can't reach your Jellyfin server.")
+                }
+            }
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Librifin", fontWeight = FontWeight.SemiBold) },
@@ -77,7 +108,15 @@ fun LibraryScreen(
                         Message(state.message, actionLabel = "Try again", onAction = vm::load)
                     }
                 is LibraryState.Loaded ->
-                    if (state.books.isEmpty()) Message("No books yet.") else BookGrid(state.books, onBookClick)
+                    if (state.books.isEmpty()) {
+                        Message("No books yet.")
+                    } else {
+                        BookGrid(
+                            books = state.books,
+                            canOpen = state::canOpen,
+                            onBookClick = { book -> if (state.canOpen(book)) onBookClick(book) else explainNotDownloaded() },
+                        )
+                    }
             }
         }
     }
@@ -94,7 +133,7 @@ fun LibraryScreen(
 }
 
 @Composable
-private fun BookGrid(books: List<Book>, onBookClick: (Book) -> Unit) {
+private fun BookGrid(books: List<Book>, canOpen: (Book) -> Boolean, onBookClick: (Book) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
@@ -103,14 +142,15 @@ private fun BookGrid(books: List<Book>, onBookClick: (Book) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         items(books, key = { it.id }) { book ->
-            BookItem(book, onClick = { onBookClick(book) })
+            BookItem(book, isDimmed = !canOpen(book), onClick = { onBookClick(book) })
         }
     }
 }
 
 @Composable
-private fun BookItem(book: Book, onClick: () -> Unit) {
-    Column(Modifier.clickable(onClick = onClick)) {
+private fun BookItem(book: Book, isDimmed: Boolean, onClick: () -> Unit) {
+    // Books that can't be opened right now (offline, not downloaded) are shown faded and in grey.
+    Column(Modifier.clickable(onClick = onClick).alpha(if (isDimmed) DIMMED_ALPHA else 1f)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -131,6 +171,7 @@ private fun BookItem(book: Book, onClick: () -> Unit) {
                     model = book.coverUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    colorFilter = if (isDimmed) grayscale else null,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -154,3 +195,6 @@ private fun Message(text: String, actionLabel: String? = null, onAction: (() -> 
         }
     }
 }
+
+private const val DIMMED_ALPHA = 0.45f
+private val grayscale = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })

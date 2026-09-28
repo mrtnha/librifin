@@ -8,9 +8,14 @@ import androidx.lifecycle.viewModelScope
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.toUserMessage
+import io.github.mrtnha.librifin.storage.BookStore
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 
@@ -21,7 +26,17 @@ data class Book(val id: String, val title: String, val coverUrl: String?)
 sealed interface LibraryState {
     data object Loading : LibraryState
     data object NoBookLibrary : LibraryState
-    data class Loaded(val books: List<Book>) : LibraryState
+    /**
+     * [isOffline]: the server can't be reached, so this is the saved list and only the books in
+     * [downloadedIds] can be opened.
+     */
+    data class Loaded(
+        val books: List<Book>,
+        val isOffline: Boolean = false,
+        val downloadedIds: Set<String> = emptySet(),
+    ) : LibraryState {
+        fun canOpen(book: Book) = !isOffline || book.id in downloadedIds
+    }
     /** [isSessionExpired]: the server no longer accepts the token, so retrying won't help. */
     data class Error(val message: String, val isSessionExpired: Boolean = false) : LibraryState
 }
@@ -29,6 +44,7 @@ sealed interface LibraryState {
 class LibraryViewModel(
     private val session: Session,
     private val jellyfin: JellyfinClient,
+    private val bookStore: BookStore,
 ) : ViewModel() {
     var state by mutableStateOf<LibraryState>(LibraryState.Loading)
         private set
@@ -36,6 +52,8 @@ class LibraryViewModel(
     var isProfileSheetOpen by mutableStateOf(false)
     var isLoggingOut by mutableStateOf(false)
         private set
+
+    private var loadJob: Job? = null
 
     init {
         load()
@@ -60,38 +78,51 @@ class LibraryViewModel(
         }
     }
 
-    fun load() {
-        state = LibraryState.Loading
-        viewModelScope.launch {
+    /**
+     * Loads the books from the server. The saved list is shown meanwhile, and stays when the server
+     * can't be reached: then only the downloaded books can be opened.
+     */
+    fun load(): Job {
+        loadJob?.cancel()
+        return viewModelScope.launch {
+            if (state !is LibraryState.Loaded) {
+                state = withContext(Dispatchers.IO) { bookStore.readLibrary(session) }
+                    ?.let { LibraryState.Loaded(it) }
+                    ?: LibraryState.Loading
+            }
+            val saved = (state as? LibraryState.Loaded)?.books
             state = try {
                 val libraries = jellyfin.userViews(session).filter { it.collectionType == "books" }
                 if (libraries.isEmpty()) {
                     LibraryState.NoBookLibrary
                 } else {
                     // Usually one book library; if there are several, show all their books.
-                    val books = libraries.flatMap { jellyfin.books(session, it.id) }
-                    LibraryState.Loaded(
-                        books.map { item ->
-                            Book(
-                                id = item.id,
-                                title = item.name ?: "Untitled",
-                                coverUrl = jellyfin.primaryImageUrl(session.server.baseUrl, item, COVER_MAX_WIDTH),
-                            )
-                        },
-                    )
+                    val books = libraries.flatMap { jellyfin.books(session, it.id) }.map { item ->
+                        Book(
+                            id = item.id,
+                            title = item.name ?: "Untitled",
+                            coverUrl = jellyfin.primaryImageUrl(session.server.baseUrl, item, COVER_MAX_WIDTH),
+                        )
+                    }
+                    withContext(Dispatchers.IO) { bookStore.saveLibrary(session, books) }
+                    LibraryState.Loaded(books)
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: ClientRequestException) {
-                if (e.response.status.value == 401) {
-                    LibraryState.Error("Your session has expired. Please log in again.", isSessionExpired = true)
-                } else {
-                    LibraryState.Error(e.toUserMessage())
-                }
             } catch (e: Exception) {
-                LibraryState.Error(e.toUserMessage())
+                when {
+                    (e as? ClientRequestException)?.response?.status?.value == 401 ->
+                        LibraryState.Error("Your session has expired. Please log in again.", isSessionExpired = true)
+                    saved != null -> {
+                        val downloaded = withContext(Dispatchers.IO) {
+                            saved.filter { bookStore.isDownloaded(it.id) }.mapTo(HashSet()) { it.id }
+                        }
+                        LibraryState.Loaded(saved, isOffline = true, downloadedIds = downloaded)
+                    }
+                    else -> LibraryState.Error(e.toUserMessage())
+                }
             }
-        }
+        }.also { loadJob = it }
     }
 
     private companion object {
