@@ -97,7 +97,10 @@ fun App(platform: Platform) {
                             },
                         )
                         is Screen.Reader -> ReaderScreen(
+                            session = screen.session,
+                            bookId = screen.bookId,
                             title = screen.title,
+                            services = services,
                             onBack = navigator::pop,
                         )
                     }

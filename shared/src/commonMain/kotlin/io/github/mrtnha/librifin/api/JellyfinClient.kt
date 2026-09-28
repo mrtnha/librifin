@@ -4,18 +4,27 @@ import io.github.mrtnha.librifin.platform.Platform
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.HttpTimeoutConfig
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.prepareGet
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.contentLength
 import io.ktor.http.contentType
 import io.ktor.http.encodeURLParameter
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.utils.io.readAvailable
+import kotlinx.io.buffered
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
 import kotlinx.serialization.json.Json
 
 /** Thin wrapper around the Jellyfin REST API. All calls take the server's base URL explicitly. */
@@ -61,6 +70,40 @@ class JellyfinClient(private val platform: Platform) {
             parameter("fields", "PrimaryImageAspectRatio")
         }.body<BaseItemDtoQueryResult>().items
 
+    /**
+     * Downloads the original file of a book to [target], streamed in chunks so large books never sit in memory.
+     * [onProgress] gets the bytes written so far and the total size, if the server sends it.
+     */
+    suspend fun downloadBook(
+        session: Session,
+        itemId: String,
+        target: Path,
+        onProgress: (bytesRead: Long, totalBytes: Long?) -> Unit,
+    ) {
+        http.prepareGet("${session.server.baseUrl}/Items/$itemId/Download") {
+            authorize(session.accessToken)
+            // Big books take longer than the usual request timeout; only give up if the connection stalls.
+            timeout {
+                requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS
+                socketTimeoutMillis = 15_000
+            }
+        }.execute { response ->
+            val totalBytes = response.contentLength()
+            val channel = response.bodyAsChannel()
+            val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
+            var bytesRead = 0L
+            SystemFileSystem.sink(target).buffered().use { sink ->
+                while (true) {
+                    val count = channel.readAvailable(buffer)
+                    if (count == -1) break
+                    sink.write(buffer, 0, count)
+                    bytesRead += count
+                    onProgress(bytesRead, totalBytes)
+                }
+            }
+        }
+    }
+
     /** Cover URL, or null if the item has no cover. The tag changes when the image does, so it's safe to cache. */
     fun primaryImageUrl(baseUrl: String, item: BaseItemDto, maxWidth: Int): String? {
         val tag = item.imageTags?.get("Primary") ?: return null
@@ -100,6 +143,7 @@ class JellyfinClient(private val platform: Platform) {
 
     companion object {
         const val CLIENT_NAME = "Librifin"
+        private const val DOWNLOAD_BUFFER_SIZE = 64 * 1024
 
         val json = Json {
             ignoreUnknownKeys = true
