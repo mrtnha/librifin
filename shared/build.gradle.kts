@@ -27,17 +27,7 @@ kotlin {
        compilerOptions {
            jvmTarget = JvmTarget.JVM_11
        }
-       androidResources {
-           enable = true
-       }
-       withHostTest {
-           isIncludeAndroidResources = true
-       }
-       withDeviceTestBuilder {
-           sourceSetTreeName = "test"
-       }.configure {
-           instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-       }
+       withHostTest {}
     }
     
     sourceSets {
