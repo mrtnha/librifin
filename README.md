@@ -32,4 +32,4 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 
 ### Credits
 
-Some icons are [Material Symbols](https://fonts.google.com/icons) by Google, licensed under the Apache License 2.0.
+The icons are [Material Symbols](https://fonts.google.com/icons) by Google, licensed under the Apache License 2.0.

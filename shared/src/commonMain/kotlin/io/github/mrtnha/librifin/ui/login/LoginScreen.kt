@@ -31,6 +31,7 @@ import io.github.mrtnha.librifin.api.Server
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.ui.components.FlowScaffold
 import io.github.mrtnha.librifin.ui.components.HugeButton
+import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 
 @Composable
 fun LoginScreen(
@@ -81,7 +82,7 @@ fun LoginScreen(
             if (vm.isLoggingIn) {
                 CircularProgressIndicator(Modifier.padding(vertical = 18.dp).size(32.dp))
             } else {
-                HugeButton(text = "Log in", onClick = submit)
+                HugeButton(text = "Log in", icon = LibrifinIcons.Login, onClick = submit)
             }
         }
         Spacer(Modifier.height(24.dp))
