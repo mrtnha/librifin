@@ -173,7 +173,7 @@ class LibraryViewModel(
      * Jellyfin's (e.g. read on another device). The same for whether it's finished.
      */
     private suspend fun progressOf(books: List<Book>): Map<String, BookProgress> {
-        val positions = withContext(Dispatchers.IO) { bookStore.readAllPositions() }
+        val positions = withContext(Dispatchers.IO) { bookStore.readAllPositions(session) }
         return books.mapNotNull { book ->
             val local = positions[book.id]
             val progress = BookProgress(

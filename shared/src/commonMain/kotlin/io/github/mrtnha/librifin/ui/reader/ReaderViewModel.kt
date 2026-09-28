@@ -108,7 +108,7 @@ class ReaderViewModel(
             state = try {
                 val local = withContext(Dispatchers.IO) {
                     downloadIfMissing()
-                    bookStore.readPosition(bookId)
+                    bookStore.readPosition(session, bookId)
                 }
                 readyState(local, serverUserData())
             } catch (e: CancellationException) {
@@ -132,7 +132,7 @@ class ReaderViewModel(
             Clock.System.now().toEpochMilliseconds(),
             isFinished = progress >= FINISHED_PROGRESS,
         )
-        appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.savePosition(bookId, position) }
+        appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.savePosition(session, bookId, position) }
         progressSync.schedule(session, bookId)
     }
 
@@ -141,7 +141,7 @@ class ReaderViewModel(
      * before [FINISHED_PROGRESS] (a very short book). Paging back makes it unfinished again.
      */
     fun onReachedEnd() {
-        appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.markFinished(bookId) }
+        appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.markFinished(session, bookId) }
         progressSync.schedule(session, bookId)
     }
 
@@ -150,7 +150,7 @@ class ReaderViewModel(
         if (state !is ReaderState.Ready || serverCheck?.isActive == true) return
         serverCheck = viewModelScope.launch {
             val server = serverUserData() ?: return@launch
-            jumpToProgress = serverProgressIfReadElsewhere(bookStore.currentPosition(bookId), server) ?: return@launch
+            jumpToProgress = serverProgressIfReadElsewhere(bookStore.currentPosition(session, bookId), server) ?: return@launch
         }
     }
 

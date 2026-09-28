@@ -55,12 +55,12 @@ class ProgressSync(
     /** Sends the progress that couldn't be sent before, e.g. because the server wasn't reachable. */
     fun sendUnsynced(session: Session) {
         scope.launch {
-            withContext(Dispatchers.IO) { bookStore.unsyncedBookIds() }.forEach { send(session, it) }
+            withContext(Dispatchers.IO) { bookStore.unsyncedBookIds(session) }.forEach { send(session, it) }
         }
     }
 
     private suspend fun send(session: Session, bookId: String) {
-        val position = bookStore.currentPosition(bookId) ?: return
+        val position = bookStore.currentPosition(session, bookId) ?: return
         if (position.isSynced) return
         val ticks = (position.progress * BOOK_PROGRESS_TICKS).roundToLong()
         try {
@@ -74,7 +74,7 @@ class ProgressSync(
                     played = position.isFinished,
                 ),
             )
-            bookStore.markSynced(bookId, position, serverTicks = ticks)
+            bookStore.markSynced(session, bookId, position, serverTicks = ticks)
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
