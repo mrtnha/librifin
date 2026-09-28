@@ -14,6 +14,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.request.crossfade
 import io.github.mrtnha.librifin.navigation.Navigator
 import io.github.mrtnha.librifin.navigation.Screen
 import io.github.mrtnha.librifin.platform.Platform
@@ -25,6 +28,11 @@ import io.github.mrtnha.librifin.ui.welcome.WelcomeScreen
 
 @Composable
 fun App(platform: Platform) {
+    // Covers are loaded with Coil over Ktor (coil-network-ktor3 registers itself); fade them in.
+    setSingletonImageLoaderFactory { context ->
+        ImageLoader.Builder(context).crossfade(true).build()
+    }
+
     LibrifinTheme {
         val services = viewModel { AppServices(platform) }
         val navigator = viewModel { Navigator(Screen.Welcome) }
@@ -61,7 +69,7 @@ fun App(platform: Platform) {
                             onBack = navigator::pop,
                             onLoggedIn = { navigator.replaceAll(Screen.Library(it)) },
                         )
-                        is Screen.Library -> LibraryScreen(session = screen.session)
+                        is Screen.Library -> LibraryScreen(session = screen.session, services = services)
                     }
                 }
             }

@@ -32,6 +32,22 @@ data class UserDto(
     @SerialName("Name") val name: String? = null,
 )
 
+/** A library (from /UserViews) or a book (from /Items). */
+@Serializable
+data class BaseItemDto(
+    @SerialName("Id") val id: String,
+    @SerialName("Name") val name: String? = null,
+    @SerialName("CollectionType") val collectionType: String? = null,
+    @SerialName("ImageTags") val imageTags: Map<String, String?>? = null,
+    @SerialName("PrimaryImageAspectRatio") val primaryImageAspectRatio: Double? = null,
+)
+
+@Serializable
+data class BaseItemDtoQueryResult(
+    @SerialName("Items") val items: List<BaseItemDto> = emptyList(),
+    @SerialName("TotalRecordCount") val totalRecordCount: Int = 0,
+)
+
 /** Reply to a UDP discovery broadcast. */
 @Serializable
 data class DiscoveryResponse(

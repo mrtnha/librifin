@@ -22,13 +22,29 @@ object LibrifinIcons {
         }
     }
 
+    /** Magnifying glass. */
+    val Search: ImageVector by lazy {
+        outlineIcon("Search", strokeWidth = 2f) {
+            circle(cx = 10.5f, cy = 10.5f, r = 6.5f)
+            moveTo(15.5f, 15.5f)
+            lineTo(20f, 20f)
+        }
+    }
+
+    /** Head and shoulders. */
+    val Profile: ImageVector by lazy {
+        outlineIcon("Profile", strokeWidth = 2f) {
+            circle(cx = 12f, cy = 8f, r = 4f)
+            moveTo(4.5f, 20f)
+            curveTo(4.5f, 16.5f, 7.8f, 14f, 12f, 14f)
+            curveTo(16.2f, 14f, 19.5f, 16.5f, 19.5f, 20f)
+        }
+    }
+
     /** Circle with an "i". */
     val Info: ImageVector by lazy {
         outlineIcon("Info") {
-            // Circle of radius 9 around (12, 12), drawn as two arcs.
-            moveTo(3f, 12f)
-            arcTo(9f, 9f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 21f, y1 = 12f)
-            arcTo(9f, 9f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 3f, y1 = 12f)
+            circle(cx = 12f, cy = 12f, r = 9f)
             moveTo(12f, 11f)
             lineTo(12f, 16.5f)
             moveTo(12f, 7.75f)
@@ -53,6 +69,13 @@ object LibrifinIcons {
             moveTo(12f, 6.5f)
             lineTo(12f, 19.7f)
         }
+    }
+
+    /** Full circle, drawn as two half arcs. */
+    private fun PathBuilder.circle(cx: Float, cy: Float, r: Float) {
+        moveTo(cx - r, cy)
+        arcTo(r, r, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = cx + r, y1 = cy)
+        arcTo(r, r, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = cx - r, y1 = cy)
     }
 
     /** A 24×24 icon made of rounded strokes. */

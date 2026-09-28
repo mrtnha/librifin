@@ -8,6 +8,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -39,6 +40,32 @@ class JellyfinClient(private val platform: Platform) {
             contentType(ContentType.Application.Json)
             setBody(AuthenticateUserByName(username, password))
         }.body()
+
+    /** The user's libraries (movies, music, books, …). */
+    suspend fun userViews(session: Session): List<BaseItemDto> =
+        http.get("${session.server.baseUrl}/UserViews") {
+            authorize(session.accessToken)
+            parameter("userId", session.userId)
+        }.body<BaseItemDtoQueryResult>().items
+
+    /** All books in a library, most recently read first, then by title. */
+    suspend fun books(session: Session, libraryId: String): List<BaseItemDto> =
+        http.get("${session.server.baseUrl}/Items") {
+            authorize(session.accessToken)
+            parameter("userId", session.userId)
+            parameter("parentId", libraryId)
+            parameter("includeItemTypes", "Book")
+            parameter("recursive", true)
+            parameter("sortBy", "DatePlayed,SortName")
+            parameter("sortOrder", "Descending,Ascending")
+            parameter("fields", "PrimaryImageAspectRatio")
+        }.body<BaseItemDtoQueryResult>().items
+
+    /** Cover URL, or null if the item has no cover. The tag changes when the image does, so it's safe to cache. */
+    fun primaryImageUrl(baseUrl: String, item: BaseItemDto, maxWidth: Int): String? {
+        val tag = item.imageTags?.get("Primary") ?: return null
+        return "$baseUrl/Items/${item.id}/Images/Primary?tag=$tag&maxWidth=$maxWidth&quality=90"
+    }
 
     fun close() = http.close()
 
