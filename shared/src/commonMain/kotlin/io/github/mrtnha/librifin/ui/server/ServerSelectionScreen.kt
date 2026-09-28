@@ -71,7 +71,7 @@ fun ServerSelectionScreen(
             }
             if (!vm.isManualEntryVisible) {
                 TextButton(onClick = vm::showManualEntry, modifier = Modifier.padding(top = 4.dp)) {
-                    Text("Server not listed? Click here to enter its address")
+                    Text("Server not listed? Click here to enter its address.")
                 }
             }
         }

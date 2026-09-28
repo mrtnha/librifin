@@ -20,13 +20,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Large call-to-action button with a tinted background, an accent-colored icon and big text. */
+/** Large call-to-action button with a tinted background, big text and an optional accent-colored icon. */
 @Composable
 fun HugeButton(
     text: String,
-    icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
     enabled: Boolean = true,
 ) {
     val accent = MaterialTheme.colorScheme.primary
@@ -47,8 +47,10 @@ fun HugeButton(
             disabledContentColor = content.copy(alpha = 0.5f),
         ),
     ) {
-        Icon(icon, contentDescription = null, tint = if (enabled) accent else accent.copy(alpha = 0.5f), modifier = Modifier.size(28.dp))
-        Spacer(Modifier.width(12.dp))
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = if (enabled) accent else accent.copy(alpha = 0.5f), modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(12.dp))
+        }
         Text(text, fontSize = 20.sp, fontWeight = FontWeight.Medium)
     }
 }

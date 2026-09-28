@@ -56,7 +56,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(80.dp))
-        HugeButton(text = "Get started", icon = LibrifinIcons.Book, onClick = onGetStarted)
+        HugeButton(text = "Get started", onClick = onGetStarted)
         Spacer(Modifier.height(24.dp))
     }
 }
