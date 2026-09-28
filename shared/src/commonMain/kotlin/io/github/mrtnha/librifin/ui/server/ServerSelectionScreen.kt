@@ -1,6 +1,8 @@
 package io.github.mrtnha.librifin.ui.server
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -69,12 +71,13 @@ fun ServerSelectionScreen(
             }
             if (!vm.isManualEntryVisible) {
                 TextButton(onClick = vm::showManualEntry, modifier = Modifier.padding(top = 4.dp)) {
-                    Text("Server not listed? Enter its address")
+                    Text("Server not listed? Click here to enter its address")
                 }
             }
         }
 
-        AnimatedVisibility(visible = vm.isManualEntryVisible) {
+        // Fades in where the link was, instead of sliding open.
+        AnimatedVisibility(visible = vm.isManualEntryVisible, enter = fadeIn(), exit = fadeOut()) {
             ManualEntry(vm, onServerSelected, requestFocus = vm.isDiscoverySupported)
         }
     }
