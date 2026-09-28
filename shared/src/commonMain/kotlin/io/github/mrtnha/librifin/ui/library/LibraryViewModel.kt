@@ -20,7 +20,8 @@ sealed interface LibraryState {
     data object Loading : LibraryState
     data object NoBookLibrary : LibraryState
     data class Loaded(val books: List<Book>) : LibraryState
-    data class Error(val message: String) : LibraryState
+    /** [isSessionExpired]: the server no longer accepts the token, so retrying won't help. */
+    data class Error(val message: String, val isSessionExpired: Boolean = false) : LibraryState
 }
 
 class LibraryViewModel(
@@ -81,7 +82,7 @@ class LibraryViewModel(
                 throw e
             } catch (e: ClientRequestException) {
                 if (e.response.status.value == 401) {
-                    LibraryState.Error("Your session has expired. Please log in again.")
+                    LibraryState.Error("Your session has expired. Please log in again.", isSessionExpired = true)
                 } else {
                     LibraryState.Error(e.toUserMessage())
                 }

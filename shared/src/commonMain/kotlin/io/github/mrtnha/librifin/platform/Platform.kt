@@ -14,6 +14,16 @@ interface Platform {
 
     /** Local network server discovery, or null if the platform doesn't support it (yet). */
     val serverDiscovery: ServerDiscovery?
+
+    /** Where the logged-in session (including the access token) is kept between app starts. */
+    val sessionStore: SessionStore
+}
+
+/** Stores one serialized session. Must be private to the app and excluded from backups. */
+interface SessionStore {
+    fun read(): String?
+    fun write(value: String)
+    fun clear()
 }
 
 /**

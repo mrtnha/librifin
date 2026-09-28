@@ -35,7 +35,10 @@ fun App(platform: Platform) {
 
     LibrifinTheme {
         val services = viewModel { AppServices(platform) }
-        val navigator = viewModel { Navigator(Screen.Welcome) }
+        // Logged in before? Go straight to the library.
+        val navigator = viewModel {
+            Navigator(services.loadSession()?.let { Screen.Library(it) } ?: Screen.Welcome)
+        }
 
         NavigationBackHandler(
             state = rememberNavigationEventState(NavigationEventInfo.None),
@@ -65,14 +68,29 @@ fun App(platform: Platform) {
                         )
                         is Screen.Login -> LoginScreen(
                             server = screen.server,
+                            initialUsername = screen.username,
                             services = services,
                             onBack = navigator::pop,
-                            onLoggedIn = { navigator.replaceAll(Screen.Library(it)) },
+                            onLoggedIn = { session ->
+                                services.saveSession(session)
+                                navigator.replaceAll(Screen.Library(session))
+                            },
                         )
                         is Screen.Library -> LibraryScreen(
                             session = screen.session,
                             services = services,
-                            onLoggedOut = { navigator.replaceAll(Screen.Welcome) },
+                            onLoggedOut = {
+                                services.clearSession()
+                                navigator.replaceAll(Screen.Welcome)
+                            },
+                            onSessionExpired = {
+                                services.clearSession()
+                                navigator.replaceAll(
+                                    Screen.Welcome,
+                                    Screen.ServerSelection,
+                                    Screen.Login(screen.session.server, screen.session.userName),
+                                )
+                            },
                         )
                     }
                 }

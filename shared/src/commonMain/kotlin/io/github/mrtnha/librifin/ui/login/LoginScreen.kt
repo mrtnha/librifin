@@ -35,11 +35,12 @@ import io.github.mrtnha.librifin.ui.components.HugeButton
 @Composable
 fun LoginScreen(
     server: Server,
+    initialUsername: String,
     services: AppServices,
     onBack: () -> Unit,
     onLoggedIn: (Session) -> Unit,
 ) {
-    val vm = viewModel { LoginViewModel(server, services.jellyfin) }
+    val vm = viewModel { LoginViewModel(server, services.jellyfin, initialUsername) }
     val submit = { vm.login(onLoggedIn) }
 
     FlowScaffold(title = "Log in", onBack = onBack) {

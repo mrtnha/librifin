@@ -19,6 +19,8 @@ class IosPlatform : Platform {
     // Needs the local network permission and the multicast entitlement; manual entry only for now.
     override val serverDiscovery: ServerDiscovery? = null
 
+    override val sessionStore: SessionStore = IosSessionStore()
+
     private companion object {
         const val KEY_DEVICE_ID = "device_id"
     }

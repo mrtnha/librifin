@@ -40,7 +40,12 @@ import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LibraryScreen(session: Session, services: AppServices, onLoggedOut: () -> Unit) {
+fun LibraryScreen(
+    session: Session,
+    services: AppServices,
+    onLoggedOut: () -> Unit,
+    onSessionExpired: () -> Unit,
+) {
     val vm = viewModel { LibraryViewModel(session, services.jellyfin) }
 
     Scaffold(
@@ -63,7 +68,12 @@ fun LibraryScreen(session: Session, services: AppServices, onLoggedOut: () -> Un
             when (val state = vm.state) {
                 LibraryState.Loading -> CircularProgressIndicator()
                 LibraryState.NoBookLibrary -> Message("No book library found on this server.")
-                is LibraryState.Error -> Message(state.message, onRetry = vm::load)
+                is LibraryState.Error ->
+                    if (state.isSessionExpired) {
+                        Message(state.message, actionLabel = "Log in again", onAction = onSessionExpired)
+                    } else {
+                        Message(state.message, actionLabel = "Try again", onAction = vm::load)
+                    }
                 is LibraryState.Loaded ->
                     if (state.books.isEmpty()) Message("No books yet.") else BookGrid(state.books)
             }
@@ -134,11 +144,11 @@ private fun BookItem(book: Book) {
 }
 
 @Composable
-private fun Message(text: String, onRetry: (() -> Unit)? = null) {
+private fun Message(text: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
     Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
-        if (onRetry != null) {
-            TextButton(onClick = onRetry, modifier = Modifier.padding(top = 8.dp)) { Text("Try again") }
+        if (actionLabel != null && onAction != null) {
+            TextButton(onClick = onAction, modifier = Modifier.padding(top = 8.dp)) { Text(actionLabel) }
         }
     }
 }

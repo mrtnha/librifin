@@ -15,8 +15,9 @@ import kotlinx.coroutines.launch
 class LoginViewModel(
     private val server: Server,
     private val jellyfin: JellyfinClient,
+    initialUsername: String,
 ) : ViewModel() {
-    var username by mutableStateOf("")
+    var username by mutableStateOf(initialUsername)
     var password by mutableStateOf("")
     var isLoggingIn by mutableStateOf(false)
         private set

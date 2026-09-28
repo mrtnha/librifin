@@ -14,7 +14,8 @@ import io.github.mrtnha.librifin.api.Session
 sealed interface Screen {
     data object Welcome : Screen
     data object ServerSelection : Screen
-    data class Login(val server: Server) : Screen
+    /** [username] prefills the form, e.g. when the saved session has expired. */
+    data class Login(val server: Server, val username: String = "") : Screen
     data class Library(val session: Session) : Screen
 }
 
@@ -51,12 +52,16 @@ class Navigator(start: Screen) : ViewModel() {
         backStack.removeAt(backStack.lastIndex).viewModelStore.clear()
     }
 
-    /** Clears the stack and shows [screen], e.g. after login so back doesn't return to the login flow. */
-    fun replaceAll(screen: Screen) {
+    /**
+     * Replaces the whole stack with [screens] (the last one is shown), e.g. after login so back
+     * doesn't return to the login flow.
+     */
+    fun replaceAll(vararg screens: Screen) {
+        require(screens.isNotEmpty())
         isForward = true
         val old = backStack.toList()
         backStack.clear()
-        backStack.add(BackStackEntry(screen))
+        screens.mapTo(backStack) { BackStackEntry(it) }
         old.forEach { it.viewModelStore.clear() }
     }
 
