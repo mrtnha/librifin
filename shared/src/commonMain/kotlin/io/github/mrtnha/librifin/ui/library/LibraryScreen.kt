@@ -65,7 +65,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
@@ -88,6 +91,16 @@ fun LibraryScreen(
     // Back in the app (or back from a book): refresh quietly, e.g. to leave offline mode once the
     // server is reachable again.
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.refresh() }
+
+    // Loads the profile picture into memory now, so the profile sheet shows it at once instead of
+    // the initial first (reading it from the disk cache takes a moment after the app starts).
+    val userImageUrl = services.jellyfin.userImageUrl(session)
+    val context = LocalPlatformContext.current
+    LaunchedEffect(userImageUrl) {
+        if (userImageUrl != null) {
+            SingletonImageLoader.get(context).enqueue(ImageRequest.Builder(context).data(userImageUrl).build())
+        }
+    }
 
     /** Loads again; says so if the server can't be reached, as nothing else would change. */
     suspend fun retry() {
@@ -196,7 +209,7 @@ fun LibraryScreen(
     if (vm.isProfileSheetOpen) {
         ProfileSheet(
             session = session,
-            userImageUrl = services.jellyfin.userImageUrl(session),
+            userImageUrl = userImageUrl,
             isLoggingOut = vm.isLoggingOut,
             onLogout = { vm.logout(onLoggedOut) },
             onDismiss = { vm.isProfileSheetOpen = false },
