@@ -38,6 +38,10 @@ class ReaderViewModel(
     var state by mutableStateOf<ReaderState>(ReaderState.Downloading(progress = null))
         private set
 
+    /** App bar and system bars over the book. The book opens full screen; a tap in the middle toggles them. */
+    var areBarsVisible by mutableStateOf(false)
+        private set
+
     private val booksDir = Path(cacheDir, "books")
     private val file = Path(booksDir, "$bookId.epub")
 
@@ -57,6 +61,10 @@ class ReaderViewModel(
                 ReaderState.Error(e.toDownloadMessage())
             }
         }
+    }
+
+    fun toggleBars() {
+        areBarsVisible = !areBarsVisible
     }
 
     /** The downloaded file isn't a book we can show. Deleted, so the next attempt gets a fresh copy. */

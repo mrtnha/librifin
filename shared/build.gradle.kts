@@ -45,6 +45,8 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
             implementation(libs.ktor.client.okhttp)
+            // Showing and hiding the system bars in the reader (already in the app via Compose and Readium)
+            implementation(libs.androidx.core.ktx)
             // EPUB parsing and the Compose-based paginated EPUB renderer
             implementation(libs.readium.streamer)
             implementation(libs.readium.navigator.webReflowable)
