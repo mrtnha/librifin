@@ -1,5 +1,6 @@
 package io.github.mrtnha.librifin.ui.welcome
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,11 +34,9 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
             .padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Placeholder logo until Librifin has its own.
-        Icon(
-            imageVector = LibrifinIcons.Book,
+        Image(
+            imageVector = LibrifinIcons.Logo,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(top = 80.dp, bottom = 40.dp).size(150.dp),
         )
         Text(

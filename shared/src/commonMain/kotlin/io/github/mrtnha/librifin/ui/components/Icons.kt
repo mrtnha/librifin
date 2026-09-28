@@ -1,11 +1,15 @@
 package io.github.mrtnha.librifin.ui.components
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
+import io.github.mrtnha.librifin.ui.theme.JellyfinBlue
+import io.github.mrtnha.librifin.ui.theme.JellyfinPurple
 
 /**
  * The app's icons: Material Symbols Outlined (weight 400) by Google, Apache-2.0, see README.
@@ -75,64 +79,85 @@ object LibrifinIcons {
         }
     }
 
-    /** "import_contacts" (an open book). App logo placeholder and cover placeholder. */
-    val Book: ImageVector by lazy {
-        symbol("Book") {
-            moveTo(6.5f, 16f)
-            quadToRelative(1.18f, 0f, 2.29f, 0.26f)
-            reflectiveQuadTo(11f, 17.05f)
-            verticalLineTo(7.2f)
-            quadTo(9.98f, 6.6f, 8.83f, 6.3f)
-            reflectiveQuadTo(6.5f, 6f)
-            quadTo(5.6f, 6f, 4.71f, 6.18f)
-            reflectiveQuadTo(3f, 6.7f)
-            verticalLineToRelative(9.9f)
-            quadTo(3.88f, 16.3f, 4.74f, 16.15f)
-            reflectiveQuadTo(6.5f, 16f)
-            close()
-            moveTo(13f, 17.05f)
-            quadToRelative(1.1f, -0.53f, 2.21f, -0.79f)
-            reflectiveQuadTo(17.5f, 16f)
-            quadToRelative(0.9f, 0f, 1.76f, 0.15f)
-            reflectiveQuadTo(21f, 16.6f)
-            verticalLineTo(6.7f)
-            quadTo(20.18f, 6.35f, 19.29f, 6.18f)
-            reflectiveQuadTo(17.5f, 6f)
-            quadTo(16.33f, 6f, 15.18f, 6.3f)
-            reflectiveQuadTo(13f, 7.2f)
-            verticalLineToRelative(9.85f)
-            close()
-            moveTo(12f, 20f)
-            quadTo(10.8f, 19.05f, 9.4f, 18.52f)
-            reflectiveQuadTo(6.5f, 18f)
-            quadTo(5.45f, 18f, 4.44f, 18.27f)
-            reflectiveQuadTo(2.5f, 19.05f)
-            quadTo(1.98f, 19.33f, 1.49f, 19.02f)
-            quadTo(1f, 18.73f, 1f, 18.15f)
-            verticalLineTo(6.1f)
-            quadTo(1f, 5.82f, 1.14f, 5.57f)
-            quadTo(1.28f, 5.32f, 1.55f, 5.2f)
-            quadTo(2.7f, 4.6f, 3.95f, 4.3f)
-            reflectiveQuadTo(6.5f, 4f)
-            quadTo(7.95f, 4f, 9.34f, 4.38f)
-            reflectiveQuadTo(12f, 5.5f)
-            quadTo(13.28f, 4.75f, 14.66f, 4.38f)
-            reflectiveQuadTo(17.5f, 4f)
-            quadToRelative(1.3f, 0f, 2.55f, 0.3f)
-            reflectiveQuadToRelative(2.4f, 0.9f)
-            quadToRelative(0.27f, 0.13f, 0.41f, 0.38f)
-            reflectiveQuadTo(23f, 6.1f)
-            verticalLineTo(18.15f)
-            quadToRelative(0f, 0.58f, -0.49f, 0.88f)
-            quadToRelative(-0.49f, 0.3f, -1.01f, 0.03f)
-            quadToRelative(-0.92f, -0.5f, -1.94f, -0.78f)
-            reflectiveQuadTo(17.5f, 18f)
-            quadTo(16f, 18f, 14.6f, 18.52f)
-            reflectiveQuadTo(12f, 20f)
-            close()
-            moveTo(7f, 11.65f)
-            close()
-        }
+    /** "import_contacts" (an open book). Cover placeholder. */
+    val Book: ImageVector by lazy { symbol("Book", pathBuilder = openBook) }
+
+    /**
+     * The open book of [Book] in Jellyfin's gradient: purple at the bottom left to blue at the top right,
+     * like the Jellyfin logo. The app logo; show it with `Image`, as tinting would hide the gradient.
+     */
+    val Logo: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Logo",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).path(
+            fill = Brush.linearGradient(
+                listOf(JellyfinPurple, JellyfinBlue),
+                start = Offset(1f, 20f),
+                end = Offset(23f, 4f),
+            ),
+            pathBuilder = openBook,
+        ).build()
+    }
+
+    private val openBook: PathBuilder.() -> Unit = {
+        moveTo(6.5f, 16f)
+        quadToRelative(1.18f, 0f, 2.29f, 0.26f)
+        reflectiveQuadTo(11f, 17.05f)
+        verticalLineTo(7.2f)
+        quadTo(9.98f, 6.6f, 8.83f, 6.3f)
+        reflectiveQuadTo(6.5f, 6f)
+        quadTo(5.6f, 6f, 4.71f, 6.18f)
+        reflectiveQuadTo(3f, 6.7f)
+        verticalLineToRelative(9.9f)
+        quadTo(3.88f, 16.3f, 4.74f, 16.15f)
+        reflectiveQuadTo(6.5f, 16f)
+        close()
+        moveTo(13f, 17.05f)
+        quadToRelative(1.1f, -0.53f, 2.21f, -0.79f)
+        reflectiveQuadTo(17.5f, 16f)
+        quadToRelative(0.9f, 0f, 1.76f, 0.15f)
+        reflectiveQuadTo(21f, 16.6f)
+        verticalLineTo(6.7f)
+        quadTo(20.18f, 6.35f, 19.29f, 6.18f)
+        reflectiveQuadTo(17.5f, 6f)
+        quadTo(16.33f, 6f, 15.18f, 6.3f)
+        reflectiveQuadTo(13f, 7.2f)
+        verticalLineToRelative(9.85f)
+        close()
+        moveTo(12f, 20f)
+        quadTo(10.8f, 19.05f, 9.4f, 18.52f)
+        reflectiveQuadTo(6.5f, 18f)
+        quadTo(5.45f, 18f, 4.44f, 18.27f)
+        reflectiveQuadTo(2.5f, 19.05f)
+        quadTo(1.98f, 19.33f, 1.49f, 19.02f)
+        quadTo(1f, 18.73f, 1f, 18.15f)
+        verticalLineTo(6.1f)
+        quadTo(1f, 5.82f, 1.14f, 5.57f)
+        quadTo(1.28f, 5.32f, 1.55f, 5.2f)
+        quadTo(2.7f, 4.6f, 3.95f, 4.3f)
+        reflectiveQuadTo(6.5f, 4f)
+        quadTo(7.95f, 4f, 9.34f, 4.38f)
+        reflectiveQuadTo(12f, 5.5f)
+        quadTo(13.28f, 4.75f, 14.66f, 4.38f)
+        reflectiveQuadTo(17.5f, 4f)
+        quadToRelative(1.3f, 0f, 2.55f, 0.3f)
+        reflectiveQuadToRelative(2.4f, 0.9f)
+        quadToRelative(0.27f, 0.13f, 0.41f, 0.38f)
+        reflectiveQuadTo(23f, 6.1f)
+        verticalLineTo(18.15f)
+        quadToRelative(0f, 0.58f, -0.49f, 0.88f)
+        quadToRelative(-0.49f, 0.3f, -1.01f, 0.03f)
+        quadToRelative(-0.92f, -0.5f, -1.94f, -0.78f)
+        reflectiveQuadTo(17.5f, 18f)
+        quadTo(16f, 18f, 14.6f, 18.52f)
+        reflectiveQuadTo(12f, 20f)
+        close()
+        moveTo(7f, 11.65f)
+        close()
     }
 
     /** "info". Help next to the server address field. */
