@@ -38,8 +38,10 @@ import org.readium.r2.navigator.util.DirectionalNavigationAdapter
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.flatten
 import org.readium.r2.shared.publication.services.isRestricted
 import org.readium.r2.shared.publication.services.locateProgression
+import org.readium.r2.shared.publication.services.positions
 import org.readium.r2.shared.util.asset.AssetRetriever
 import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.http.DefaultHttpClient
@@ -54,7 +56,8 @@ actual fun EpubView(
     jumpToProgress: Double?,
     onJumped: () -> Unit,
     onReachedEnd: () -> Unit,
-    onPositionChanged: (locator: String, progress: Double) -> Unit,
+    onPagesLoaded: (pages: List<BookPage>) -> Unit,
+    onPositionChanged: (locator: String, progress: Double, page: Int?) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,
     modifier: Modifier,
@@ -76,6 +79,8 @@ actual fun EpubView(
             val currentOnCenterTap by rememberUpdatedState(onCenterTap)
             val currentOnPositionChanged by rememberUpdatedState(onPositionChanged)
             val currentOnJumped by rememberUpdatedState(onJumped)
+            val currentOnPagesLoaded by rememberUpdatedState(onPagesLoaded)
+            LaunchedEffect(vm) { currentOnPagesLoaded(vm.pages) }
             var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
 
             LaunchedEffect(jumpToProgress, navigatorNow) {
@@ -103,6 +108,7 @@ actual fun EpubView(
                             currentOnPositionChanged(
                                 locator.toJSON().toString(),
                                 locator.locations.totalProgression ?: 0.0,
+                                locator.locations.position,
                             )
                         }
                     }
@@ -133,6 +139,10 @@ private class EpubViewModel(
 
     /** Called when the last page of the book is shown. */
     var onReachedEnd: (() -> Unit)? = null
+
+    /** The book's pages, known once it's open. */
+    var pages: List<BookPage> = emptyList()
+        private set
 
     private var publication: Publication? = null
     private var fragmentFactory: FragmentFactory? = null
@@ -167,6 +177,7 @@ private class EpubViewModel(
                 null
             }
         } ?: initialProgress?.let { publication.locateProgression(it) }
+        pages = pagesOf(publication)
         val lastChapter = publication.readingOrder.lastOrNull()?.url()
         val factory = EpubNavigatorFactory(publication).createFragmentFactory(
             initialLocator = startLocator,
@@ -180,6 +191,22 @@ private class EpubViewModel(
         fragmentFactory = factory
         ReaderFragmentFactory.epub = factory
         return EpubState.Opened
+    }
+
+    /**
+     * Readium's positions, each with the title of its chapter: the table of contents entry of its
+     * file, or of an earlier file if this one has none (e.g. a chapter split into several files).
+     */
+    private suspend fun pagesOf(publication: Publication): List<BookPage> {
+        val titleByFile = publication.tableOfContents.flatten()
+            .filter { it.title != null }
+            .reversed() // So the first entry of a file wins in associate below.
+            .associate { it.url().removeFragment() to it.title }
+        var chapter: String? = null
+        return publication.positions().map { position ->
+            chapter = titleByFile[position.href.removeFragment()] ?: chapter
+            BookPage(progress = position.locations.totalProgression ?: 0.0, chapter = chapter)
+        }
     }
 
     /** The place [progress] (0..1) through the whole book. */

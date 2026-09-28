@@ -69,6 +69,14 @@ class ReaderViewModel(
     var jumpToProgress by mutableStateOf<Double?>(null)
         private set
 
+    /** The book's pages (see [BookPage]), empty until it's open. */
+    var pages by mutableStateOf<List<BookPage>>(emptyList())
+        private set
+
+    /** The page shown now (1-based), null until known. */
+    var currentPage by mutableStateOf<Int?>(null)
+        private set
+
     private val file = bookStore.bookFile(bookId)
     private var lastLocator: String? = null
     private var serverCheck: Job? = null
@@ -95,7 +103,8 @@ class ReaderViewModel(
     }
 
     /** Called on every page turn with the renderer's position and how far into the book it is. */
-    fun onPositionChanged(locator: String, progress: Double) {
+    fun onPositionChanged(locator: String, progress: Double, page: Int?) {
+        currentPage = page
         // The renderer reports the same page again e.g. when the app comes back: that's no new reading,
         // and saving it would overwrite progress made elsewhere meanwhile.
         if (locator == lastLocator) return
@@ -118,6 +127,17 @@ class ReaderViewModel(
             val server = serverUserData() ?: return@launch
             jumpToProgress = serverProgressIfReadElsewhere(bookStore.currentPosition(bookId), server) ?: return@launch
         }
+    }
+
+    fun onPagesLoaded(pages: List<BookPage>) {
+        this.pages = pages
+    }
+
+    /** Chosen with the page slider. */
+    fun jumpToPage(page: Int) {
+        val target = pages.getOrNull(page - 1) ?: return
+        currentPage = page // Right away, so the slider doesn't spring back until the page is shown.
+        jumpToProgress = target.progress
     }
 
     fun onJumped() {
