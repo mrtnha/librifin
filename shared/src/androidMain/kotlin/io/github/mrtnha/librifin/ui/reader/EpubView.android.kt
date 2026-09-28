@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +53,7 @@ actual fun EpubView(
     initialProgress: Double?,
     jumpToProgress: Double?,
     onJumped: () -> Unit,
+    onReachedEnd: () -> Unit,
     onPositionChanged: (locator: String, progress: Double) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,
@@ -59,6 +61,11 @@ actual fun EpubView(
 ) {
     val application = LocalContext.current.applicationContext as Application
     val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, initialProgress) }
+    val currentOnReachedEnd by rememberUpdatedState(onReachedEnd)
+    DisposableEffect(vm) {
+        vm.onReachedEnd = { currentOnReachedEnd() }
+        onDispose { vm.onReachedEnd = null }
+    }
 
     when (val state = vm.state) {
         EpubState.Opening -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -124,6 +131,9 @@ private class EpubViewModel(
     var state by mutableStateOf<EpubState>(EpubState.Opening)
         private set
 
+    /** Called when the last page of the book is shown. */
+    var onReachedEnd: (() -> Unit)? = null
+
     private var publication: Publication? = null
     private var fragmentFactory: FragmentFactory? = null
 
@@ -157,7 +167,16 @@ private class EpubViewModel(
                 null
             }
         } ?: initialProgress?.let { publication.locateProgression(it) }
-        val factory = EpubNavigatorFactory(publication).createFragmentFactory(initialLocator = startLocator)
+        val lastChapter = publication.readingOrder.lastOrNull()?.url()
+        val factory = EpubNavigatorFactory(publication).createFragmentFactory(
+            initialLocator = startLocator,
+            // Tells the page within the chapter: the most reliable way to see the book's last page.
+            paginationListener = object : EpubNavigatorFragment.PaginationListener {
+                override fun onPageChanged(pageIndex: Int, totalPages: Int, locator: Locator) {
+                    if (locator.href == lastChapter && pageIndex == totalPages - 1) onReachedEnd?.invoke()
+                }
+            },
+        )
         fragmentFactory = factory
         ReaderFragmentFactory.epub = factory
         return EpubState.Opened

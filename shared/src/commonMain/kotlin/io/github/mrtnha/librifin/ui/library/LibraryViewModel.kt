@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.mrtnha.librifin.api.BOOK_PROGRESS_TICKS
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.toUserMessage
@@ -20,19 +21,32 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 
-/** What the grid shows for one book. Also saved on the device, see [io.github.mrtnha.librifin.storage.BookStore]. */
+/**
+ * What the grid shows for one book. Also saved on the device, see [io.github.mrtnha.librifin.storage.BookStore].
+ * [serverProgress] (0..1) and [isPlayed] are Jellyfin's view of how far it was read.
+ */
 @Serializable
-data class Book(val id: String, val title: String, val coverUrl: String?)
+data class Book(
+    val id: String,
+    val title: String,
+    val coverUrl: String?,
+    val serverProgress: Double? = null,
+    val isPlayed: Boolean = false,
+)
+
+/** How far a book was read: [fraction] 0..1, [isFinished] once the last page was reached. */
+data class BookProgress(val fraction: Float, val isFinished: Boolean)
 
 sealed interface LibraryState {
     data object Loading : LibraryState
     data object NoBookLibrary : LibraryState
     /**
-     * [isOffline]: the server can't be reached, so this is the saved list and only the books in
-     * [downloadedIds] can be opened.
+     * [progress]: only for books that were started. [isOffline]: the server can't be reached, so
+     * this is the saved list and only the books in [downloadedIds] can be opened.
      */
     data class Loaded(
         val books: List<Book>,
+        val progress: Map<String, BookProgress>,
         val isOffline: Boolean = false,
         val downloadedIds: Set<String> = emptySet(),
     ) : LibraryState {
@@ -94,7 +108,7 @@ class LibraryViewModel(
         return viewModelScope.launch {
             if (state !is LibraryState.Loaded) {
                 state = withContext(Dispatchers.IO) { bookStore.readLibrary(session) }
-                    ?.let { LibraryState.Loaded(it) }
+                    ?.let { LibraryState.Loaded(it, progressOf(it)) }
                     ?: LibraryState.Loading
             }
             val saved = (state as? LibraryState.Loaded)?.books
@@ -109,12 +123,16 @@ class LibraryViewModel(
                             id = item.id,
                             title = item.name ?: "Untitled",
                             coverUrl = jellyfin.primaryImageUrl(session.server.baseUrl, item, COVER_MAX_WIDTH),
+                            serverProgress = item.userData?.playbackPositionTicks
+                                ?.takeIf { it > 0 }
+                                ?.let { (it.toDouble() / BOOK_PROGRESS_TICKS).coerceIn(0.0, 1.0) },
+                            isPlayed = item.userData?.played == true,
                         )
                     }
                     withContext(Dispatchers.IO) { bookStore.saveLibrary(session, books) }
                     // The server is reachable again: send what was read offline.
                     progressSync.sendUnsynced(session)
-                    LibraryState.Loaded(books)
+                    LibraryState.Loaded(books, progressOf(books))
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -126,12 +144,28 @@ class LibraryViewModel(
                         val downloaded = withContext(Dispatchers.IO) {
                             saved.filter { bookStore.isDownloaded(it.id) }.mapTo(HashSet()) { it.id }
                         }
-                        LibraryState.Loaded(saved, isOffline = true, downloadedIds = downloaded)
+                        LibraryState.Loaded(saved, progressOf(saved), isOffline = true, downloadedIds = downloaded)
                     }
                     else -> LibraryState.Error(e.toUserMessage())
                 }
             }
         }.also { loadJob = it }
+    }
+
+    /**
+     * This device's progress where there is one (exact, and newest for books read here), else
+     * Jellyfin's (e.g. read on another device). Finished if either says so.
+     */
+    private suspend fun progressOf(books: List<Book>): Map<String, BookProgress> {
+        val positions = withContext(Dispatchers.IO) { bookStore.readAllPositions() }
+        return books.mapNotNull { book ->
+            val local = positions[book.id]
+            val progress = BookProgress(
+                fraction = (local?.progress ?: book.serverProgress ?: 0.0).toFloat(),
+                isFinished = local?.isFinished == true || book.isPlayed,
+            )
+            (book.id to progress).takeIf { progress.isFinished || progress.fraction > 0f }
+        }.toMap()
     }
 
     private companion object {

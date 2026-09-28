@@ -105,6 +105,12 @@ class ReaderViewModel(
         progressSync.schedule(session, bookId)
     }
 
+    /** The last page of the book is shown: it counts as finished, here and in Jellyfin. */
+    fun onReachedEnd() {
+        appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.markFinished(bookId) }
+        progressSync.schedule(session, bookId)
+    }
+
     /** Back in the app with the book open: maybe it was read further elsewhere meanwhile. */
     fun onAppResumed() {
         if (state !is ReaderState.Ready || serverCheck?.isActive == true) return

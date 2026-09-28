@@ -16,6 +16,7 @@ actual fun EpubView(
     initialProgress: Double?,
     jumpToProgress: Double?,
     onJumped: () -> Unit,
+    onReachedEnd: () -> Unit,
     onPositionChanged: (locator: String, progress: Double) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,

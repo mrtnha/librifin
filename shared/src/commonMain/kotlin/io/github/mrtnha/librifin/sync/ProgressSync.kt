@@ -70,6 +70,8 @@ class ProgressSync(
                 UpdateUserItemDataDto(
                     playbackPositionTicks = ticks,
                     lastPlayedDate = Instant.fromEpochMilliseconds(position.updatedAtMillis).toString(),
+                    // Shown as "played" in Jellyfin. Only ever set, never cleared: paging back keeps a book finished.
+                    played = if (position.isFinished) true else null,
                 ),
             )
             bookStore.markSynced(bookId, position, serverTicks = ticks)

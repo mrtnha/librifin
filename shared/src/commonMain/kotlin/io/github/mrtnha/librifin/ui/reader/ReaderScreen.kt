@@ -59,6 +59,7 @@ fun ReaderScreen(
                 initialProgress = state.startProgress,
                 jumpToProgress = vm.jumpToProgress,
                 onJumped = vm::onJumped,
+                onReachedEnd = vm::onReachedEnd,
                 onPositionChanged = vm::onPositionChanged,
                 onCenterTap = vm::toggleBars,
                 onOpenFailed = vm::onOpenFailed,

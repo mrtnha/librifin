@@ -9,16 +9,19 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -141,6 +144,7 @@ fun LibraryScreen(
                         ) {
                             BookGrid(
                                 books = state.books,
+                                progress = state.progress,
                                 canOpen = state::canOpen,
                                 onBookClick = { book ->
                                     if (state.canOpen(book)) onBookClick(book) else explainNotDownloaded()
@@ -164,7 +168,12 @@ fun LibraryScreen(
 }
 
 @Composable
-private fun BookGrid(books: List<Book>, canOpen: (Book) -> Boolean, onBookClick: (Book) -> Unit) {
+private fun BookGrid(
+    books: List<Book>,
+    progress: Map<String, BookProgress>,
+    canOpen: (Book) -> Boolean,
+    onBookClick: (Book) -> Unit,
+) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
@@ -173,13 +182,13 @@ private fun BookGrid(books: List<Book>, canOpen: (Book) -> Boolean, onBookClick:
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         items(books, key = { it.id }) { book ->
-            BookItem(book, isDimmed = !canOpen(book), onClick = { onBookClick(book) })
+            BookItem(book, progress[book.id], isDimmed = !canOpen(book), onClick = { onBookClick(book) })
         }
     }
 }
 
 @Composable
-private fun BookItem(book: Book, isDimmed: Boolean, onClick: () -> Unit) {
+private fun BookItem(book: Book, progress: BookProgress?, isDimmed: Boolean, onClick: () -> Unit) {
     // Books that can't be opened right now (offline, not downloaded) are shown faded and in grey.
     Column(Modifier.clickable(onClick = onClick).alpha(if (isDimmed) DIMMED_ALPHA else 1f)) {
         Box(
@@ -206,7 +215,40 @@ private fun BookItem(book: Book, isDimmed: Boolean, onClick: () -> Unit) {
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+            if (progress?.isFinished == true) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(28.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        LibrifinIcons.CheckCircle,
+                        contentDescription = "Finished",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
         }
+        // On every book, so the grid looks even: grey until started, then filling up in blue.
+        LinearProgressIndicator(
+            progress = {
+                when {
+                    progress == null -> 0f
+                    progress.isFinished -> 1f
+                    else -> progress.fraction
+                }
+            },
+            // A bit taller than Material's 4 dp, so it reads as part of the book, not a thin line.
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(6.dp),
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            // One continuous bar: no gap between the read part and the rest, no dot at the end.
+            gapSize = 0.dp,
+            drawStopIndicator = {},
+        )
         Text(
             book.title,
             style = MaterialTheme.typography.titleSmall,
