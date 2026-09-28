@@ -129,9 +129,13 @@ class ReaderViewModel(
         val position = ReadingPosition(locator, progress, Clock.System.now().toEpochMilliseconds())
         appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.savePosition(bookId, position) }
         progressSync.schedule(session, bookId)
+        if (progress >= FINISHED_PROGRESS) onReachedEnd()
     }
 
-    /** The last page of the book is shown: it counts as finished, here and in Jellyfin. */
+    /**
+     * The last page of the book is shown, or nearly all of it was read (see [FINISHED_PROGRESS]):
+     * it counts as finished, here and in Jellyfin.
+     */
     fun onReachedEnd() {
         appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.markFinished(bookId) }
         progressSync.schedule(session, bookId)
@@ -258,6 +262,13 @@ class ReaderViewModel(
     private companion object {
         /** Asking Jellyfin must not keep a downloaded book from opening offline for long. */
         const val SERVER_POSITION_TIMEOUT_MS = 2_000L
+
+        /**
+         * From here on a book counts as finished, even if its last page is never shown: after the story
+         * often come notes, acknowledgements or ads, which many readers skip. Not lower, as finished is
+         * never undone.
+         */
+        const val FINISHED_PROGRESS = 0.95
 
         const val KEY_THEME = "reader_theme"
         const val KEY_FONT_SIZE = "reader_font_size"

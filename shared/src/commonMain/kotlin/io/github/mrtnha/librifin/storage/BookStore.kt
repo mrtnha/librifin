@@ -153,7 +153,7 @@ class BookStore(filesDir: String) {
  *
  * [serverTicks] is the progress Jellyfin had after this device's last sync. If Jellyfin has a
  * different value later, the book was read elsewhere since (e.g. in Jellyfin's web reader).
- * [isFinished]: the last page was reached at some point.
+ * [isFinished]: the last page, or 95 % of the book, was reached at some point.
  */
 @Serializable
 data class ReadingPosition(

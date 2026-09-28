@@ -34,7 +34,7 @@ data class Book(
     val isPlayed: Boolean = false,
 )
 
-/** How far a book was read: [fraction] 0..1, [isFinished] once the last page was reached. */
+/** How far a book was read: [fraction] 0..1, [isFinished] once the book was read to the end (or nearly). */
 data class BookProgress(val fraction: Float, val isFinished: Boolean)
 
 sealed interface LibraryState {

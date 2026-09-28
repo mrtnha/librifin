@@ -218,7 +218,7 @@ private fun BookItem(book: Book, progress: BookProgress?, isDimmed: Boolean, onC
             if (progress?.isFinished == true) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
+                        .align(Alignment.TopEnd)
                         .padding(8.dp)
                         .size(28.dp)
                         .background(MaterialTheme.colorScheme.primary, CircleShape),
