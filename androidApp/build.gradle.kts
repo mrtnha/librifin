@@ -19,7 +19,6 @@ dependencies {
     // Required by Readium (its libraries are built with core library desugaring)
     coreLibraryDesugaring(libs.desugarJdkLibs)
 
-    implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 }
 

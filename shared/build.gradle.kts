@@ -42,8 +42,6 @@ kotlin {
     
     sourceSets {
         androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
-            implementation(libs.compose.uiTooling)
             implementation(libs.ktor.client.okhttp)
             // Showing and hiding the system bars in the reader (already in the app via Compose and Readium)
             implementation(libs.androidx.core.ktx)
@@ -60,7 +58,6 @@ kotlin {
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
-            implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.navigationevent.compose)
@@ -76,8 +73,4 @@ kotlin {
             implementation(libs.kotlin.test)
         }
     }
-}
-
-dependencies {
-    androidRuntimeClasspath(libs.compose.uiTooling)
 }
