@@ -67,7 +67,7 @@ class JellyfinClient(private val platform: Platform) {
             parameter("recursive", true)
             parameter("sortBy", "DatePlayed,SortName")
             parameter("sortOrder", "Descending,Ascending")
-            parameter("fields", "PrimaryImageAspectRatio")
+            parameter("fields", "PrimaryImageAspectRatio,People")
         }.body<BaseItemDtoQueryResult>().items
 
     /**

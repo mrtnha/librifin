@@ -24,6 +24,7 @@ import kotlinx.serialization.Serializable
 /**
  * What the grid shows for one book. Also saved on the device, see [io.github.mrtnha.librifin.storage.BookStore].
  * [serverProgress] (0..1) and [isPlayed] are Jellyfin's view of how far it was read.
+ * [authors] is empty in lists saved before authors were loaded.
  */
 @Serializable
 data class Book(
@@ -32,7 +33,14 @@ data class Book(
     val coverUrl: String?,
     val serverProgress: Double? = null,
     val isPlayed: Boolean = false,
-)
+    val authors: List<String> = emptyList(),
+) {
+    /** Every word of [query] is in the title or an author's name, ignoring case: "tolkien hobbit" finds the book. */
+    fun matches(query: String): Boolean =
+        query.trim().split(Regex("\\s+")).all { word ->
+            title.contains(word, ignoreCase = true) || authors.any { it.contains(word, ignoreCase = true) }
+        }
+}
 
 /** How far a book was read: [fraction] 0..1, [isFinished] once the book was read to the end (or nearly). */
 data class BookProgress(val fraction: Float, val isFinished: Boolean)
@@ -66,6 +74,13 @@ class LibraryViewModel(
         private set
 
     var isProfileSheetOpen by mutableStateOf(false)
+
+    /**
+     * The search text while searching, else null. Filters the books on the device, so it works offline too.
+     * Kept while a book is open, so the results are still there when coming back.
+     */
+    var searchQuery by mutableStateOf<String?>(null)
+
     var isLoggingOut by mutableStateOf(false)
         private set
 
@@ -127,6 +142,7 @@ class LibraryViewModel(
                                 ?.takeIf { it > 0 }
                                 ?.let { (it.toDouble() / BOOK_PROGRESS_TICKS).coerceIn(0.0, 1.0) },
                             isPlayed = item.userData?.played == true,
+                            authors = item.people.orEmpty().filter { it.type == "Author" }.mapNotNull { it.name },
                         )
                     }
                     withContext(Dispatchers.IO) { bookStore.saveLibrary(session, books) }

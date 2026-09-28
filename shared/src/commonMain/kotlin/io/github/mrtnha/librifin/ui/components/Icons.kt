@@ -346,6 +346,26 @@ object LibrifinIcons {
         }
     }
 
+    /** "close". Clears the search text. */
+    val Close: ImageVector by lazy {
+        symbol("Close") {
+            moveTo(6.4f, 19f)
+            lineTo(5f, 17.6f)
+            lineTo(10.6f, 12f)
+            lineTo(5f, 6.4f)
+            lineTo(6.4f, 5f)
+            lineTo(12f, 10.6f)
+            lineTo(17.6f, 5f)
+            lineTo(19f, 6.4f)
+            lineTo(13.4f, 12f)
+            lineTo(19f, 17.6f)
+            lineTo(17.6f, 19f)
+            lineTo(12f, 13.4f)
+            lineTo(6.4f, 19f)
+            close()
+        }
+    }
+
     /** "search". Search button in the library top bar. */
     val Search: ImageVector by lazy {
         symbol("Search") {

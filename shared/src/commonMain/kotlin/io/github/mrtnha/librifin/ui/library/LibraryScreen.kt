@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -30,9 +32,12 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,16 +47,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import coil3.compose.AsyncImage
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Session
@@ -98,21 +111,37 @@ fun LibraryScreen(
         }
     }
 
+    val searchQuery = vm.searchQuery
+
+    // While searching, back closes the search instead of leaving the library.
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = searchQuery != null,
+        onBackCompleted = { vm.searchQuery = null },
+    )
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Librifin", fontWeight = FontWeight.SemiBold) },
-                actions = {
-                    // Search isn't wired up yet.
-                    IconButton(onClick = {}) {
-                        Icon(LibrifinIcons.Search, contentDescription = "Search books")
-                    }
-                    IconButton(onClick = { vm.isProfileSheetOpen = true }) {
-                        Icon(LibrifinIcons.Profile, contentDescription = "Profile")
-                    }
-                },
-            )
+            if (searchQuery != null) {
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = { vm.searchQuery = it },
+                    onClose = { vm.searchQuery = null },
+                )
+            } else {
+                TopAppBar(
+                    title = { Text("Librifin", fontWeight = FontWeight.SemiBold) },
+                    actions = {
+                        IconButton(onClick = { vm.searchQuery = "" }) {
+                            Icon(LibrifinIcons.Search, contentDescription = "Search books")
+                        }
+                        IconButton(onClick = { vm.isProfileSheetOpen = true }) {
+                            Icon(LibrifinIcons.Profile, contentDescription = "Profile")
+                        }
+                    },
+                )
+            }
         },
     ) { innerPadding ->
         Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
@@ -125,11 +154,18 @@ fun LibraryScreen(
                     } else {
                         Message(state.message, actionLabel = "Try again", onAction = vm::load)
                     }
-                is LibraryState.Loaded ->
-                    if (state.books.isEmpty()) {
-                        Message("No books yet.")
-                    } else {
-                        PullToRefreshBox(
+                is LibraryState.Loaded -> {
+                    // Nothing typed yet: no books, as showing all would look like all of them matched.
+                    val books = when {
+                        searchQuery == null -> state.books
+                        searchQuery.isBlank() -> emptyList()
+                        else -> state.books.filter { it.matches(searchQuery) }
+                    }
+                    when {
+                        state.books.isEmpty() -> Message("No books yet.")
+                        searchQuery?.isBlank() == true -> Unit
+                        books.isEmpty() -> Message("No books match \u201C${searchQuery.orEmpty().trim()}\u201D.")
+                        else -> PullToRefreshBox(
                             isRefreshing = isPullRefreshing,
                             onRefresh = {
                                 scope.launch {
@@ -143,7 +179,7 @@ fun LibraryScreen(
                             },
                         ) {
                             BookGrid(
-                                books = state.books,
+                                books = books,
                                 progress = state.progress,
                                 canOpen = state::canOpen,
                                 onBookClick = { book ->
@@ -152,6 +188,7 @@ fun LibraryScreen(
                             )
                         }
                     }
+                }
             }
         }
     }
@@ -165,6 +202,52 @@ fun LibraryScreen(
             onDismiss = { vm.isProfileSheetOpen = false },
         )
     }
+}
+
+/**
+ * The top bar while searching: the search field, focused with the keyboard open when the search starts.
+ * The arrow closes the search, the X clears the text.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchBar(query: String, onQueryChange: (String) -> Unit, onClose: () -> Unit) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    // Not when coming back from a book with results shown: the keyboard would hide them.
+    LaunchedEffect(Unit) { if (query.isEmpty()) focusRequester.requestFocus() }
+
+    TopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onClose) {
+                Icon(LibrifinIcons.ArrowBack, contentDescription = "Close search")
+            }
+        },
+        title = {
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text("Title or author") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+                // Plain text in the bar, no box or underline.
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                ),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+            )
+        },
+        actions = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(LibrifinIcons.Close, contentDescription = "Clear search")
+                }
+            }
+        },
+    )
 }
 
 @Composable

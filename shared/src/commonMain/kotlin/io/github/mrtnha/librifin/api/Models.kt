@@ -43,6 +43,14 @@ data class BaseItemDto(
     @SerialName("ImageTags") val imageTags: Map<String, String?>? = null,
     @SerialName("PrimaryImageAspectRatio") val primaryImageAspectRatio: Double? = null,
     @SerialName("UserData") val userData: UserItemDataDto? = null,
+    /** Only when requested with the "People" field. A book's authors have [BaseItemPerson.type] "Author". */
+    @SerialName("People") val people: List<BaseItemPerson>? = null,
+)
+
+@Serializable
+data class BaseItemPerson(
+    @SerialName("Name") val name: String? = null,
+    @SerialName("Type") val type: String? = null,
 )
 
 /**
