@@ -8,7 +8,9 @@ import androidx.lifecycle.viewModelScope
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Server
 import io.github.mrtnha.librifin.api.Session
+import io.github.mrtnha.librifin.api.clientErrorStatus
 import io.github.mrtnha.librifin.api.toUserMessage
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -54,7 +56,11 @@ class LoginViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                error = e.toUserMessage()
+                error = when (e.clientErrorStatus) {
+                    HttpStatusCode.Unauthorized -> "Wrong username or password."
+                    HttpStatusCode.Forbidden -> "This account isn't allowed to sign in."
+                    else -> e.toUserMessage()
+                }
             } finally {
                 isLoggingIn = false
             }

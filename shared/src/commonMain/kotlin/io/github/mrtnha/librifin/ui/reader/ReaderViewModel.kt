@@ -9,12 +9,13 @@ import io.github.mrtnha.librifin.api.BOOK_PROGRESS_TICKS
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.UserItemDataDto
+import io.github.mrtnha.librifin.api.clientErrorStatus
 import io.github.mrtnha.librifin.api.toUserMessage
 import io.github.mrtnha.librifin.platform.SettingsStore
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.storage.ReadingPosition
 import io.github.mrtnha.librifin.sync.ProgressSync
-import io.ktor.client.plugins.ClientRequestException
+import io.ktor.http.HttpStatusCode
 import kotlin.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -38,7 +39,10 @@ sealed interface ReaderState {
      */
     data class Ready(val file: Path, val startLocator: String?, val startProgress: Double?) : ReaderState
 
-    /** [canRetry]: false if the file arrived but isn't a readable book, so downloading again won't help. */
+    /**
+     * [canRetry]: false if trying again won't help: the file arrived but isn't a readable book,
+     * or the login has expired.
+     */
     data class Error(val message: String, val canRetry: Boolean = true) : ReaderState
 }
 
@@ -114,7 +118,9 @@ class ReaderViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                ReaderState.Error(e.toDownloadMessage())
+                // With an expired login, trying again fails the same way. The library offers to log in again.
+                val isLoginExpired = e.clientErrorStatus == HttpStatusCode.Unauthorized
+                ReaderState.Error(e.toDownloadMessage(), canRetry = !isLoginExpired)
             }
         }
     }
@@ -257,9 +263,9 @@ class ReaderViewModel(
     }
 
     private fun Exception.toDownloadMessage(): String =
-        when ((this as? ClientRequestException)?.response?.status?.value) {
-            403 -> "Your account isn't allowed to download books. An admin can allow it in the Jellyfin user settings."
-            404 -> "This book isn't on the server anymore."
+        when (clientErrorStatus) {
+            HttpStatusCode.Forbidden -> "Your account isn't allowed to download books. An admin can allow it in the Jellyfin user settings."
+            HttpStatusCode.NotFound -> "This book isn't on the server anymore."
             else -> toUserMessage()
         }
 

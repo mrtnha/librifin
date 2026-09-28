@@ -8,10 +8,11 @@ import androidx.lifecycle.viewModelScope
 import io.github.mrtnha.librifin.api.BOOK_PROGRESS_TICKS
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
+import io.github.mrtnha.librifin.api.clientErrorStatus
 import io.github.mrtnha.librifin.api.toUserMessage
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.sync.ProgressSync
-import io.ktor.client.plugins.ClientRequestException
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -154,8 +155,8 @@ class LibraryViewModel(
                 throw e
             } catch (e: Exception) {
                 when {
-                    (e as? ClientRequestException)?.response?.status?.value == 401 ->
-                        LibraryState.Error("Your session has expired. Please log in again.", isSessionExpired = true)
+                    e.clientErrorStatus == HttpStatusCode.Unauthorized ->
+                        LibraryState.Error(e.toUserMessage(), isSessionExpired = true)
                     saved != null -> {
                         val downloaded = withContext(Dispatchers.IO) {
                             saved.filter { bookStore.isDownloaded(it.id) }.mapTo(HashSet()) { it.id }
