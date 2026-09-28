@@ -18,8 +18,8 @@ interface Platform {
     /** Where the logged-in session (including the access token) is kept between app starts. */
     val sessionStore: SessionStore
 
-    /** App-private directory for files that can be downloaded again (the OS may clear it when storage is low). */
-    val cacheDir: String
+    /** App-private directory for files kept until the app is uninstalled (downloaded books, the saved book list). */
+    val filesDir: String
 }
 
 /** Stores one serialized session. Must be private to the app and excluded from backups. */

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+. librifin.xml holds the login token and the device id: never back up or transfer it. -->
+<!-- Android 12+. librifin.xml holds the login token and the device id: never back up or transfer it.
+     Books are left out of the cloud backup (large, can be downloaded again) but move along to a new phone. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="librifin.xml" />
+        <exclude domain="file" path="books/" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="librifin.xml" />

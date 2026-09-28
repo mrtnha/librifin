@@ -38,7 +38,7 @@ fun ReaderScreen(
     services: AppServices,
     onBack: () -> Unit,
 ) {
-    val vm = viewModel { ReaderViewModel(session, bookId, services.jellyfin, services.platform.cacheDir) }
+    val vm = viewModel { ReaderViewModel(session, bookId, services.jellyfin, services.bookStore) }
 
     // Full screen only while the book is shown; while loading or on errors the bars stay, so the way back is visible.
     val showBars = vm.state !is ReaderState.Ready || vm.areBarsVisible

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 11 and older. librifin.xml holds the login token and the device id: never back it up. -->
+<!-- Android 11 and older. librifin.xml holds the login token and the device id: never back it up.
+     Books are left out too: they are large and can be downloaded again. -->
 <full-backup-content>
     <exclude domain="sharedpref" path="librifin.xml" />
+    <exclude domain="file" path="books/" />
 </full-backup-content>

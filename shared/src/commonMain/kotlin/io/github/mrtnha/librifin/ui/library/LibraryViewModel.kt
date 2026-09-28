@@ -12,8 +12,10 @@ import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.Serializable
 
-/** What the grid shows for one book. */
+/** What the grid shows for one book. Also saved on the device, see [io.github.mrtnha.librifin.storage.BookStore]. */
+@Serializable
 data class Book(val id: String, val title: String, val coverUrl: String?)
 
 sealed interface LibraryState {

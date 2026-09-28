@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.platform.Platform
+import io.github.mrtnha.librifin.storage.BookStore
 import kotlinx.serialization.SerializationException
 
 /**
@@ -12,6 +13,7 @@ import kotlinx.serialization.SerializationException
  */
 class AppServices(val platform: Platform) : ViewModel() {
     val jellyfin = JellyfinClient(platform)
+    val bookStore = BookStore(platform.filesDir)
 
     /** The session saved at the last login, or null if logged out (or the saved data is unreadable). */
     fun loadSession(): Session? {

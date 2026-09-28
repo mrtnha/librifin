@@ -34,7 +34,7 @@ class AndroidPlatform(context: Context) : Platform {
         override fun clear() = prefs.edit().remove(KEY_SESSION).apply()
     }
 
-    override val cacheDir: String = appContext.cacheDir.absolutePath
+    override val filesDir: String = appContext.filesDir.absolutePath
 
     private companion object {
         const val PREFS_FILE = "librifin" // → shared_prefs/librifin.xml

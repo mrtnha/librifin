@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.toUserMessage
+import io.github.mrtnha.librifin.storage.BookStore
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -26,14 +27,14 @@ sealed interface ReaderState {
 }
 
 /**
- * Gets the book's EPUB onto the device. Opening a book is the download: the file is kept in the cache
- * and reused next time, so books that were read once open instantly.
+ * Gets the book's EPUB onto the device. Opening a book is the download: the file is kept and reused
+ * next time, so books that were read once open instantly, also without a connection.
  */
 class ReaderViewModel(
     private val session: Session,
     private val bookId: String,
     private val jellyfin: JellyfinClient,
-    cacheDir: String,
+    private val bookStore: BookStore,
 ) : ViewModel() {
     var state by mutableStateOf<ReaderState>(ReaderState.Downloading(progress = null))
         private set
@@ -42,8 +43,7 @@ class ReaderViewModel(
     var areBarsVisible by mutableStateOf(false)
         private set
 
-    private val booksDir = Path(cacheDir, "books")
-    private val file = Path(booksDir, "$bookId.epub")
+    private val file = bookStore.bookFile(bookId)
 
     init {
         load()
@@ -69,15 +69,14 @@ class ReaderViewModel(
 
     /** The downloaded file isn't a book we can show. Deleted, so the next attempt gets a fresh copy. */
     fun onOpenFailed(message: String) {
-        SystemFileSystem.delete(file, mustExist = false)
+        bookStore.deleteBook(bookId)
         state = ReaderState.Error(message, canRetry = false)
     }
 
     /** Downloads to a temporary file first, so an interrupted download is never mistaken for the book. */
     private suspend fun downloadIfMissing() {
-        if (SystemFileSystem.exists(file)) return
-        SystemFileSystem.createDirectories(booksDir)
-        val partial = Path(booksDir, "$bookId.epub.part")
+        if (bookStore.isDownloaded(bookId)) return
+        val partial = bookStore.partialBookFile(bookId)
         try {
             var lastPercent = -1
             jellyfin.downloadBook(session, bookId, partial) { bytesRead, totalBytes ->

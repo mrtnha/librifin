@@ -1,7 +1,7 @@
 package io.github.mrtnha.librifin.platform
 
 import platform.Foundation.NSBundle
-import platform.Foundation.NSCachesDirectory
+import platform.Foundation.NSApplicationSupportDirectory
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUUID
 import platform.Foundation.NSUserDefaults
@@ -24,8 +24,8 @@ class IosPlatform : Platform {
 
     override val sessionStore: SessionStore = IosSessionStore()
 
-    override val cacheDir: String =
-        NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, true).first() as String
+    override val filesDir: String =
+        NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true).first() as String
 
     private companion object {
         const val KEY_DEVICE_ID = "device_id"
