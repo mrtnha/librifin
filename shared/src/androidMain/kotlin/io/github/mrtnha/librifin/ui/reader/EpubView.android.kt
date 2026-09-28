@@ -58,6 +58,7 @@ actual fun EpubView(
     initialLocator: String?,
     initialProgress: Double?,
     theme: ReaderTheme,
+    fontSize: Int,
     jumpToProgress: Double?,
     onJumped: () -> Unit,
     onReachedEnd: () -> Unit,
@@ -68,7 +69,7 @@ actual fun EpubView(
     modifier: Modifier,
 ) {
     val application = LocalContext.current.applicationContext as Application
-    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, initialProgress, theme) }
+    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, initialProgress, theme, fontSize) }
     val currentOnReachedEnd by rememberUpdatedState(onReachedEnd)
     DisposableEffect(vm) {
         vm.onReachedEnd = { currentOnReachedEnd() }
@@ -88,9 +89,9 @@ actual fun EpubView(
             LaunchedEffect(vm) { currentOnPagesLoaded(vm.pages) }
             var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
 
-            // The first theme is set when the book opens; later ones change the page in place.
-            LaunchedEffect(theme, navigatorNow) {
-                navigatorNow?.submitPreferences(theme.toEpubPreferences())
+            // The first theme and size are set when the book opens; later ones change the page in place.
+            LaunchedEffect(theme, fontSize, navigatorNow) {
+                navigatorNow?.submitPreferences(epubPreferences(theme, fontSize))
             }
 
             LaunchedEffect(jumpToProgress, navigatorNow) {
@@ -129,13 +130,15 @@ actual fun EpubView(
 }
 
 /**
+ * All of the reader's settings at once, so changing one never resets another.
  * Readium's night mode for the dark themes, with our colors on top: it also recolors headings and
  * links, which keep the book's own (often black) colors otherwise.
  */
-private fun ReaderTheme.toEpubPreferences() = EpubPreferences(
-    theme = if (isDark) Theme.DARK else Theme.LIGHT,
-    backgroundColor = Color(background.toArgb()),
-    textColor = Color(text.toArgb()),
+private fun epubPreferences(theme: ReaderTheme, fontSize: Int) = EpubPreferences(
+    theme = if (theme.isDark) Theme.DARK else Theme.LIGHT,
+    backgroundColor = Color(theme.background.toArgb()),
+    textColor = Color(theme.text.toArgb()),
+    fontSize = fontSize / 100.0,
 )
 
 private sealed interface EpubState {
@@ -154,6 +157,7 @@ private class EpubViewModel(
     private val initialLocator: String?,
     private val initialProgress: Double?,
     private val initialTheme: ReaderTheme,
+    private val initialFontSize: Int,
 ) : ViewModel() {
     var state by mutableStateOf<EpubState>(EpubState.Opening)
         private set
@@ -202,7 +206,7 @@ private class EpubViewModel(
         val lastChapter = publication.readingOrder.lastOrNull()?.url()
         val factory = EpubNavigatorFactory(publication).createFragmentFactory(
             initialLocator = startLocator,
-            initialPreferences = initialTheme.toEpubPreferences(),
+            initialPreferences = epubPreferences(initialTheme, initialFontSize),
             // Tells the page within the chapter: the most reliable way to see the book's last page.
             paginationListener = object : EpubNavigatorFragment.PaginationListener {
                 override fun onPageChanged(pageIndex: Int, totalPages: Int, locator: Locator) {

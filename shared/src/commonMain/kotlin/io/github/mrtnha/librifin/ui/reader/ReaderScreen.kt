@@ -90,6 +90,7 @@ fun ReaderScreen(
                         initialLocator = state.startLocator,
                         initialProgress = state.startProgress,
                         theme = theme,
+                        fontSize = vm.fontSize,
                         jumpToProgress = vm.jumpToProgress,
                         onJumped = vm::onJumped,
                         onReachedEnd = vm::onReachedEnd,
@@ -144,6 +145,12 @@ fun ReaderScreen(
                                 }
                             },
                             actions = {
+                                IconButton(onClick = vm::decreaseFontSize, enabled = vm.canDecreaseFontSize) {
+                                    Icon(LibrifinIcons.TextDecrease, contentDescription = "Smaller text")
+                                }
+                                IconButton(onClick = vm::increaseFontSize, enabled = vm.canIncreaseFontSize) {
+                                    Icon(LibrifinIcons.TextIncrease, contentDescription = "Larger text")
+                                }
                                 IconButton(onClick = vm::cycleTheme) {
                                     Icon(LibrifinIcons.Visibility, contentDescription = "Change theme")
                                 }

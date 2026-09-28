@@ -7,7 +7,7 @@ import kotlinx.io.files.Path
 /**
  * Renders the EPUB in [file] paginated, starting at [initialLocator] (a value from
  * [onPositionChanged]), else at [initialProgress] through the whole book (0..1), else at the beginning,
- * in the colors of [theme].
+ * in the colors of [theme], with text at [fontSize] percent of the book's own size.
  * When [jumpToProgress] is set, it goes there and calls [onJumped]. [onReachedEnd] is called when
  * the last page of the book is shown. [onPagesLoaded] gets the book's pages once it's open.
  * Taps on the left and right edges and swipes turn pages; other taps on the page call [onCenterTap].
@@ -21,6 +21,7 @@ expect fun EpubView(
     initialLocator: String?,
     initialProgress: Double?,
     theme: ReaderTheme,
+    fontSize: Int,
     jumpToProgress: Double?,
     onJumped: () -> Unit,
     onReachedEnd: () -> Unit,

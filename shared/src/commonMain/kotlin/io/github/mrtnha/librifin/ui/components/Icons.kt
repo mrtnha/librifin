@@ -352,6 +352,70 @@ object LibrifinIcons {
         }
     }
 
+    /** "text_decrease". Reader app bar: smaller text. */
+    val TextDecrease: ImageVector by lazy {
+        symbol("TextDecrease") {
+            moveTo(1f, 19f)
+            lineTo(6.25f, 5f)
+            horizontalLineToRelative(2.5f)
+            lineTo(14f, 19f)
+            horizontalLineTo(11.6f)
+            lineTo(10.33f, 15.43f)
+            horizontalLineTo(4.68f)
+            lineTo(3.4f, 19f)
+            horizontalLineTo(1f)
+            close()
+            moveTo(5.4f, 13.4f)
+            horizontalLineTo(9.6f)
+            lineTo(7.55f, 7.6f)
+            horizontalLineTo(7.45f)
+            lineTo(5.4f, 13.4f)
+            close()
+            moveTo(15f, 13f)
+            verticalLineTo(11f)
+            horizontalLineToRelative(8f)
+            verticalLineToRelative(2f)
+            horizontalLineTo(15f)
+            close()
+        }
+    }
+
+    /** "text_increase". Reader app bar: larger text. */
+    val TextIncrease: ImageVector by lazy {
+        symbol("TextIncrease") {
+            moveTo(1f, 19f)
+            lineTo(6.25f, 5f)
+            horizontalLineToRelative(2.5f)
+            lineTo(14f, 19f)
+            horizontalLineTo(11.6f)
+            lineTo(10.33f, 15.43f)
+            horizontalLineTo(4.68f)
+            lineTo(3.4f, 19f)
+            horizontalLineTo(1f)
+            close()
+            moveTo(5.4f, 13.4f)
+            horizontalLineTo(9.6f)
+            lineTo(7.55f, 7.6f)
+            horizontalLineTo(7.45f)
+            lineTo(5.4f, 13.4f)
+            close()
+            moveTo(18f, 16f)
+            verticalLineTo(13f)
+            horizontalLineTo(15f)
+            verticalLineTo(11f)
+            horizontalLineToRelative(3f)
+            verticalLineTo(8f)
+            horizontalLineToRelative(2f)
+            verticalLineToRelative(3f)
+            horizontalLineToRelative(3f)
+            verticalLineToRelative(2f)
+            horizontalLineTo(20f)
+            verticalLineToRelative(3f)
+            horizontalLineTo(18f)
+            close()
+        }
+    }
+
     /** "visibility" (an eye). Reader app bar: switches the reading theme. */
     val Visibility: ImageVector by lazy {
         symbol("Visibility") {

@@ -70,6 +70,15 @@ class ReaderViewModel(
     )
         private set
 
+    /** The text size in percent of the book's own, the same for all books and kept between app starts. */
+    var fontSize by mutableStateOf(
+        settings.read(KEY_FONT_SIZE)?.toIntOrNull()?.coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE) ?: DEFAULT_FONT_SIZE,
+    )
+        private set
+
+    val canDecreaseFontSize get() = fontSize > MIN_FONT_SIZE
+    val canIncreaseFontSize get() = fontSize < MAX_FONT_SIZE
+
     /**
      * Set when the book was read further elsewhere while open here: the renderer jumps there (0..1)
      * and calls [onJumped].
@@ -162,6 +171,15 @@ class ReaderViewModel(
         settings.write(KEY_THEME, theme.name)
     }
 
+    fun decreaseFontSize() = changeFontSize(fontSize - FONT_SIZE_STEP)
+
+    fun increaseFontSize() = changeFontSize(fontSize + FONT_SIZE_STEP)
+
+    private fun changeFontSize(percent: Int) {
+        fontSize = percent.coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE)
+        settings.write(KEY_FONT_SIZE, fontSize.toString())
+    }
+
     /** The downloaded file isn't a book we can show. Deleted, so the next attempt gets a fresh copy. */
     fun onOpenFailed(message: String) {
         bookStore.deleteBook(bookId)
@@ -242,5 +260,13 @@ class ReaderViewModel(
         const val SERVER_POSITION_TIMEOUT_MS = 2_000L
 
         const val KEY_THEME = "reader_theme"
+        const val KEY_FONT_SIZE = "reader_font_size"
+
+        // Readium allows 10–500 %; beyond these limits text on a phone is too small to read,
+        // or only a few words fit on a line.
+        const val DEFAULT_FONT_SIZE = 100
+        const val MIN_FONT_SIZE = 70
+        const val MAX_FONT_SIZE = 250
+        const val FONT_SIZE_STEP = 10
     }
 }
