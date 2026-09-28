@@ -9,6 +9,7 @@ import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.toUserMessage
 import io.github.mrtnha.librifin.storage.BookStore
+import io.github.mrtnha.librifin.sync.ProgressSync
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +46,7 @@ class LibraryViewModel(
     private val session: Session,
     private val jellyfin: JellyfinClient,
     private val bookStore: BookStore,
+    private val progressSync: ProgressSync,
 ) : ViewModel() {
     var state by mutableStateOf<LibraryState>(LibraryState.Loading)
         private set
@@ -110,6 +112,8 @@ class LibraryViewModel(
                         )
                     }
                     withContext(Dispatchers.IO) { bookStore.saveLibrary(session, books) }
+                    // The server is reachable again: send what was read offline.
+                    progressSync.sendUnsynced(session)
                     LibraryState.Loaded(books)
                 }
             } catch (e: CancellationException) {

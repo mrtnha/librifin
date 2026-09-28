@@ -13,6 +13,9 @@ import kotlinx.io.files.Path
 actual fun EpubView(
     file: Path,
     initialLocator: String?,
+    initialProgress: Double?,
+    jumpToProgress: Double?,
+    onJumped: () -> Unit,
     onPositionChanged: (locator: String, progress: Double) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,

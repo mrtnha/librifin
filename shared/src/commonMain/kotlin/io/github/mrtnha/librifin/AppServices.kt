@@ -6,6 +6,7 @@ import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.platform.Platform
 import io.github.mrtnha.librifin.storage.BookStore
+import io.github.mrtnha.librifin.sync.ProgressSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.SerializationException
 
@@ -19,6 +20,8 @@ class AppServices(val platform: Platform) : ViewModel() {
 
     /** For work that must finish even if the screen that started it is closed, e.g. saving the reading position. */
     val scope: CoroutineScope get() = viewModelScope
+
+    val progressSync = ProgressSync(jellyfin, bookStore, viewModelScope)
 
     /** The session saved at the last login, or null if logged out (or the saved data is unreadable). */
     fun loadSession(): Session? {

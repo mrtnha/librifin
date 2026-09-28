@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Session
@@ -38,7 +40,12 @@ fun ReaderScreen(
     services: AppServices,
     onBack: () -> Unit,
 ) {
-    val vm = viewModel { ReaderViewModel(session, bookId, services.jellyfin, services.bookStore, services.scope) }
+    val vm = viewModel {
+        ReaderViewModel(session, bookId, services.jellyfin, services.bookStore, services.progressSync, services.scope)
+    }
+
+    // Back in the app: the book may have been read further elsewhere meanwhile.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onAppResumed() }
 
     // Full screen only while the book is shown; while loading or on errors the bars stay, so the way back is visible.
     val showBars = vm.state !is ReaderState.Ready || vm.areBarsVisible
@@ -48,7 +55,10 @@ fun ReaderScreen(
         when (val state = vm.state) {
             is ReaderState.Ready -> EpubView(
                 file = state.file,
-                initialLocator = state.position?.locator,
+                initialLocator = state.startLocator,
+                initialProgress = state.startProgress,
+                jumpToProgress = vm.jumpToProgress,
+                onJumped = vm::onJumped,
                 onPositionChanged = vm::onPositionChanged,
                 onCenterTap = vm::toggleBars,
                 onOpenFailed = vm::onOpenFailed,

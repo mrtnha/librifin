@@ -64,7 +64,7 @@ fun LibraryScreen(
     onSessionExpired: () -> Unit,
     onBookClick: (Book) -> Unit,
 ) {
-    val vm = viewModel { LibraryViewModel(session, services.jellyfin, services.bookStore) }
+    val vm = viewModel { LibraryViewModel(session, services.jellyfin, services.bookStore, services.progressSync) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var isPullRefreshing by remember { mutableStateOf(false) }

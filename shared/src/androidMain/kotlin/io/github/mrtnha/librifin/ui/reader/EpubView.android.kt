@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,6 +38,7 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.isRestricted
+import org.readium.r2.shared.publication.services.locateProgression
 import org.readium.r2.shared.util.asset.AssetRetriever
 import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.http.DefaultHttpClient
@@ -47,13 +49,16 @@ import org.readium.r2.streamer.parser.DefaultPublicationParser
 actual fun EpubView(
     file: Path,
     initialLocator: String?,
+    initialProgress: Double?,
+    jumpToProgress: Double?,
+    onJumped: () -> Unit,
     onPositionChanged: (locator: String, progress: Double) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,
     modifier: Modifier,
 ) {
     val application = LocalContext.current.applicationContext as Application
-    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator) }
+    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, initialProgress) }
 
     when (val state = vm.state) {
         EpubState.Opening -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -63,8 +68,19 @@ actual fun EpubView(
         EpubState.Opened -> {
             val currentOnCenterTap by rememberUpdatedState(onCenterTap)
             val currentOnPositionChanged by rememberUpdatedState(onPositionChanged)
+            val currentOnJumped by rememberUpdatedState(onJumped)
+            var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
+
+            LaunchedEffect(jumpToProgress, navigatorNow) {
+                val progress = jumpToProgress ?: return@LaunchedEffect
+                val navigator = navigatorNow ?: return@LaunchedEffect
+                vm.locate(progress)?.let { navigator.go(it) }
+                currentOnJumped()
+            }
+
             // Created by ReaderFragmentFactory, from the book the view model opened.
             AndroidFragment<EpubNavigatorFragment>(modifier) { navigator ->
+                navigatorNow = navigator
                 // Taps near the left and right edges turn the page with a slide, like a swipe.
                 // Taps elsewhere reach the next listener.
                 navigator.addInputListener(DirectionalNavigationAdapter(navigator, animatedTransition = true))
@@ -103,6 +119,7 @@ private class EpubViewModel(
     private val application: Application,
     private val file: File,
     private val initialLocator: String?,
+    private val initialProgress: Double?,
 ) : ViewModel() {
     var state by mutableStateOf<EpubState>(EpubState.Opening)
         private set
@@ -133,19 +150,21 @@ private class EpubViewModel(
             publication.isRestricted -> return EpubState.Failed("This book is protected (DRM) and can't be opened.")
         }
 
-        val factory = EpubNavigatorFactory(publication).createFragmentFactory(
-            initialLocator = initialLocator?.let { json ->
-                try {
-                    Locator.fromJSON(JSONObject(json))
-                } catch (_: JSONException) {
-                    null
-                }
-            },
-        )
+        val startLocator = initialLocator?.let { json ->
+            try {
+                Locator.fromJSON(JSONObject(json))
+            } catch (_: JSONException) {
+                null
+            }
+        } ?: initialProgress?.let { publication.locateProgression(it) }
+        val factory = EpubNavigatorFactory(publication).createFragmentFactory(initialLocator = startLocator)
         fragmentFactory = factory
         ReaderFragmentFactory.epub = factory
         return EpubState.Opened
     }
+
+    /** The place [progress] (0..1) through the whole book. */
+    suspend fun locate(progress: Double): Locator? = publication?.locateProgression(progress)
 
     override fun onCleared() {
         if (ReaderFragmentFactory.epub === fragmentFactory) ReaderFragmentFactory.epub = null

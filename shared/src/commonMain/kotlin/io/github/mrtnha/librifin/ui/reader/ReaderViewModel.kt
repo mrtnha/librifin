@@ -5,28 +5,38 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.mrtnha.librifin.api.BOOK_PROGRESS_TICKS
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
+import io.github.mrtnha.librifin.api.UserItemDataDto
 import io.github.mrtnha.librifin.api.toUserMessage
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.storage.ReadingPosition
+import io.github.mrtnha.librifin.sync.ProgressSync
 import io.ktor.client.plugins.ClientRequestException
+import kotlin.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
-import kotlin.time.Clock
 
 sealed interface ReaderState {
     /** [progress] is 0..1, or null while the size is unknown. */
     data class Downloading(val progress: Float?) : ReaderState
-    /** [position]: where the book was left off, or null to start at the beginning. */
-    data class Ready(val file: Path, val position: ReadingPosition?) : ReaderState
+
+    /**
+     * Where to open the book: at the exact [startLocator] saved on this device, else at
+     * [startProgress] (0..1) from Jellyfin, else at the beginning.
+     */
+    data class Ready(val file: Path, val startLocator: String?, val startProgress: Double?) : ReaderState
+
     /** [canRetry]: false if the file arrived but isn't a readable book, so downloading again won't help. */
     data class Error(val message: String, val canRetry: Boolean = true) : ReaderState
 }
@@ -34,12 +44,14 @@ sealed interface ReaderState {
 /**
  * Gets the book's EPUB onto the device. Opening a book is the download: the file is kept and reused
  * next time, so books that were read once open instantly, also without a connection.
+ * Opens the book where it was left off, on this device or elsewhere (Jellyfin), whichever is newer.
  */
 class ReaderViewModel(
     private val session: Session,
     private val bookId: String,
     private val jellyfin: JellyfinClient,
     private val bookStore: BookStore,
+    private val progressSync: ProgressSync,
     /** Outlives this screen, so the last position is still saved when the reader is left right away. */
     private val appScope: CoroutineScope,
 ) : ViewModel() {
@@ -50,7 +62,16 @@ class ReaderViewModel(
     var areBarsVisible by mutableStateOf(false)
         private set
 
+    /**
+     * Set when the book was read further elsewhere while open here: the renderer jumps there (0..1)
+     * and calls [onJumped].
+     */
+    var jumpToProgress by mutableStateOf<Double?>(null)
+        private set
+
     private val file = bookStore.bookFile(bookId)
+    private var lastLocator: String? = null
+    private var serverCheck: Job? = null
 
     init {
         load()
@@ -60,11 +81,11 @@ class ReaderViewModel(
         state = ReaderState.Downloading(progress = null)
         viewModelScope.launch {
             state = try {
-                val position = withContext(Dispatchers.IO) {
+                val local = withContext(Dispatchers.IO) {
                     downloadIfMissing()
                     bookStore.readPosition(bookId)
                 }
-                ReaderState.Ready(file, position)
+                readyState(local, serverUserData())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -75,8 +96,26 @@ class ReaderViewModel(
 
     /** Called on every page turn with the renderer's position and how far into the book it is. */
     fun onPositionChanged(locator: String, progress: Double) {
+        // The renderer reports the same page again e.g. when the app comes back: that's no new reading,
+        // and saving it would overwrite progress made elsewhere meanwhile.
+        if (locator == lastLocator) return
+        lastLocator = locator
         val position = ReadingPosition(locator, progress, Clock.System.now().toEpochMilliseconds())
         appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.savePosition(bookId, position) }
+        progressSync.schedule(session, bookId)
+    }
+
+    /** Back in the app with the book open: maybe it was read further elsewhere meanwhile. */
+    fun onAppResumed() {
+        if (state !is ReaderState.Ready || serverCheck?.isActive == true) return
+        serverCheck = viewModelScope.launch {
+            val server = serverUserData() ?: return@launch
+            jumpToProgress = serverProgressIfReadElsewhere(bookStore.currentPosition(bookId), server) ?: return@launch
+        }
+    }
+
+    fun onJumped() {
+        jumpToProgress = null
     }
 
     fun toggleBars() {
@@ -87,6 +126,47 @@ class ReaderViewModel(
     fun onOpenFailed(message: String) {
         bookStore.deleteBook(bookId)
         state = ReaderState.Error(message, canRetry = false)
+    }
+
+    override fun onCleared() {
+        progressSync.sendNow(session, bookId)
+    }
+
+    /** How far the book was read according to Jellyfin, or null if unknown or not reachable quickly. */
+    private suspend fun serverUserData(): UserItemDataDto? =
+        withTimeoutOrNull(SERVER_POSITION_TIMEOUT_MS) {
+            try {
+                jellyfin.userData(session, bookId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null // Offline: this device's position is all we have.
+            }
+        }
+
+    /** Opens where the book was read last: the exact spot on this device, or Jellyfin's if it was read elsewhere. */
+    private fun readyState(local: ReadingPosition?, server: UserItemDataDto?): ReaderState.Ready {
+        val serverProgress = server?.let { serverProgressIfReadElsewhere(local, it) }
+        return if (serverProgress != null) {
+            ReaderState.Ready(file, startLocator = null, startProgress = serverProgress)
+        } else {
+            lastLocator = local?.locator
+            ReaderState.Ready(file, startLocator = local?.locator, startProgress = null)
+        }
+    }
+
+    /**
+     * Jellyfin's progress (0..1) if the book was read further elsewhere than on this device, else null.
+     *
+     * Decided by value, not by time: Jellyfin's web reader sets the "last played" date only when a
+     * book is opened, not while reading. So Jellyfin having another value than this device last sent
+     * means someone else moved it. Progress made here that isn't sent yet (e.g. offline) wins.
+     */
+    private fun serverProgressIfReadElsewhere(local: ReadingPosition?, server: UserItemDataDto): Double? {
+        // 0 means unknown: e.g. never read, or reset when a book is closed in some clients.
+        val serverTicks = server.playbackPositionTicks?.takeIf { it > 0 } ?: return null
+        if (local != null && (!local.isSynced || local.serverTicks == serverTicks)) return null
+        return (serverTicks.toDouble() / BOOK_PROGRESS_TICKS).coerceIn(0.0, 1.0)
     }
 
     /** Downloads to a temporary file first, so an interrupted download is never mistaken for the book. */
@@ -116,4 +196,9 @@ class ReaderViewModel(
             404 -> "This book isn't on the server anymore."
             else -> toUserMessage()
         }
+
+    private companion object {
+        /** Asking Jellyfin must not keep a downloaded book from opening offline for long. */
+        const val SERVER_POSITION_TIMEOUT_MS = 2_000L
+    }
 }

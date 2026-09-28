@@ -42,7 +42,31 @@ data class BaseItemDto(
     @SerialName("CollectionType") val collectionType: String? = null,
     @SerialName("ImageTags") val imageTags: Map<String, String?>? = null,
     @SerialName("PrimaryImageAspectRatio") val primaryImageAspectRatio: Double? = null,
+    @SerialName("UserData") val userData: UserItemDataDto? = null,
 )
+
+/**
+ * The user's state of an item. For books, Jellyfin's own web reader stores the reading progress in
+ * [playbackPositionTicks] as a fraction of [BOOK_PROGRESS_TICKS]; Librifin does the same.
+ */
+@Serializable
+data class UserItemDataDto(
+    @SerialName("PlaybackPositionTicks") val playbackPositionTicks: Long? = null,
+    /** ISO 8601, e.g. `2026-09-28T14:03:12.1234567Z`. */
+    @SerialName("LastPlayedDate") val lastPlayedDate: String? = null,
+    @SerialName("Played") val played: Boolean? = null,
+)
+
+/** Only the given fields are changed on the server. */
+@Serializable
+data class UpdateUserItemDataDto(
+    @SerialName("PlaybackPositionTicks") val playbackPositionTicks: Long? = null,
+    @SerialName("LastPlayedDate") val lastPlayedDate: String? = null,
+    @SerialName("Played") val played: Boolean? = null,
+)
+
+/** Reading progress 100 % in [UserItemDataDto.playbackPositionTicks], as in Jellyfin's web reader. */
+const val BOOK_PROGRESS_TICKS = 10_000_000L
 
 @Serializable
 data class BaseItemDtoQueryResult(

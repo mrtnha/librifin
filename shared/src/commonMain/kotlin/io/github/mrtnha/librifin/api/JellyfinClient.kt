@@ -104,6 +104,23 @@ class JellyfinClient(private val platform: Platform) {
         }
     }
 
+    /** The user's state of one item, e.g. how far a book has been read. */
+    suspend fun userData(session: Session, itemId: String): UserItemDataDto =
+        http.get("${session.server.baseUrl}/UserItems/$itemId/UserData") {
+            authorize(session.accessToken)
+            parameter("userId", session.userId)
+        }.body()
+
+    /** Changes the fields of [update] that are set, e.g. the reading progress and when it was read. */
+    suspend fun updateUserData(session: Session, itemId: String, update: UpdateUserItemDataDto) {
+        http.post("${session.server.baseUrl}/UserItems/$itemId/UserData") {
+            authorize(session.accessToken)
+            parameter("userId", session.userId)
+            contentType(ContentType.Application.Json)
+            setBody(update)
+        }
+    }
+
     /** Cover URL, or null if the item has no cover. The tag changes when the image does, so it's safe to cache. */
     fun primaryImageUrl(baseUrl: String, item: BaseItemDto, maxWidth: Int): String? {
         val tag = item.imageTags?.get("Primary") ?: return null

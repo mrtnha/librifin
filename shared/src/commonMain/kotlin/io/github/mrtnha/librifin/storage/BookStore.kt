@@ -71,12 +71,43 @@ class BookStore(filesDir: String) {
         }
     }
 
-    /** Call with [kotlinx.coroutines.CoroutineStart.UNDISPATCHED] to keep the order of rapid page turns. */
+    /**
+     * Saves a newly read [position] (not synced yet). Keeps what Jellyfin had at the last sync.
+     * Call with [kotlinx.coroutines.CoroutineStart.UNDISPATCHED] to keep the order of rapid page turns.
+     */
     suspend fun savePosition(bookId: String, position: ReadingPosition) = positionLock.withLock {
         withContext(Dispatchers.IO) {
             SystemFileSystem.createDirectories(positionsDir)
-            writeText(positionFile(bookId), JellyfinClient.json.encodeToString(position))
+            val saved = position.copy(isSynced = false, serverTicks = readPosition(bookId)?.serverTicks)
+            writeText(positionFile(bookId), JellyfinClient.json.encodeToString(saved))
         }
+    }
+
+    /** Like [readPosition], but only after the saves requested before this call are written. */
+    suspend fun currentPosition(bookId: String): ReadingPosition? = positionLock.withLock {
+        withContext(Dispatchers.IO) { readPosition(bookId) }
+    }
+
+    /**
+     * Records that [position] reached the server as [serverTicks]. Skipped if the book was read
+     * further meanwhile: that newer position still has to be sent.
+     */
+    suspend fun markSynced(bookId: String, position: ReadingPosition, serverTicks: Long) = positionLock.withLock {
+        withContext(Dispatchers.IO) {
+            if (readPosition(bookId) == position) {
+                val synced = position.copy(isSynced = true, serverTicks = serverTicks)
+                writeText(positionFile(bookId), JellyfinClient.json.encodeToString(synced))
+            }
+        }
+    }
+
+    /** Books whose last position hasn't reached the server yet, e.g. because they were read offline. */
+    fun unsyncedBookIds(): List<String> {
+        if (!SystemFileSystem.exists(positionsDir)) return emptyList()
+        return SystemFileSystem.list(positionsDir)
+            .filter { it.name.endsWith(".json") }
+            .map { it.name.removeSuffix(".json") }
+            .filter { readPosition(it)?.isSynced == false }
     }
 
     private fun positionFile(bookId: String) = Path(positionsDir, "$bookId.json")
@@ -97,7 +128,17 @@ class BookStore(filesDir: String) {
 
 /**
  * A place in a book. [locator] is the renderer's exact position (opaque to shared code); [progress]
- * is how far into the whole book it is, 0..1; [updatedAtMillis] is when it was read there.
+ * is how far into the whole book it is, 0..1; [updatedAtMillis] is when it was read there;
+ * [isSynced] is whether Jellyfin knows about it.
+ *
+ * [serverTicks] is the progress Jellyfin had after this device's last sync. If Jellyfin has a
+ * different value later, the book was read elsewhere since (e.g. in Jellyfin's web reader).
  */
 @Serializable
-data class ReadingPosition(val locator: String, val progress: Double, val updatedAtMillis: Long)
+data class ReadingPosition(
+    val locator: String,
+    val progress: Double,
+    val updatedAtMillis: Long,
+    val isSynced: Boolean = false,
+    val serverTicks: Long? = null,
+)
