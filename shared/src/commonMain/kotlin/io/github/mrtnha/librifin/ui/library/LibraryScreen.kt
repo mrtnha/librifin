@@ -52,6 +52,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -328,23 +329,24 @@ private fun BookItem(book: Book, progress: BookProgress?, isDimmed: Boolean, onC
                     )
                 }
             }
+            // Along the bottom edge of the cover, like in Jellyfin. On every book: an empty track until
+            // started, then filling up in blue. The dark, see-through track stays visible on any cover.
+            LinearProgressIndicator(
+                progress = {
+                    when {
+                        progress == null -> 0f
+                        progress.isFinished -> 1f
+                        else -> progress.fraction
+                    }
+                },
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(6.dp),
+                trackColor = Color.Black.copy(alpha = 0.5f),
+                // One continuous bar with square ends, flush with the cover: no gap, no dot at the end.
+                strokeCap = StrokeCap.Butt,
+                gapSize = 0.dp,
+                drawStopIndicator = {},
+            )
         }
-        // On every book, so the grid looks even: grey until started, then filling up in blue.
-        LinearProgressIndicator(
-            progress = {
-                when {
-                    progress == null -> 0f
-                    progress.isFinished -> 1f
-                    else -> progress.fraction
-                }
-            },
-            // A bit taller than Material's 4 dp, so it reads as part of the book, not a thin line.
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(6.dp),
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            // One continuous bar: no gap between the read part and the rest, no dot at the end.
-            gapSize = 0.dp,
-            drawStopIndicator = {},
-        )
         Text(
             book.title,
             style = MaterialTheme.typography.titleSmall,
