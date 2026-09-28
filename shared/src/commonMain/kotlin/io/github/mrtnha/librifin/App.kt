@@ -4,12 +4,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -20,12 +16,13 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.mrtnha.librifin.navigation.Navigator
 import io.github.mrtnha.librifin.navigation.Screen
 import io.github.mrtnha.librifin.ui.server.ServerSelectionScreen
+import io.github.mrtnha.librifin.ui.theme.LibrifinTheme
 import io.github.mrtnha.librifin.ui.welcome.WelcomeScreen
 
 @Composable
 @Preview
 fun App() {
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
+    LibrifinTheme {
         val navigator = viewModel { Navigator(Screen.Welcome) }
 
         NavigationBackHandler(
