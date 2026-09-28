@@ -45,6 +45,9 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
             implementation(libs.ktor.client.okhttp)
+            // EPUB parsing and the Compose-based paginated EPUB renderer
+            implementation(libs.readium.streamer)
+            implementation(libs.readium.navigator.webReflowable)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
