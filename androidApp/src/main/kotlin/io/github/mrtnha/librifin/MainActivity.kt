@@ -3,20 +3,24 @@ package io.github.mrtnha.librifin
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.fragment.app.FragmentActivity
 import io.github.mrtnha.librifin.platform.AndroidPlatform
+import io.github.mrtnha.librifin.ui.reader.ReaderFragmentFactory
 
-class MainActivity : ComponentActivity() {
+// A FragmentActivity because Readium's EPUB renderer is a Fragment.
+class MainActivity : FragmentActivity() {
     private val requestLocalNetwork = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         // Nothing to do: without it, discovery finds nothing and LAN addresses fail with a clear error.
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        supportFragmentManager.fragmentFactory = ReaderFragmentFactory
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        ReaderFragmentFactory.removeOrphans(supportFragmentManager)
         requestLocalNetworkAccess()
 
         val platform = AndroidPlatform(applicationContext)

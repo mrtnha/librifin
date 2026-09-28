@@ -47,9 +47,10 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             // Showing and hiding the system bars in the reader (already in the app via Compose and Readium)
             implementation(libs.androidx.core.ktx)
-            // EPUB parsing and the Compose-based paginated EPUB renderer
+            // EPUB parsing, and the EPUB renderer (a Fragment, shown in Compose via fragment-compose)
             implementation(libs.readium.streamer)
-            implementation(libs.readium.navigator.webReflowable)
+            implementation(libs.readium.navigator)
+            implementation(libs.androidx.fragment.compose)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

@@ -10,28 +10,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentFactory
+import androidx.fragment.compose.AndroidFragment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
 import kotlinx.coroutines.launch
 import kotlinx.io.files.Path
-import org.readium.navigator.common.InputListener
-import org.readium.navigator.common.TapContext
-import org.readium.navigator.common.TapEvent
-import org.readium.navigator.common.defaultInputListener
-import org.readium.navigator.web.reflowable.ReflowableWebRendition
-import org.readium.navigator.web.reflowable.ReflowableWebRenditionFactory
-import org.readium.navigator.web.reflowable.ReflowableWebRenditionState
+import org.readium.r2.navigator.epub.EpubNavigatorFactory
+import org.readium.r2.navigator.epub.EpubNavigatorFragment
+import org.readium.r2.navigator.input.InputListener
+import org.readium.r2.navigator.input.TapEvent
+import org.readium.r2.navigator.util.DirectionalNavigationAdapter
 import org.readium.r2.shared.ExperimentalReadiumApi
-import org.readium.r2.shared.publication.Layout
 import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.services.isRestricted
 import org.readium.r2.shared.util.asset.AssetRetriever
 import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.http.DefaultHttpClient
@@ -53,29 +52,27 @@ actual fun EpubView(
             CircularProgressIndicator()
         }
         is EpubState.Failed -> LaunchedEffect(state) { onOpenFailed(state.message) }
-        is EpubState.Opened -> {
+        EpubState.Opened -> {
             val currentOnCenterTap by rememberUpdatedState(onCenterTap)
-            // Readium turns the page on taps near the left and right edges and passes all other taps on.
-            val centerTapListener = remember {
-                object : InputListener {
-                    override fun onTap(event: TapEvent, context: TapContext) = currentOnCenterTap()
-                }
+            // Created by ReaderFragmentFactory, from the book the view model opened.
+            AndroidFragment<EpubNavigatorFragment>(modifier) { navigator ->
+                // Taps near the left and right edges turn the page with a slide, like a swipe.
+                // Taps elsewhere reach the next listener.
+                navigator.addInputListener(DirectionalNavigationAdapter(navigator, animatedTransition = true))
+                navigator.addInputListener(object : InputListener {
+                    override fun onTap(event: TapEvent): Boolean {
+                        currentOnCenterTap()
+                        return true
+                    }
+                })
             }
-            ReflowableWebRendition(
-                state = state.rendition,
-                modifier = modifier,
-                inputListener = defaultInputListener(
-                    controller = state.rendition.controller,
-                    fallbackListener = centerTapListener,
-                ),
-            )
         }
     }
 }
 
 private sealed interface EpubState {
     data object Opening : EpubState
-    class Opened(val rendition: ReflowableWebRenditionState) : EpubState
+    data object Opened : EpubState
     class Failed(val message: String) : EpubState
 }
 
@@ -88,6 +85,7 @@ private class EpubViewModel(private val application: Application, private val fi
         private set
 
     private var publication: Publication? = null
+    private var fragmentFactory: FragmentFactory? = null
 
     init {
         viewModelScope.launch { state = open() }
@@ -107,20 +105,19 @@ private class EpubViewModel(private val application: Application, private val fi
         }
         this.publication = publication
 
-        val factory = ReflowableWebRenditionFactory(application, publication)
-            ?: return EpubState.Failed(
-                when {
-                    !publication.conformsTo(Publication.Profile.EPUB) -> NOT_AN_EPUB
-                    publication.metadata.layout == Layout.FIXED -> "Fixed-layout EPUBs aren't supported yet."
-                    else -> "This book can't be opened. It may be protected (DRM)."
-                },
-            )
-        val rendition = factory.createRenditionState()
-            .getOrElse { return EpubState.Failed("This book can't be opened.") }
-        return EpubState.Opened(rendition)
+        when {
+            !publication.conformsTo(Publication.Profile.EPUB) -> return EpubState.Failed(NOT_AN_EPUB)
+            publication.isRestricted -> return EpubState.Failed("This book is protected (DRM) and can't be opened.")
+        }
+
+        val factory = EpubNavigatorFactory(publication).createFragmentFactory(initialLocator = null)
+        fragmentFactory = factory
+        ReaderFragmentFactory.epub = factory
+        return EpubState.Opened
     }
 
     override fun onCleared() {
+        if (ReaderFragmentFactory.epub === fragmentFactory) ReaderFragmentFactory.epub = null
         publication?.close()
     }
 

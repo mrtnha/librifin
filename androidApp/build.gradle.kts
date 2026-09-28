@@ -14,6 +14,8 @@ dependencies {
     implementation(project(":shared"))
 
     implementation(libs.androidx.activity.compose)
+    // MainActivity is a FragmentActivity: Readium's EPUB renderer is a Fragment
+    implementation(libs.androidx.fragment)
     // Required by Readium (its libraries are built with core library desugaring)
     coreLibraryDesugaring(libs.desugarJdkLibs)
 
