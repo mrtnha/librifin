@@ -12,6 +12,8 @@ import kotlinx.io.files.Path
 @Composable
 actual fun EpubView(
     file: Path,
+    initialLocator: String?,
+    onPositionChanged: (locator: String, progress: Double) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,
     modifier: Modifier,

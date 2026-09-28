@@ -17,18 +17,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentFactory
 import androidx.fragment.compose.AndroidFragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
 import kotlinx.coroutines.launch
 import kotlinx.io.files.Path
+import org.json.JSONException
+import org.json.JSONObject
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.navigator.util.DirectionalNavigationAdapter
 import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.isRestricted
 import org.readium.r2.shared.util.asset.AssetRetriever
@@ -40,12 +46,14 @@ import org.readium.r2.streamer.parser.DefaultPublicationParser
 @Composable
 actual fun EpubView(
     file: Path,
+    initialLocator: String?,
+    onPositionChanged: (locator: String, progress: Double) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,
     modifier: Modifier,
 ) {
     val application = LocalContext.current.applicationContext as Application
-    val vm = viewModel { EpubViewModel(application, File(file.toString())) }
+    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator) }
 
     when (val state = vm.state) {
         EpubState.Opening -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -54,6 +62,7 @@ actual fun EpubView(
         is EpubState.Failed -> LaunchedEffect(state) { onOpenFailed(state.message) }
         EpubState.Opened -> {
             val currentOnCenterTap by rememberUpdatedState(onCenterTap)
+            val currentOnPositionChanged by rememberUpdatedState(onPositionChanged)
             // Created by ReaderFragmentFactory, from the book the view model opened.
             AndroidFragment<EpubNavigatorFragment>(modifier) { navigator ->
                 // Taps near the left and right edges turn the page with a slide, like a swipe.
@@ -65,6 +74,16 @@ actual fun EpubView(
                         return true
                     }
                 })
+                navigator.lifecycleScope.launch {
+                    navigator.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        navigator.currentLocator.collect { locator ->
+                            currentOnPositionChanged(
+                                locator.toJSON().toString(),
+                                locator.locations.totalProgression ?: 0.0,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -80,7 +99,11 @@ private sealed interface EpubState {
  * Opens the book with Readium and keeps it open while the reader is on the back stack
  * (so it survives rotation). The publication is closed when the reader is left.
  */
-private class EpubViewModel(private val application: Application, private val file: File) : ViewModel() {
+private class EpubViewModel(
+    private val application: Application,
+    private val file: File,
+    private val initialLocator: String?,
+) : ViewModel() {
     var state by mutableStateOf<EpubState>(EpubState.Opening)
         private set
 
@@ -110,7 +133,15 @@ private class EpubViewModel(private val application: Application, private val fi
             publication.isRestricted -> return EpubState.Failed("This book is protected (DRM) and can't be opened.")
         }
 
-        val factory = EpubNavigatorFactory(publication).createFragmentFactory(initialLocator = null)
+        val factory = EpubNavigatorFactory(publication).createFragmentFactory(
+            initialLocator = initialLocator?.let { json ->
+                try {
+                    Locator.fromJSON(JSONObject(json))
+                } catch (_: JSONException) {
+                    null
+                }
+            },
+        )
         fragmentFactory = factory
         ReaderFragmentFactory.epub = factory
         return EpubState.Opened

@@ -3,6 +3,11 @@ package io.github.mrtnha.librifin.storage
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.ui.library.Book
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
@@ -12,13 +17,17 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 
 /**
- * What Librifin keeps on the device: the downloaded books, and the last loaded book list so the
- * library shows up instantly and while the server can't be reached. Blocking file I/O: call it off
- * the main thread.
+ * What Librifin keeps on the device: the downloaded books, where each book was left off, and the
+ * last loaded book list so the library shows up instantly and while the server can't be reached.
+ * Blocking file I/O (except [savePosition]): call it off the main thread.
  */
 class BookStore(filesDir: String) {
     private val booksDir = Path(filesDir, "books")
     private val libraryFile = Path(filesDir, "library.json")
+    private val positionsDir = Path(filesDir, "positions")
+
+    /** Saves run one at a time, in the order they were requested, so an older position never wins. */
+    private val positionLock = Mutex()
 
     fun bookFile(bookId: String) = Path(booksDir, "$bookId.epub")
 
@@ -36,8 +45,7 @@ class BookStore(filesDir: String) {
     fun readLibrary(session: Session): List<Book>? {
         if (!SystemFileSystem.exists(libraryFile)) return null
         val saved = try {
-            val text = SystemFileSystem.source(libraryFile).buffered().use { it.readString() }
-            JellyfinClient.json.decodeFromString<SavedLibrary>(text)
+            JellyfinClient.json.decodeFromString<SavedLibrary>(readText(libraryFile))
         } catch (_: SerializationException) {
             return null
         } catch (_: IllegalArgumentException) {
@@ -47,14 +55,49 @@ class BookStore(filesDir: String) {
     }
 
     fun saveLibrary(session: Session, books: List<Book>) {
-        val text = JellyfinClient.json.encodeToString(SavedLibrary(session.server.id, session.userId, books))
-        // Write a new file, then replace the old one, so a crash never leaves half a list behind.
-        val temporary = Path(libraryFile.toString() + ".tmp")
+        writeText(libraryFile, JellyfinClient.json.encodeToString(SavedLibrary(session.server.id, session.userId, books)))
+    }
+
+    /** Where the user stopped reading this book on this device, or null if never opened (or unreadable). */
+    fun readPosition(bookId: String): ReadingPosition? {
+        val file = positionFile(bookId)
+        if (!SystemFileSystem.exists(file)) return null
+        return try {
+            JellyfinClient.json.decodeFromString<ReadingPosition>(readText(file))
+        } catch (_: SerializationException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
+
+    /** Call with [kotlinx.coroutines.CoroutineStart.UNDISPATCHED] to keep the order of rapid page turns. */
+    suspend fun savePosition(bookId: String, position: ReadingPosition) = positionLock.withLock {
+        withContext(Dispatchers.IO) {
+            SystemFileSystem.createDirectories(positionsDir)
+            writeText(positionFile(bookId), JellyfinClient.json.encodeToString(position))
+        }
+    }
+
+    private fun positionFile(bookId: String) = Path(positionsDir, "$bookId.json")
+
+    private fun readText(file: Path) = SystemFileSystem.source(file).buffered().use { it.readString() }
+
+    /** Writes a new file, then replaces the old one, so a crash never leaves half a file behind. */
+    private fun writeText(file: Path, text: String) {
+        val temporary = Path("$file.tmp")
         SystemFileSystem.sink(temporary).buffered().use { it.writeString(text) }
-        SystemFileSystem.atomicMove(temporary, libraryFile)
+        SystemFileSystem.atomicMove(temporary, file)
     }
 
     /** Saved with the user and server it belongs to, so another login never shows someone else's books. */
     @Serializable
     private class SavedLibrary(val serverId: String, val userId: String, val books: List<Book>)
 }
+
+/**
+ * A place in a book. [locator] is the renderer's exact position (opaque to shared code); [progress]
+ * is how far into the whole book it is, 0..1; [updatedAtMillis] is when it was read there.
+ */
+@Serializable
+data class ReadingPosition(val locator: String, val progress: Double, val updatedAtMillis: Long)

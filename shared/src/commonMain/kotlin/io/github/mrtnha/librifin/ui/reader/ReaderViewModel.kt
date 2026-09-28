@@ -9,19 +9,24 @@ import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.toUserMessage
 import io.github.mrtnha.librifin.storage.BookStore
+import io.github.mrtnha.librifin.storage.ReadingPosition
 import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import kotlin.time.Clock
 
 sealed interface ReaderState {
     /** [progress] is 0..1, or null while the size is unknown. */
     data class Downloading(val progress: Float?) : ReaderState
-    data class Ready(val file: Path) : ReaderState
+    /** [position]: where the book was left off, or null to start at the beginning. */
+    data class Ready(val file: Path, val position: ReadingPosition?) : ReaderState
     /** [canRetry]: false if the file arrived but isn't a readable book, so downloading again won't help. */
     data class Error(val message: String, val canRetry: Boolean = true) : ReaderState
 }
@@ -35,6 +40,8 @@ class ReaderViewModel(
     private val bookId: String,
     private val jellyfin: JellyfinClient,
     private val bookStore: BookStore,
+    /** Outlives this screen, so the last position is still saved when the reader is left right away. */
+    private val appScope: CoroutineScope,
 ) : ViewModel() {
     var state by mutableStateOf<ReaderState>(ReaderState.Downloading(progress = null))
         private set
@@ -53,14 +60,23 @@ class ReaderViewModel(
         state = ReaderState.Downloading(progress = null)
         viewModelScope.launch {
             state = try {
-                withContext(Dispatchers.IO) { downloadIfMissing() }
-                ReaderState.Ready(file)
+                val position = withContext(Dispatchers.IO) {
+                    downloadIfMissing()
+                    bookStore.readPosition(bookId)
+                }
+                ReaderState.Ready(file, position)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 ReaderState.Error(e.toDownloadMessage())
             }
         }
+    }
+
+    /** Called on every page turn with the renderer's position and how far into the book it is. */
+    fun onPositionChanged(locator: String, progress: Double) {
+        val position = ReadingPosition(locator, progress, Clock.System.now().toEpochMilliseconds())
+        appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.savePosition(bookId, position) }
     }
 
     fun toggleBars() {

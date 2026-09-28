@@ -5,13 +5,17 @@ import androidx.compose.ui.Modifier
 import kotlinx.io.files.Path
 
 /**
- * Renders the EPUB in [file] paginated. Taps on the left and right edges and swipes turn pages;
- * other taps on the page call [onCenterTap]. If the file can't be opened as a book, [onOpenFailed]
- * gets a message for the user.
+ * Renders the EPUB in [file] paginated, starting at [initialLocator] (a value from
+ * [onPositionChanged]) or at the beginning. Taps on the left and right edges and swipes turn pages;
+ * other taps on the page call [onCenterTap]. [onPositionChanged] gets the exact position (a string
+ * only this renderer understands) and the progress through the whole book (0..1). If the file can't
+ * be opened as a book, [onOpenFailed] gets a message for the user.
  */
 @Composable
 expect fun EpubView(
     file: Path,
+    initialLocator: String?,
+    onPositionChanged: (locator: String, progress: Double) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,
     modifier: Modifier = Modifier,
