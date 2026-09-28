@@ -21,7 +21,8 @@ sealed interface ReaderState {
     /** [progress] is 0..1, or null while the size is unknown. */
     data class Downloading(val progress: Float?) : ReaderState
     data class Ready(val file: Path) : ReaderState
-    data class Error(val message: String) : ReaderState
+    /** [canRetry]: false if the file arrived but isn't a readable book, so downloading again won't help. */
+    data class Error(val message: String, val canRetry: Boolean = true) : ReaderState
 }
 
 /**
@@ -56,6 +57,12 @@ class ReaderViewModel(
                 ReaderState.Error(e.toDownloadMessage())
             }
         }
+    }
+
+    /** The downloaded file isn't a book we can show. Deleted, so the next attempt gets a fresh copy. */
+    fun onOpenFailed(message: String) {
+        SystemFileSystem.delete(file, mustExist = false)
+        state = ReaderState.Error(message, canRetry = false)
     }
 
     /** Downloads to a temporary file first, so an interrupted download is never mistaken for the book. */

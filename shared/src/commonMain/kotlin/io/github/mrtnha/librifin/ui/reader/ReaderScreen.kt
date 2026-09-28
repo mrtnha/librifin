@@ -21,7 +21,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
-import kotlinx.io.files.SystemFileSystem
 
 /** Shows one book full screen. The app bar lies on top of the book, so the book doesn't move when it appears. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,22 +35,28 @@ fun ReaderScreen(
     val vm = viewModel { ReaderViewModel(session, bookId, services.jellyfin, services.platform.cacheDir) }
 
     Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-            when (val state = vm.state) {
-                is ReaderState.Downloading ->
-                    if (state.progress == null) {
-                        CircularProgressIndicator()
-                    } else {
-                        CircularProgressIndicator(progress = { state.progress })
+        when (val state = vm.state) {
+            is ReaderState.Ready -> EpubView(
+                file = state.file,
+                onCenterTap = {},
+                onOpenFailed = vm::onOpenFailed,
+                modifier = Modifier.fillMaxSize(),
+            )
+            else -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                when (state) {
+                    is ReaderState.Downloading ->
+                        if (state.progress == null) {
+                            CircularProgressIndicator()
+                        } else {
+                            CircularProgressIndicator(progress = { state.progress })
+                        }
+                    is ReaderState.Error -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(state.message, textAlign = TextAlign.Center)
+                        if (state.canRetry) {
+                            TextButton(onClick = vm::load, modifier = Modifier.padding(top = 8.dp)) { Text("Try again") }
+                        }
                     }
-                is ReaderState.Error -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(state.message, textAlign = TextAlign.Center)
-                    TextButton(onClick = vm::load, modifier = Modifier.padding(top = 8.dp)) { Text("Try again") }
-                }
-                is ReaderState.Ready -> {
-                    // Placeholder until the book is rendered.
-                    val size = SystemFileSystem.metadataOrNull(state.file)?.size ?: 0
-                    Text("Downloaded (${size / 1024} KB). The book will be shown here.", textAlign = TextAlign.Center)
+                    is ReaderState.Ready -> Unit
                 }
             }
         }
