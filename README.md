@@ -1,35 +1,126 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# Librifin
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+**Librifin** is an EPUB reader for [Jellyfin](https://jellyfin.org). It connects to your own
+Jellyfin server, shows your book library and lets you read your books on your phone, online or
+offline. It's free, open-source software, just like Jellyfin itself.
 
-* [/shared](./shared/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./shared/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./shared/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./shared/src/jvmMain/kotlin)
-    folder is the appropriate location.
+Librifin is built with [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html) and
+[Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/), so most of its code
+is shared between Android and iOS.
 
-### Running the apps
+> [!NOTE]
+> Librifin is a very early version. It should work, but some things may not work yet.
+> I only develop and test on Android. The iOS app has never been built or tested.
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
+## Why Librifin?
 
-- Android app: `./gradlew :androidApp:assembleDebug`
-- iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+- **Privacy.** No ads, no analytics, no telemetry. The app talks to your
+  Jellyfin server and nothing else.
+- **Open source.** All of the code is here. Read it, change it, build it yourself.
+- **The Jellyfin ecosystem.** Jellyfin is a great server for all of your media but its client apps don't always live up to it. My dream is a great app for every kind of media on Jellyfin. For music, there is [Finamp](https://github.com/finamp-app/finamp), which inspired this app. For books, I couldn't find an app made for Jellyfin, so I built one: Librifin.
 
-### Running tests
 
-Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
+## Features
 
-- Android tests: `./gradlew :shared:testAndroidHostTest`
-- iOS tests: `./gradlew :shared:iosSimulatorArm64Test`
+- Finds Jellyfin servers on your local network automatically. You can also enter an address by hand.
+- Log in once and stay logged in.
+- Your book library as a grid of covers, with each book's reading progress and a mark for finished
+  books.
+- Search by title or author.
+- Tap a book to download and open it. Downloaded books can also be read offline.
+- Paginated reading: turn the page by tapping the edges or swiping. Tap the middle of the page to
+  show or hide the bars.
+- A page slider to move through the whole book, three reading themes (dark, gray and light) and
+  adjustable text size.
+- Your reading position is saved on the device and sent to Jellyfin. A book counts as finished at
+  95 % or on its last page, and is then marked as played in Jellyfin.
 
----
+## Screenshots
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+| Welcome | Library | Reading | Reading with bars |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/welcome.jpeg" width="200" alt="Welcome screen"> | <img src="docs/screenshots/library.jpeg" width="200" alt="Library screen"> | <img src="docs/screenshots/reader.jpeg" width="200" alt="Reading full screen"> | <img src="docs/screenshots/reader-bars.jpeg" width="200" alt="Reading with the app bar and page slider shown"> |
 
-### Credits
+## Requirements
 
-The icons are [Material Symbols](https://fonts.google.com/icons) by Google, licensed under the Apache License 2.0.
+- A Jellyfin server with a library of the content type **Books** that contains EPUB files.
+- No plugins needed: Librifin uses Jellyfin's own API directly.
+- Your Jellyfin user must be allowed to download media (Dashboard → Users → your user →
+  under "Other": "Allow media downloads").
+- An Android phone with Android 7.0 or newer.
+
+***You need your own Jellyfin server to use Librifin. If you don't have one yet, see
+[Jellyfin's website](https://jellyfin.org) to learn what it is and how to set it up.***
+
+## Getting Librifin
+
+There are no releases yet. For now you can build the app yourself, see below.
+
+## Status and known limitations
+
+Librifin is developed in my free time, so new features and fixes may take a while.
+
+- Android only for now. On iOS the reader, server discovery and saving the login are still
+  placeholders, and the iOS app has never been built or tested. Help from anyone with a Mac is welcome.
+- One server and one user at a time.
+- Progress made in other Jellyfin clients (e.g. Jellyfin's web reader) isn't always picked up yet.
+
+## Contributing
+
+Anyone who wants to help is welcome: bug reports, ideas and pull requests. Please open an
+[issue](../../issues) first for larger changes, so we can talk about them before you put in the work.
+
+## Building
+
+You need JDK 17 or newer and the Android SDK (with `ANDROID_HOME` set).
+
+```sh
+./gradlew :androidApp:assembleDebug
+adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk
+```
+
+Run the tests with `./gradlew :shared:testAndroidHostTest`.
+
+Nearly all code lives in
+[`shared/src/commonMain`](shared/src/commonMain/kotlin), which is shared between Android and iOS. Only
+what can't be shared is in `androidMain` and `iosMain` (e.g. server discovery and the book renderer).
+[`androidApp`](androidApp) is the Android app around it and [`iosApp`](iosApp) the iOS app.
+
+## Dependencies
+
+Librifin tries to get by with as few libraries as possible. The most important ones:
+
+| Library | What it does in Librifin | License |
+|---|---|---|
+| [Readium Kotlin Toolkit](https://github.com/readium/kotlin-toolkit) | Opens and renders the EPUB books | BSD-3-Clause |
+| [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) with Material 3 | The user interface | Apache-2.0 |
+| [Ktor client](https://ktor.io) | Talks to the Jellyfin server (with OkHttp on Android) | Apache-2.0 |
+| [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization) | Reads and writes Jellyfin's JSON | Apache-2.0 |
+| [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) | Runs network and file work in the background | Apache-2.0 |
+| [Coil](https://coil-kt.github.io/coil/) | Loads and caches the book covers | Apache-2.0 |
+| [AndroidX](https://developer.android.com/jetpack/androidx) Lifecycle, Activity, Fragment, Core | Android app basics; hosts Readium's reader in Compose | Apache-2.0 |
+| [desugar_jdk_libs](https://github.com/google/desugar_jdk_libs) | Newer Java APIs on older Android versions, required by Readium | GPL-2.0 with Classpath Exception |
+
+The icons are [Material Symbols](https://fonts.google.com/icons) by Google (Apache-2.0). They're
+built into the app, so no icon fonts are downloaded.
+
+## Thanks
+
+- [Jellyfin](https://jellyfin.org) for the server this app is built for.
+- [Finamp](https://github.com/jmshrv/finamp), the model for this app, especially for connecting
+  to a server.
+- [Findroid](https://github.com/jarnedemeulemeester/findroid) and the
+  [Jellyfin Kotlin SDK](https://github.com/jellyfin/jellyfin-sdk-kotlin), which helped me understand
+  Jellyfin's API.
+- [Readium](https://readium.org), which does the hard work of showing the books.
+
+## Disclaimer
+
+Librifin is not an official Jellyfin app, and I'm not affiliated with the Jellyfin project. I simply
+wanted to contribute something to the Jellyfin ecosystem.
+
+## License
+
+Librifin is licensed under the [Mozilla Public License 2.0](LICENSE), like Finamp. In short, you
+may use, change and share the code, also as part of other projects, including closed-source ones.
+If you change Librifin's own files and share the result, those files must stay open under the MPL.
