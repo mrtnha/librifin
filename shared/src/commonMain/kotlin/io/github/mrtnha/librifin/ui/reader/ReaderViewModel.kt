@@ -264,7 +264,9 @@ class ReaderViewModel(
 
     private fun Exception.toDownloadMessage(): String =
         when (clientErrorStatus) {
-            HttpStatusCode.Forbidden -> "Your account isn't allowed to download books. An admin can allow it in the Jellyfin user settings."
+            HttpStatusCode.Forbidden ->
+                "Your account isn't allowed to download books. An admin can turn on “Allow media downloads” " +
+                    "for your user in the Jellyfin dashboard."
             HttpStatusCode.NotFound -> "This book isn't on the server anymore."
             else -> toUserMessage()
         }
