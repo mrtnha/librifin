@@ -28,9 +28,13 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -42,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import io.github.mrtnha.librifin.AppServices
@@ -61,22 +67,31 @@ fun LibraryScreen(
     val vm = viewModel { LibraryViewModel(session, services.jellyfin, services.bookStore) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var isPullRefreshing by remember { mutableStateOf(false) }
+
+    // Back in the app (or back from a book): refresh quietly, e.g. to leave offline mode once the
+    // server is reachable again.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.refresh() }
+
+    /** Loads again; says so if the server can't be reached, as nothing else would change. */
+    suspend fun retry() {
+        vm.load().join()
+        if ((vm.state as? LibraryState.Loaded)?.isOffline == true) {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar("Unable to reach your Jellyfin server.")
+        }
+    }
 
     // Offline, a book that isn't downloaded can't be opened: say why, and offer to reconnect.
     fun explainNotDownloaded() {
         scope.launch {
             snackbarHostState.currentSnackbarData?.dismiss()
             val result = snackbarHostState.showSnackbar(
-                message = "This book isn't downloaded yet. Connect to your Jellyfin server to read it.",
+                message = "This book isn't downloaded. Connect to your Jellyfin server to read it.",
                 actionLabel = "Try again",
                 duration = SnackbarDuration.Long,
             )
-            if (result == SnackbarResult.ActionPerformed) {
-                vm.load().join()
-                if ((vm.state as? LibraryState.Loaded)?.isOffline == true) {
-                    snackbarHostState.showSnackbar("Still can't reach your Jellyfin server.")
-                }
-            }
+            if (result == SnackbarResult.ActionPerformed) retry()
         }
     }
 
@@ -111,11 +126,27 @@ fun LibraryScreen(
                     if (state.books.isEmpty()) {
                         Message("No books yet.")
                     } else {
-                        BookGrid(
-                            books = state.books,
-                            canOpen = state::canOpen,
-                            onBookClick = { book -> if (state.canOpen(book)) onBookClick(book) else explainNotDownloaded() },
-                        )
+                        PullToRefreshBox(
+                            isRefreshing = isPullRefreshing,
+                            onRefresh = {
+                                scope.launch {
+                                    isPullRefreshing = true
+                                    try {
+                                        retry()
+                                    } finally {
+                                        isPullRefreshing = false
+                                    }
+                                }
+                            },
+                        ) {
+                            BookGrid(
+                                books = state.books,
+                                canOpen = state::canOpen,
+                                onBookClick = { book ->
+                                    if (state.canOpen(book)) onBookClick(book) else explainNotDownloaded()
+                                },
+                            )
+                        }
                     }
             }
         }

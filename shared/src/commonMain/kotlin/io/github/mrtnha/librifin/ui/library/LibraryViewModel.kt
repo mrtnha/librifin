@@ -78,6 +78,11 @@ class LibraryViewModel(
         }
     }
 
+    /** Loads again, unless a load is already running. */
+    fun refresh() {
+        if (loadJob?.isActive != true) load()
+    }
+
     /**
      * Loads the books from the server. The saved list is shown meanwhile, and stays when the server
      * can't be reached: then only the downloaded books can be opened.
