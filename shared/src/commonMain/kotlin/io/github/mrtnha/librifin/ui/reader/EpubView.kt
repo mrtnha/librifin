@@ -14,6 +14,10 @@ import kotlinx.io.files.Path
  * [onPositionChanged] gets the exact position (a string only this renderer understands), the
  * progress through the whole book (0..1) and the page (1-based). If the file can't be opened as a
  * book, [onOpenFailed] gets a message for the user.
+ *
+ * While [searchQuery] is set, the book is searched for it, and [onSearchResults] gets the results found
+ * so far after each chapter, with isDone once the whole book is searched. When [showSearchResult] is set,
+ * it goes to that result and calls [onSearchResultShown]. [highlightedResult] is marked in the text.
  */
 @Composable
 expect fun EpubView(
@@ -29,6 +33,11 @@ expect fun EpubView(
     onPositionChanged: (locator: String, progress: Double, page: Int?) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,
+    searchQuery: String?,
+    onSearchResults: (results: List<SearchResult>, isDone: Boolean) -> Unit,
+    showSearchResult: SearchResult?,
+    onSearchResultShown: () -> Unit,
+    highlightedResult: SearchResult?,
     modifier: Modifier = Modifier,
 )
 
@@ -38,3 +47,17 @@ expect fun EpubView(
  * title of the chapter it's in, if known.
  */
 data class BookPage(val progress: Double, val chapter: String?)
+
+/**
+ * A place in the book where the search text was found: [match] as it's written there, with the text
+ * [before] and [after] it. [locator] is the exact place (only the renderer understands it), [progress]
+ * where it is in the whole book (0..1), [chapter] the title of the chapter it's in, if known.
+ */
+data class SearchResult(
+    val locator: String,
+    val progress: Double,
+    val chapter: String?,
+    val before: String,
+    val match: String,
+    val after: String,
+)

@@ -26,11 +26,16 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.mrtnha.librifin.ui.theme.JellyfinBlue
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.io.files.Path
 import org.json.JSONException
 import org.json.JSONObject
+import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.epub.EpubPreferences
@@ -46,6 +51,7 @@ import org.readium.r2.shared.publication.flatten
 import org.readium.r2.shared.publication.services.isRestricted
 import org.readium.r2.shared.publication.services.locateProgression
 import org.readium.r2.shared.publication.services.positions
+import org.readium.r2.shared.publication.services.search.search
 import org.readium.r2.shared.util.asset.AssetRetriever
 import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.http.DefaultHttpClient
@@ -66,6 +72,11 @@ actual fun EpubView(
     onPositionChanged: (locator: String, progress: Double, page: Int?) -> Unit,
     onCenterTap: () -> Unit,
     onOpenFailed: (message: String) -> Unit,
+    searchQuery: String?,
+    onSearchResults: (results: List<SearchResult>, isDone: Boolean) -> Unit,
+    showSearchResult: SearchResult?,
+    onSearchResultShown: () -> Unit,
+    highlightedResult: SearchResult?,
     modifier: Modifier,
 ) {
     val application = LocalContext.current.applicationContext as Application
@@ -86,6 +97,8 @@ actual fun EpubView(
             val currentOnPositionChanged by rememberUpdatedState(onPositionChanged)
             val currentOnJumped by rememberUpdatedState(onJumped)
             val currentOnPagesLoaded by rememberUpdatedState(onPagesLoaded)
+            val currentOnSearchResults by rememberUpdatedState(onSearchResults)
+            val currentOnSearchResultShown by rememberUpdatedState(onSearchResultShown)
             LaunchedEffect(vm) { currentOnPagesLoaded(vm.pages) }
             var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
 
@@ -99,6 +112,30 @@ actual fun EpubView(
                 val navigator = navigatorNow ?: return@LaunchedEffect
                 vm.locate(progress)?.let { navigator.go(it) }
                 currentOnJumped()
+            }
+
+            // The search runs in the view model, so it goes on while the screen rotates.
+            LaunchedEffect(searchQuery) { vm.search(searchQuery) }
+            val search = vm.search
+            LaunchedEffect(search) {
+                if (search != null && search.query == searchQuery) currentOnSearchResults(search.results, search.isDone)
+            }
+
+            LaunchedEffect(showSearchResult, navigatorNow) {
+                val result = showSearchResult ?: return@LaunchedEffect
+                val navigator = navigatorNow ?: return@LaunchedEffect
+                parseLocator(result.locator)?.let { navigator.go(it) }
+                currentOnSearchResultShown()
+            }
+
+            LaunchedEffect(highlightedResult, navigatorNow) {
+                val navigator = navigatorNow ?: return@LaunchedEffect
+                val decoration = highlightedResult?.let { result ->
+                    parseLocator(result.locator)?.let {
+                        Decoration(id = SEARCH_DECORATIONS, locator = it, style = Decoration.Style.Highlight(JellyfinBlue.toArgb()))
+                    }
+                }
+                navigator.applyDecorations(listOfNotNull(decoration), SEARCH_DECORATIONS)
             }
 
             // Created by ReaderFragmentFactory, from the book the view model opened.
@@ -130,6 +167,17 @@ actual fun EpubView(
     }
 }
 
+/** The group of Readium decorations that marks the picked search result. */
+private const val SEARCH_DECORATIONS = "search"
+
+/** A position from [Locator.toJSON], or null if it isn't one. */
+private fun parseLocator(json: String): Locator? =
+    try {
+        Locator.fromJSON(JSONObject(json))
+    } catch (_: JSONException) {
+        null
+    }
+
 /**
  * All of the reader's settings at once, so changing one never resets another.
  * Readium's night mode for the dark themes, with our colors on top: it also recolors headings and
@@ -141,6 +189,9 @@ private fun epubPreferences(theme: ReaderTheme, fontSize: Int) = EpubPreferences
     textColor = Color(theme.text.toArgb()),
     fontSize = fontSize / 100.0,
 )
+
+/** A search through the book: the [results] for [query] found so far, all of them once [isDone]. */
+private data class BookSearch(val query: String, val results: List<SearchResult>, val isDone: Boolean)
 
 private sealed interface EpubState {
     data object Opening : EpubState
@@ -170,8 +221,13 @@ private class EpubViewModel(
     var pages: List<BookPage> = emptyList()
         private set
 
+    /** The current search, null if there is none. */
+    var search by mutableStateOf<BookSearch?>(null)
+        private set
+
     private var publication: Publication? = null
     private var fragmentFactory: FragmentFactory? = null
+    private var searchJob: Job? = null
 
     init {
         viewModelScope.launch { state = open() }
@@ -196,13 +252,7 @@ private class EpubViewModel(
             publication.isRestricted -> return EpubState.Failed("This book is protected (DRM) and can't be opened.")
         }
 
-        val startLocator = initialLocator?.let { json ->
-            try {
-                Locator.fromJSON(JSONObject(json))
-            } catch (_: JSONException) {
-                null
-            }
-        } ?: initialProgress?.let { publication.locateProgression(it) }
+        val startLocator = initialLocator?.let(::parseLocator) ?: initialProgress?.let { publication.locateProgression(it) }
         pages = pagesOf(publication)
         val lastChapter = publication.readingOrder.lastOrNull()?.url()
         val factory = EpubNavigatorFactory(publication).createFragmentFactory(
@@ -235,6 +285,46 @@ private class EpubViewModel(
             BookPage(progress = position.locations.totalProgression ?: 0.0, chapter = chapter)
         }
     }
+
+    /**
+     * Searches the book for [query] (null ends the search), with Readium's search: case and accents
+     * don't matter. The results come chapter by chapter, so the first ones show right away.
+     * A new query stops the search for the old one.
+     */
+    fun search(query: String?) {
+        if (query == search?.query) return
+        searchJob?.cancel()
+        if (query == null) {
+            search = null
+            return
+        }
+        val publication = publication ?: return
+        search = BookSearch(query, emptyList(), isDone = false)
+        searchJob = viewModelScope.launch {
+            val results = mutableListOf<SearchResult>()
+            val iterator = publication.search(query)
+            try {
+                // Each step reads and searches one chapter; a failing chapter ends the search with what was found.
+                while (iterator != null) {
+                    val page = withContext(Dispatchers.IO) { iterator.next() }.getOrNull() ?: break
+                    page.locators.mapTo(results) { it.toSearchResult() }
+                    search = BookSearch(query, results.toList(), isDone = false)
+                }
+            } finally {
+                iterator?.close()
+            }
+            search = BookSearch(query, results.toList(), isDone = true)
+        }
+    }
+
+    private fun Locator.toSearchResult() = SearchResult(
+        locator = toJSON().toString(),
+        progress = locations.totalProgression ?: 0.0,
+        chapter = title,
+        before = text.before.orEmpty(),
+        match = text.highlight.orEmpty(),
+        after = text.after.orEmpty(),
+    )
 
     /** The place [progress] (0..1) through the whole book. */
     suspend fun locate(progress: Double): Locator? = publication?.locateProgression(progress)

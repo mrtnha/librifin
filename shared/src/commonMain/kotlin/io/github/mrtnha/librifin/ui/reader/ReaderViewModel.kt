@@ -23,6 +23,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -98,9 +99,38 @@ class ReaderViewModel(
     var currentPage by mutableStateOf<Int?>(null)
         private set
 
+    /** The search results list over the book, with the search field in the app bar. */
+    var isSearchOpen by mutableStateOf(false)
+        private set
+
+    /** The text in the search field. Kept with the results after one is picked, so the search icon brings them back. */
+    var searchQuery by mutableStateOf("")
+        private set
+
+    /** What the book is searched for: [searchQuery] once typing pauses, if it's long enough; else null. */
+    var searchedQuery by mutableStateOf<String?>(null)
+        private set
+
+    /** The results for [searchedQuery] found so far. */
+    var searchResults by mutableStateOf<List<SearchResult>>(emptyList())
+        private set
+
+    /** True while the book is still being searched for [searchedQuery]. */
+    var isSearching by mutableStateOf(false)
+        private set
+
+    /** The result picked last, marked in the text until the search is closed. */
+    var highlightedResult by mutableStateOf<SearchResult?>(null)
+        private set
+
+    /** Set when a result was picked: the renderer goes there and calls [onSearchResultShown]. */
+    var showSearchResult by mutableStateOf<SearchResult?>(null)
+        private set
+
     private val file = bookStore.bookFile(bookId)
     private var lastLocator: String? = null
     private var serverCheck: Job? = null
+    private var searchDelay: Job? = null
 
     init {
         load()
@@ -174,6 +204,62 @@ class ReaderViewModel(
     fun onJumped() {
         jumpToProgress = null
     }
+
+    /** The search icon: the search field, with the last search's text and results if there was one. */
+    fun openSearch() {
+        isSearchOpen = true
+    }
+
+    /** Searches while typing: once typing pauses, and only from [MIN_SEARCH_LENGTH] characters on. */
+    fun onSearchQueryChange(query: String) {
+        searchQuery = query
+        searchDelay?.cancel()
+        val text = query.trim()
+        if (text.length < MIN_SEARCH_LENGTH) {
+            startSearch(null)
+            return
+        }
+        searchDelay = viewModelScope.launch {
+            delay(SEARCH_DELAY_MS)
+            startSearch(text)
+        }
+    }
+
+    private fun startSearch(query: String?) {
+        if (query == searchedQuery) return
+        searchedQuery = query
+        searchResults = emptyList()
+        isSearching = query != null
+    }
+
+    fun onSearchResults(results: List<SearchResult>, isDone: Boolean) {
+        searchResults = results
+        isSearching = !isDone
+    }
+
+    /** Goes to the picked result and marks it. The list closes; the search icon brings it back. */
+    fun selectSearchResult(result: SearchResult) {
+        isSearchOpen = false
+        highlightedResult = result
+        showSearchResult = result
+    }
+
+    fun onSearchResultShown() {
+        showSearchResult = null
+    }
+
+    /** The arrow or back while searching: the search is over, its text, results and mark are gone. */
+    fun closeSearch() {
+        searchDelay?.cancel()
+        isSearchOpen = false
+        searchQuery = ""
+        startSearch(null)
+        highlightedResult = null
+    }
+
+    /** The page (1-based) [result] is on, as the page slider counts them; null until the pages are known. */
+    fun pageOf(result: SearchResult): Int? =
+        pages.indexOfLast { it.progress <= result.progress }.takeIf { it >= 0 }?.plus(1)
 
     fun toggleBars() {
         areBarsVisible = !areBarsVisible
@@ -267,6 +353,12 @@ class ReaderViewModel(
          * makes the book unfinished again.
          */
         const val FINISHED_PROGRESS = 0.95
+
+        /** One character matches nearly every page; two already find short names. */
+        const val MIN_SEARCH_LENGTH = 2
+
+        /** Searching starts once typing pauses this long, not on every key. */
+        const val SEARCH_DELAY_MS = 300L
 
         const val KEY_THEME = "reader_theme"
         const val KEY_FONT_SIZE = "reader_font_size"

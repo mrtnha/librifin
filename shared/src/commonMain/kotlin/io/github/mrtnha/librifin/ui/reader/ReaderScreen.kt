@@ -3,21 +3,30 @@ package io.github.mrtnha.librifin.ui.reader
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -33,17 +42,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
+import io.github.mrtnha.librifin.ui.components.SearchBar
 import io.github.mrtnha.librifin.ui.theme.readerBarsColorScheme
 import io.github.mrtnha.librifin.ui.theme.readerColorScheme
 import kotlin.math.roundToInt
@@ -75,10 +95,17 @@ fun ReaderScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onAppResumed() }
 
     // Full screen only while the book is shown; while loading or on errors the bars stay, so the way back is visible.
-    val showBars = vm.state !is ReaderState.Ready || vm.areBarsVisible
+    val showBars = vm.state !is ReaderState.Ready || vm.areBarsVisible || vm.isSearchOpen
     val theme = vm.theme
     SystemBarsVisible(showBars, darkBackground = theme.bars.luminance() < 0.5f)
     val barsColors = readerBarsColorScheme(theme.bars)
+
+    // While searching, back closes the search instead of leaving the book.
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = vm.isSearchOpen,
+        onBackCompleted = vm::closeSearch,
+    )
 
     // The whole screen in the page's colors, also while loading; the bars stand apart in their own.
     MaterialTheme(colorScheme = readerColorScheme(theme.isDark, theme.background, theme.text)) {
@@ -98,6 +125,11 @@ fun ReaderScreen(
                         onPositionChanged = vm::onPositionChanged,
                         onCenterTap = vm::toggleBars,
                         onOpenFailed = vm::onOpenFailed,
+                        searchQuery = vm.searchedQuery,
+                        onSearchResults = vm::onSearchResults,
+                        showSearchResult = vm.showSearchResult,
+                        onSearchResultShown = vm::onSearchResultShown,
+                        highlightedResult = vm.highlightedResult,
                         modifier = Modifier.fillMaxSize(),
                     )
                     else -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -145,6 +177,10 @@ fun ReaderScreen(
                                 }
                             },
                             actions = {
+                                // Also while the book is loading: the search runs as soon as it's open.
+                                IconButton(onClick = vm::openSearch, enabled = vm.state !is ReaderState.Error) {
+                                    Icon(LibrifinIcons.Search, contentDescription = "Search in book")
+                                }
                                 IconButton(onClick = vm::decreaseFontSize, enabled = vm.canDecreaseFontSize) {
                                     Icon(LibrifinIcons.TextDecrease, contentDescription = "Smaller text")
                                 }
@@ -158,10 +194,146 @@ fun ReaderScreen(
                         )
                     }
                 }
+
+                // Over everything, the book included, so taps on the results don't turn pages.
+                if (vm.isSearchOpen) {
+                    MaterialTheme(colorScheme = barsColors) {
+                        SearchPanel(vm, title)
+                    }
+                }
             }
         }
     }
 }
+
+/** The search field in the app bar and the results below it, in the colors of the bars. */
+@Composable
+private fun SearchPanel(vm: ReaderViewModel, title: String) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    Surface(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.windowInsetsPadding(
+                WindowInsets.ime.union(WindowInsets.navigationBars).only(WindowInsetsSides.Bottom),
+            ),
+        ) {
+            SearchBar(
+                query = vm.searchQuery,
+                placeholder = "Search in $title",
+                onQueryChange = vm::onSearchQueryChange,
+                onClose = vm::closeSearch,
+                windowInsets = systemBarsIgnoringVisibility().only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
+            )
+            val query = vm.searchedQuery ?: return@Column
+            if (vm.isSearching) {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+            val results = vm.searchResults
+            when {
+                results.isNotEmpty() -> SearchResults(
+                    results = results,
+                    selected = vm.highlightedResult,
+                    pageCount = vm.pages.size,
+                    pageOf = vm::pageOf,
+                    onSelect = { result ->
+                        keyboard?.hide()
+                        vm.selectSearchResult(result)
+                    },
+                )
+                !vm.isSearching -> Text(
+                    "No matches for \u201C$query\u201D.",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One row per match: the chapter and page, then the text around the match with the match in bold.
+ * Opens at the result picked last, so coming back to the list continues where it was left.
+ */
+@Composable
+private fun SearchResults(
+    results: List<SearchResult>,
+    selected: SearchResult?,
+    pageCount: Int,
+    pageOf: (SearchResult) -> Int?,
+    onSelect: (SearchResult) -> Unit,
+) {
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = results.indexOf(selected).coerceAtLeast(0))
+    val matchColor = MaterialTheme.colorScheme.primary
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        item {
+            Text(
+                if (results.size == 1) "1 result" else "${results.size} results",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            )
+        }
+        items(results) { result ->
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(result) }
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+            ) {
+                Row {
+                    Text(
+                        result.chapter.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    pageOf(result)?.let { page ->
+                        Text(
+                            "$page/$pageCount",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp),
+                        )
+                    }
+                }
+                Text(
+                    snippet(result, matchColor),
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The match in bold with the text around it, on one line. Only the last few words before it, so the
+ * match is on the first line.
+ */
+private fun snippet(result: SearchResult, matchColor: Color): AnnotatedString {
+    val before = result.before.oneLine().trimStart()
+    val shortBefore = if (before.length <= SNIPPET_BEFORE_LENGTH) {
+        before
+    } else {
+        "\u2026" + before.takeLast(SNIPPET_BEFORE_LENGTH).substringAfter(' ')
+    }
+    return buildAnnotatedString {
+        append(shortBefore)
+        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = matchColor)) { append(result.match.oneLine()) }
+        append(result.after.oneLine().trimEnd())
+    }
+}
+
+/** Line breaks and runs of spaces from the book's layout, as single spaces. */
+private fun String.oneLine() = replace(WHITESPACE, " ")
+
+private val WHITESPACE = Regex("\\s+")
+
+/** How much of the text before a match its result shows, at most. */
+private const val SNIPPET_BEFORE_LENGTH = 40
 
 /**
  * The page slider: the chapter and "page/pages" above a slider through the whole book. While dragging,
