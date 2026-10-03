@@ -23,7 +23,7 @@ internal class AndroidServerDiscovery(private val context: Context) : ServerDisc
 
     override fun replies(): Flow<String> = flow {
         val wifi = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-        // Some devices filter broadcast traffic while the screen is on Wi-Fi power save.
+        // To save power, many devices drop incoming broadcast and multicast packets unless an app holds this lock.
         val lock = wifi?.createMulticastLock("librifin-discovery")?.apply {
             setReferenceCounted(false)
             acquire()
