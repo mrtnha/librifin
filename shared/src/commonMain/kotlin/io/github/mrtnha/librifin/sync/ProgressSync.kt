@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -42,8 +43,13 @@ class ProgressSync(
     fun schedule(session: Session, bookId: String) {
         scheduled.remove(bookId)?.cancel()
         scheduled[bookId] = scope.launch {
-            delay(QUIET_PERIOD_MS)
-            send(session, bookId)
+            try {
+                delay(QUIET_PERIOD_MS)
+                send(session, bookId)
+            } finally {
+                // Only its own entry: when replaced by a newer page turn, that one is in the map now.
+                if (scheduled[bookId] === coroutineContext.job) scheduled.remove(bookId)
+            }
         }
     }
 
