@@ -47,7 +47,7 @@ is shared between Android and iOS.
 - No plugins needed: Librifin uses Jellyfin's own API directly.
 - Your Jellyfin user must be allowed to download media (Dashboard → Users → your user →
   under "Other": "Allow media downloads").
-- An Android phone with Android 7.0 or newer.
+- An Android phone with Android 8.0 or newer.
 
 ***You need your own Jellyfin server to use Librifin. If you don't have one yet, see
 [Jellyfin's website](https://jellyfin.org) to learn what it is and how to set it up.***

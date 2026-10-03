@@ -13,7 +13,7 @@ class AndroidPlatform(context: Context) : Platform {
     private val prefs = appContext.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
 
     override val deviceName: String =
-        (if (Build.VERSION.SDK_INT >= 25) Settings.Global.getString(appContext.contentResolver, Settings.Global.DEVICE_NAME) else null)
+        Settings.Global.getString(appContext.contentResolver, Settings.Global.DEVICE_NAME)
             ?.takeIf { it.isNotBlank() }
             ?: Build.MODEL
 
