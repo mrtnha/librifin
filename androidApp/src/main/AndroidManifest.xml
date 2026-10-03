@@ -12,6 +12,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
+    <!-- usesCleartextTraffic: home Jellyfin servers usually run on plain http:// in the LAN. Fine at home, but over
+         http:// anyone on the same network can read the traffic, including the login, so use https:// elsewhere. -->
     <application
         android:name=".LibrifinApplication"
         android:allowBackup="true"
