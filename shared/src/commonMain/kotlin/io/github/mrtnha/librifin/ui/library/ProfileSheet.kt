@@ -1,6 +1,5 @@
 package io.github.mrtnha.librifin.ui.library
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -51,7 +51,7 @@ fun ProfileSheet(
                 .padding(bottom = 24.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Avatar(session.userName, userImageUrl)
+                Avatar(userImageUrl)
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -94,20 +94,22 @@ fun ProfileSheet(
     }
 }
 
-/** Round profile picture; the user's initial shows while it loads or if there is none. */
+/**
+ * Round profile picture. While it loads or if there is none, a plain person icon, so a placeholder never
+ * looks like a picture the user chose.
+ */
 @Composable
-private fun Avatar(userName: String, imageUrl: String?) {
+private fun Avatar(imageUrl: String?) {
     Box(
-        modifier = Modifier
-            .size(56.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
+        modifier = Modifier.size(56.dp).clip(CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            userName.take(1).uppercase(),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        Icon(
+            LibrifinIcons.Profile,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            // The symbol's circle is 20 of its 24 units: drawn larger, the circle is exactly the picture's size.
+            modifier = Modifier.requiredSize(56.dp * 24 / 20),
         )
         if (imageUrl != null) {
             AsyncImage(
