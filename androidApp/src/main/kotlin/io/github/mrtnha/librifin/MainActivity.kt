@@ -7,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.FragmentActivity
-import io.github.mrtnha.librifin.platform.AndroidPlatform
 import io.github.mrtnha.librifin.ui.reader.ReaderFragmentFactory
 
 // A FragmentActivity because Readium's EPUB renderer is a Fragment.
@@ -23,9 +22,9 @@ class MainActivity : FragmentActivity() {
         ReaderFragmentFactory.removeOrphans(supportFragmentManager)
         requestLocalNetworkAccess()
 
-        val platform = AndroidPlatform(applicationContext)
+        val services = (application as LibrifinApplication).services
         setContent {
-            App(platform)
+            App(services)
         }
     }
 

@@ -19,7 +19,6 @@ import coil3.compose.setSingletonImageLoaderFactory
 import coil3.request.crossfade
 import io.github.mrtnha.librifin.navigation.Navigator
 import io.github.mrtnha.librifin.navigation.Screen
-import io.github.mrtnha.librifin.platform.Platform
 import io.github.mrtnha.librifin.ui.library.LibraryScreen
 import io.github.mrtnha.librifin.ui.login.LoginScreen
 import io.github.mrtnha.librifin.ui.reader.ReaderScreen
@@ -28,14 +27,13 @@ import io.github.mrtnha.librifin.ui.theme.LibrifinTheme
 import io.github.mrtnha.librifin.ui.welcome.WelcomeScreen
 
 @Composable
-fun App(platform: Platform) {
+fun App(services: AppServices) {
     // Covers are loaded with Coil over Ktor (coil-network-ktor3 registers itself); fade them in.
     setSingletonImageLoaderFactory { context ->
         ImageLoader.Builder(context).crossfade(true).build()
     }
 
     LibrifinTheme {
-        val services = viewModel { AppServices(platform) }
         // Logged in before? Go straight to the library.
         val navigator = viewModel {
             Navigator(services.loadSession()?.let { Screen.Library(it) } ?: Screen.Welcome)

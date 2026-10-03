@@ -138,8 +138,6 @@ class JellyfinClient(private val platform: Platform) {
         http.post("${session.server.baseUrl}/Sessions/Logout") { authorize(session.accessToken) }
     }
 
-    fun close() = http.close()
-
     private fun HttpRequestBuilder.authorize(token: String?) {
         header(HttpHeaders.Authorization, authorizationHeader(token))
     }
