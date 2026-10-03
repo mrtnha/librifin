@@ -10,7 +10,6 @@ data class PublicSystemInfo(
     @SerialName("Id") val id: String? = null,
     @SerialName("ServerName") val serverName: String? = null,
     @SerialName("Version") val version: String? = null,
-    @SerialName("LocalAddress") val localAddress: String? = null,
 )
 
 @Serializable
@@ -23,7 +22,6 @@ data class AuthenticateUserByName(
 data class AuthenticationResult(
     @SerialName("User") val user: UserDto? = null,
     @SerialName("AccessToken") val accessToken: String? = null,
-    @SerialName("ServerId") val serverId: String? = null,
 )
 
 @Serializable
@@ -41,7 +39,6 @@ data class BaseItemDto(
     @SerialName("Name") val name: String? = null,
     @SerialName("CollectionType") val collectionType: String? = null,
     @SerialName("ImageTags") val imageTags: Map<String, String?>? = null,
-    @SerialName("PrimaryImageAspectRatio") val primaryImageAspectRatio: Double? = null,
     @SerialName("UserData") val userData: UserItemDataDto? = null,
     /** Only when requested with the "People" field. A book's authors have [BaseItemPerson.type] "Author". */
     @SerialName("People") val people: List<BaseItemPerson>? = null,
@@ -79,7 +76,6 @@ const val BOOK_PROGRESS_TICKS = 10_000_000L
 @Serializable
 data class BaseItemDtoQueryResult(
     @SerialName("Items") val items: List<BaseItemDto> = emptyList(),
-    @SerialName("TotalRecordCount") val totalRecordCount: Int = 0,
 )
 
 /** Reply to a UDP discovery broadcast. */
@@ -88,5 +84,4 @@ data class DiscoveryResponse(
     @SerialName("Id") val id: String? = null,
     @SerialName("Name") val name: String? = null,
     @SerialName("Address") val address: String? = null,
-    @SerialName("EndpointAddress") val endpointAddress: String? = null,
 )
