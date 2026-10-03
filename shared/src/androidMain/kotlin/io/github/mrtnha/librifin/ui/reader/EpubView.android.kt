@@ -102,6 +102,7 @@ actual fun EpubView(
             }
 
             // Created by ReaderFragmentFactory, from the book the view model opened.
+            // Called once per fragment instance (also the new one after rotation), so listeners are added once.
             AndroidFragment<EpubNavigatorFragment>(modifier) { navigator ->
                 navigatorNow = navigator
                 // Taps near the left and right edges turn the page with a slide, like a swipe.
