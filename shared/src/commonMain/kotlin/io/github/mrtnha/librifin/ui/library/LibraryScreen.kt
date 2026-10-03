@@ -72,6 +72,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Session
+import io.github.mrtnha.librifin.storage.Book
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import kotlinx.coroutines.launch
 

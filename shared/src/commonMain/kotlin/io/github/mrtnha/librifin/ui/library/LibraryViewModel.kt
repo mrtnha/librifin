@@ -10,6 +10,7 @@ import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.clientErrorStatus
 import io.github.mrtnha.librifin.api.toUserMessage
+import io.github.mrtnha.librifin.storage.Book
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.sync.ProgressSync
 import io.ktor.http.HttpStatusCode
@@ -20,28 +21,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.Serializable
-
-/**
- * What the grid shows for one book. Also saved on the device, see [io.github.mrtnha.librifin.storage.BookStore].
- * [serverProgress] (0..1) and [isPlayed] are Jellyfin's view of how far it was read.
- * [authors] is empty in lists saved before authors were loaded.
- */
-@Serializable
-data class Book(
-    val id: String,
-    val title: String,
-    val coverUrl: String?,
-    val serverProgress: Double? = null,
-    val isPlayed: Boolean = false,
-    val authors: List<String> = emptyList(),
-) {
-    /** Every word of [query] is in the title or an author's name, ignoring case: "tolkien hobbit" finds the book. */
-    fun matches(query: String): Boolean =
-        query.trim().split(Regex("\\s+")).all { word ->
-            title.contains(word, ignoreCase = true) || authors.any { it.contains(word, ignoreCase = true) }
-        }
-}
 
 /** How far a book was read: [fraction] 0..1, [isFinished] once the book was read to the end (or nearly). */
 data class BookProgress(val fraction: Float, val isFinished: Boolean)

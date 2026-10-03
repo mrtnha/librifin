@@ -2,7 +2,6 @@ package io.github.mrtnha.librifin.storage
 
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
-import io.github.mrtnha.librifin.ui.library.Book
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
