@@ -27,7 +27,6 @@ fun HugeButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    enabled: Boolean = true,
 ) {
     val accent = MaterialTheme.colorScheme.primary
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
@@ -37,18 +36,12 @@ fun HugeButton(
     Button(
         onClick = onClick,
         modifier = modifier,
-        enabled = enabled,
         shape = RoundedCornerShape(16.dp),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = container,
-            contentColor = content,
-            disabledContainerColor = container.copy(alpha = container.alpha * 0.5f),
-            disabledContentColor = content.copy(alpha = 0.5f),
-        ),
+        colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = content),
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = null, tint = if (enabled) accent else accent.copy(alpha = 0.5f), modifier = Modifier.size(28.dp))
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(28.dp))
             Spacer(Modifier.width(12.dp))
         }
         Text(text, fontSize = 20.sp, fontWeight = FontWeight.Medium)
