@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.mrtnha.librifin.api.BOOK_PROGRESS_TICKS
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.UserItemDataDto
@@ -15,6 +14,7 @@ import io.github.mrtnha.librifin.platform.SettingsStore
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.storage.ReadingPosition
 import io.github.mrtnha.librifin.sync.ProgressSync
+import io.github.mrtnha.librifin.sync.serverProgressIfReadElsewhere
 import io.ktor.http.HttpStatusCode
 import kotlin.time.Clock
 import kotlinx.coroutines.CancellationException
@@ -225,20 +225,6 @@ class ReaderViewModel(
             lastLocator = local?.locator
             ReaderState.Ready(file, startLocator = local?.locator, startProgress = null)
         }
-    }
-
-    /**
-     * Jellyfin's progress (0..1) if the book was read further elsewhere than on this device, else null.
-     *
-     * Decided by value, not by time: Jellyfin's web reader sets the "last played" date only when a
-     * book is opened, not while reading. So Jellyfin having another value than this device last sent
-     * means someone else moved it. Progress made here that isn't sent yet (e.g. offline) wins.
-     */
-    private fun serverProgressIfReadElsewhere(local: ReadingPosition?, server: UserItemDataDto): Double? {
-        // 0 means unknown: e.g. never read, or reset when a book is closed in some clients.
-        val serverTicks = server.playbackPositionTicks?.takeIf { it > 0 } ?: return null
-        if (local != null && (!local.isSynced || local.serverTicks == serverTicks)) return null
-        return (serverTicks.toDouble() / BOOK_PROGRESS_TICKS).coerceIn(0.0, 1.0)
     }
 
     /** Downloads to a temporary file first, so an interrupted download is never mistaken for the book. */

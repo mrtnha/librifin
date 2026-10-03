@@ -4,7 +4,9 @@ import io.github.mrtnha.librifin.api.BOOK_PROGRESS_TICKS
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.UpdateUserItemDataDto
+import io.github.mrtnha.librifin.api.UserItemDataDto
 import io.github.mrtnha.librifin.storage.BookStore
+import io.github.mrtnha.librifin.storage.ReadingPosition
 import kotlin.math.roundToLong
 import kotlin.time.Instant
 import kotlinx.coroutines.CancellationException
@@ -24,7 +26,7 @@ import kotlinx.coroutines.withContext
  *
  * Known limitation: sync with the server doesn't fully work yet. Progress made in Librifin reaches
  * Jellyfin, but progress made in other clients (e.g. Jellyfin's web reader) isn't reliably picked up
- * (see ReaderViewModel.serverProgressIfReadElsewhere). Needs a more thorough look: how other clients
+ * (see [serverProgressIfReadElsewhere]). Needs a more thorough look: how other clients
  * report book progress (e.g. /Sessions/Playing/Progress, "last played" is only set when a book is
  * opened) and when Librifin should ask the server.
  */
@@ -85,4 +87,18 @@ class ProgressSync(
     private companion object {
         const val QUIET_PERIOD_MS = 5_000L
     }
+}
+
+/**
+ * Jellyfin's progress (0..1) if the book was read further elsewhere than on this device, else null.
+ *
+ * Decided by value, not by time: Jellyfin's web reader sets the "last played" date only when a
+ * book is opened, not while reading. So Jellyfin having another value than this device last sent
+ * means someone else moved it. Progress made here that isn't sent yet (e.g. offline) wins.
+ */
+fun serverProgressIfReadElsewhere(local: ReadingPosition?, server: UserItemDataDto): Double? {
+    // 0 means unknown: e.g. never read, or reset when a book is closed in some clients.
+    val serverTicks = server.playbackPositionTicks?.takeIf { it > 0 } ?: return null
+    if (local != null && (!local.isSynced || local.serverTicks == serverTicks)) return null
+    return (serverTicks.toDouble() / BOOK_PROGRESS_TICKS).coerceIn(0.0, 1.0)
 }
