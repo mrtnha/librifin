@@ -39,9 +39,11 @@ is shared between Android and iOS.
 
 ## Screenshots
 
-| Welcome | Library | Reading | Reading with bars | Reader appearance |
-|:---:|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/welcome.jpeg" width="200" alt="Welcome screen"> | <img src="docs/screenshots/library.jpg" width="200" alt="Library screen"> | <img src="docs/screenshots/reader.jpg" width="200" alt="Reading full screen"> | <img src="docs/screenshots/reader-bars.jpg" width="200" alt="Reading with the app bar and page slider shown"> | <img src="docs/screenshots/reader-appearance.jpg" width="200" alt="Reading with the appearance sheet: theme, text size and font"> |
+| Welcome | Library | Reading |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/welcome.jpeg" width="200" alt="Welcome screen"> | <img src="docs/screenshots/library.jpg" width="200" alt="Library screen"> | <img src="docs/screenshots/reader.jpg" width="200" alt="Reading full screen"> |
+| **Reading with bars** | **Reader appearance** | **Search in a book** |
+| <img src="docs/screenshots/reader-bars.jpg" width="200" alt="Reading with the app bar and page slider shown"> | <img src="docs/screenshots/reader-appearance.jpg" width="200" alt="Reading with the appearance sheet: theme, text size and font"> | <img src="docs/screenshots/search-book.jpg" width="200" alt="Search results inside a book, each with its chapter and page"> |
 
 ## Requirements
 
