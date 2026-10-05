@@ -54,22 +54,30 @@ fun App(services: AppServices) {
                         slideOutHorizontally { width -> -direction * width }
                 },
             ) { entry ->
+                // Taps on a screen only act while it's on top. A screen sliding away is still drawn and can
+                // be tapped until its transition ends: a second book tapped right after the first opened a
+                // second reader on top. Results of requests (logged in, logged out) aren't taps: they act
+                // whenever they arrive.
+                fun ifOnTop(action: () -> Unit) {
+                    if (navigator.current === entry) action()
+                }
+
                 // ViewModels created inside a screen belong to its back stack entry.
                 CompositionLocalProvider(LocalViewModelStoreOwner provides entry) {
                     when (val screen = entry.screen) {
                         Screen.Welcome -> WelcomeScreen(
-                            onGetStarted = { navigator.push(Screen.ServerSelection) },
+                            onGetStarted = { ifOnTop { navigator.push(Screen.ServerSelection) } },
                         )
                         Screen.ServerSelection -> ServerSelectionScreen(
                             services = services,
-                            onBack = navigator::pop,
-                            onServerSelected = { navigator.push(Screen.Login(it)) },
+                            onBack = { ifOnTop(navigator::pop) },
+                            onServerSelected = { ifOnTop { navigator.push(Screen.Login(it)) } },
                         )
                         is Screen.Login -> LoginScreen(
                             server = screen.server,
                             initialUsername = screen.username,
                             services = services,
-                            onBack = navigator::pop,
+                            onBack = { ifOnTop(navigator::pop) },
                             onLoggedIn = { session ->
                                 services.saveSession(session)
                                 navigator.replaceAll(Screen.Library(session))
@@ -83,15 +91,17 @@ fun App(services: AppServices) {
                                 navigator.replaceAll(Screen.Welcome)
                             },
                             onSessionExpired = {
-                                services.clearSession()
-                                navigator.replaceAll(
-                                    Screen.Welcome,
-                                    Screen.ServerSelection,
-                                    Screen.Login(screen.session.server, screen.session.userName),
-                                )
+                                ifOnTop {
+                                    services.clearSession()
+                                    navigator.replaceAll(
+                                        Screen.Welcome,
+                                        Screen.ServerSelection,
+                                        Screen.Login(screen.session.server, screen.session.userName),
+                                    )
+                                }
                             },
                             onBookClick = { book ->
-                                navigator.push(Screen.Reader(screen.session, book.id, book.title))
+                                ifOnTop { navigator.push(Screen.Reader(screen.session, book.id, book.title)) }
                             },
                         )
                         is Screen.Reader -> ReaderScreen(
@@ -99,7 +109,7 @@ fun App(services: AppServices) {
                             bookId = screen.bookId,
                             title = screen.title,
                             services = services,
-                            onBack = navigator::pop,
+                            onBack = { ifOnTop(navigator::pop) },
                         )
                     }
                 }

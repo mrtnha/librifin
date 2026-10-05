@@ -8,7 +8,9 @@ import org.readium.r2.navigator.epub.EpubNavigatorFragment
 /**
  * The activity's [FragmentFactory]. Readium's [EpubNavigatorFragment] needs the open book in its
  * constructor, and Android recreates fragments on its own (e.g. on rotation), so the activity must
- * be able to build it at any time: from the book that is currently open.
+ * be able to build it at any time: from the book that is currently open. There is only ever one: books
+ * are opened from the library, and its taps only act while it's on top (see `App`), so a second book
+ * can't open while a reader is shown.
  *
  * Set it on the activity's fragment manager before `super.onCreate()`.
  */
