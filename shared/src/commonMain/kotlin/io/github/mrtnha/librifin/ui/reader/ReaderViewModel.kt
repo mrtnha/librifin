@@ -99,6 +99,10 @@ class ReaderViewModel(
     var currentPage by mutableStateOf<Int?>(null)
         private set
 
+    /** The sheet at the bottom for theme and text size. The bars hide while it's open, so the page shows. */
+    var isAppearanceOpen by mutableStateOf(false)
+        private set
+
     /** The search results list over the book, with the search field in the app bar. */
     var isSearchOpen by mutableStateOf(false)
         private set
@@ -265,9 +269,18 @@ class ReaderViewModel(
         areBarsVisible = !areBarsVisible
     }
 
-    /** The eye button: the next theme. */
-    fun cycleTheme() {
-        theme = theme.next()
+    fun openAppearance() {
+        isAppearanceOpen = true
+        areBarsVisible = false
+    }
+
+    /** The bars stay hidden: closing the sheet goes straight back to reading. */
+    fun closeAppearance() {
+        isAppearanceOpen = false
+    }
+
+    fun selectTheme(selected: ReaderTheme) {
+        theme = selected
         settings.write(KEY_THEME, theme.name)
     }
 

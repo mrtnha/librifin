@@ -3,6 +3,8 @@ package io.github.mrtnha.librifin.ui.reader
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -106,6 +108,11 @@ fun ReaderScreen(
         isBackEnabled = vm.isSearchOpen,
         onBackCompleted = vm::closeSearch,
     )
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = vm.isAppearanceOpen,
+        onBackCompleted = vm::closeAppearance,
+    )
 
     // The whole screen in the page's colors, also while loading; the bars stand apart in their own.
     MaterialTheme(colorScheme = readerColorScheme(theme.isDark, theme.background, theme.text)) {
@@ -181,16 +188,37 @@ fun ReaderScreen(
                                 IconButton(onClick = vm::openSearch, enabled = vm.state !is ReaderState.Error) {
                                     Icon(LibrifinIcons.Search, contentDescription = "Search in book")
                                 }
-                                IconButton(onClick = vm::decreaseFontSize, enabled = vm.canDecreaseFontSize) {
-                                    Icon(LibrifinIcons.TextDecrease, contentDescription = "Smaller text")
-                                }
-                                IconButton(onClick = vm::increaseFontSize, enabled = vm.canIncreaseFontSize) {
-                                    Icon(LibrifinIcons.TextIncrease, contentDescription = "Larger text")
-                                }
-                                IconButton(onClick = vm::cycleTheme) {
-                                    Icon(LibrifinIcons.Visibility, contentDescription = "Change theme")
+                                IconButton(onClick = vm::openAppearance) {
+                                    Icon(LibrifinIcons.MatchCase, contentDescription = "Appearance")
                                 }
                             },
+                        )
+                    }
+                }
+
+                // Over the book: a tap on the page closes the sheet instead of turning the page.
+                if (vm.isAppearanceOpen) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .clickable(interactionSource = null, indication = null, onClick = vm::closeAppearance),
+                    )
+                }
+                AnimatedVisibility(
+                    visible = vm.isAppearanceOpen,
+                    enter = slideInVertically { it },
+                    exit = slideOutVertically { it },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                ) {
+                    MaterialTheme(colorScheme = barsColors) {
+                        AppearanceSheet(
+                            theme = theme,
+                            onThemeSelected = vm::selectTheme,
+                            canDecreaseFontSize = vm.canDecreaseFontSize,
+                            canIncreaseFontSize = vm.canIncreaseFontSize,
+                            onDecreaseFontSize = vm::decreaseFontSize,
+                            onIncreaseFontSize = vm::increaseFontSize,
+                            onClose = vm::closeAppearance,
                         )
                     }
                 }
