@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * The top bar while searching: the search field, focused with the keyboard open when the search starts.
- * The arrow closes the search, the X clears the text.
+ * The arrow closes the search, the X clears the text for a new one.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +71,15 @@ fun SearchBar(
         },
         actions = {
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
+                // Clearing is for typing something else: the field takes focus with the keyboard, also when
+                // it had neither (back at earlier results, or after the keyboard's search key).
+                IconButton(
+                    onClick = {
+                        onQueryChange("")
+                        focusRequester.requestFocus()
+                        keyboard?.show()
+                    },
+                ) {
                     Icon(LibrifinIcons.Close, contentDescription = "Clear search")
                 }
             }
