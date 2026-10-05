@@ -39,9 +39,9 @@ is shared between Android and iOS.
 
 ## Screenshots
 
-| Welcome | Library | Reading | Reading with bars |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/welcome.jpeg" width="200" alt="Welcome screen"> | <img src="docs/screenshots/library.jpeg" width="200" alt="Library screen"> | <img src="docs/screenshots/reader.jpeg" width="200" alt="Reading full screen"> | <img src="docs/screenshots/reader-bars.jpeg" width="200" alt="Reading with the app bar and page slider shown"> |
+| Welcome | Library | Reading | Reading with bars | Reader appearance |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/welcome.jpeg" width="200" alt="Welcome screen"> | <img src="docs/screenshots/library.jpg" width="200" alt="Library screen"> | <img src="docs/screenshots/reader.jpg" width="200" alt="Reading full screen"> | <img src="docs/screenshots/reader-bars.jpg" width="200" alt="Reading with the app bar and page slider shown"> | <img src="docs/screenshots/reader-appearance.jpg" width="200" alt="Reading with the appearance sheet: theme, text size and font"> |
 
 ## Requirements
 
