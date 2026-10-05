@@ -2,13 +2,13 @@ package io.github.mrtnha.librifin
 
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
+import io.github.mrtnha.librifin.api.decodeOrNull
 import io.github.mrtnha.librifin.platform.Platform
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.sync.ProgressSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.serialization.SerializationException
 
 /**
  * App-wide objects, shared by all screens (no DI framework). Create exactly one per app process
@@ -31,15 +31,9 @@ class AppServices(val platform: Platform) {
     /** The session saved at the last login, or null if logged out (or the saved data is unreadable). */
     fun loadSession(): Session? {
         val saved = platform.sessionStore.read() ?: return null
-        return try {
-            JellyfinClient.json.decodeFromString<Session>(saved)
-        } catch (_: SerializationException) {
-            platform.sessionStore.clear()
-            null
-        } catch (_: IllegalArgumentException) {
-            platform.sessionStore.clear()
-            null
-        }
+        val session = JellyfinClient.json.decodeOrNull<Session>(saved)
+        if (session == null) platform.sessionStore.clear()
+        return session
     }
 
     fun saveSession(session: Session) = platform.sessionStore.write(JellyfinClient.json.encodeToString(session))

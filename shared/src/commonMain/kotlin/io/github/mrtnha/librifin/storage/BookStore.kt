@@ -2,6 +2,7 @@ package io.github.mrtnha.librifin.storage
 
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
+import io.github.mrtnha.librifin.api.decodeOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
@@ -13,7 +14,6 @@ import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readString
 import kotlinx.io.writeString
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerializationException
 
 /**
  * What Librifin keeps on the device: the downloaded books, where each book was left off, and the
@@ -42,65 +42,33 @@ class BookStore(filesDir: String) {
     fun deleteBook(bookId: String) = SystemFileSystem.delete(bookFile(bookId), mustExist = false)
 
     /** The book list saved for this user on this server, or null if there is none (or it's unreadable). */
-    fun readLibrary(session: Session): List<Book>? {
-        if (!SystemFileSystem.exists(libraryFile)) return null
-        val saved = try {
-            JellyfinClient.json.decodeFromString<SavedLibrary>(readText(libraryFile))
-        } catch (_: SerializationException) {
-            return null
-        } catch (_: IllegalArgumentException) {
-            return null
-        }
-        return saved.books.takeIf { saved.serverId == session.server.id && saved.userId == session.userId }
-    }
+    fun readLibrary(session: Session): List<Book>? =
+        readJson<SavedLibrary>(libraryFile)
+            ?.takeIf { it.serverId == session.server.id && it.userId == session.userId }
+            ?.books
 
-    fun saveLibrary(session: Session, books: List<Book>) {
-        writeText(libraryFile, JellyfinClient.json.encodeToString(SavedLibrary(session.server.id, session.userId, books)))
-    }
+    fun saveLibrary(session: Session, books: List<Book>) =
+        writeJson(libraryFile, SavedLibrary(session.server.id, session.userId, books))
 
     /** Where the user stopped reading this book on this device, or null if never opened (or unreadable). */
-    fun readPosition(session: Session, bookId: String): ReadingPosition? {
-        val file = positionFile(session, bookId)
-        if (!SystemFileSystem.exists(file)) return null
-        return try {
-            JellyfinClient.json.decodeFromString<ReadingPosition>(readText(file))
-        } catch (_: SerializationException) {
-            null
-        } catch (_: IllegalArgumentException) {
-            null
-        }
-    }
+    fun readPosition(session: Session, bookId: String): ReadingPosition? = readJson(positionFile(session, bookId))
 
     /**
      * Saves a newly read [position] (not synced yet). Keeps what Jellyfin had at the last sync.
      * Whether the book is finished comes with [position]: paging back from the end undoes it.
      * Call with [kotlinx.coroutines.CoroutineStart.UNDISPATCHED] to keep the order of rapid page turns.
      */
-    suspend fun savePosition(session: Session, bookId: String, position: ReadingPosition) = positionLock.withLock {
-        withContext(Dispatchers.IO) {
-            SystemFileSystem.createDirectories(positionsDir(session))
-            val previous = readPosition(session, bookId)
-            val saved = position.copy(
-                isSynced = false,
-                serverTicks = previous?.serverTicks,
-            )
-            writeText(positionFile(session, bookId), JellyfinClient.json.encodeToString(saved))
-        }
-    }
+    suspend fun savePosition(session: Session, bookId: String, position: ReadingPosition) =
+        updatePosition(session, bookId) { saved -> position.copy(isSynced = false, serverTicks = saved?.serverTicks) }
 
     /**
      * The last page is shown: the current position counts as finished. Call like [savePosition];
      * the next saved position decides for itself again.
      */
-    suspend fun markFinished(session: Session, bookId: String) = positionLock.withLock {
-        withContext(Dispatchers.IO) {
-            val position = readPosition(session, bookId)
-            if (position != null && !position.isFinished) {
-                val finished = position.copy(isFinished = true, isSynced = false)
-                writeText(positionFile(session, bookId), JellyfinClient.json.encodeToString(finished))
-            }
+    suspend fun markFinished(session: Session, bookId: String) =
+        updatePosition(session, bookId) { saved ->
+            if (saved != null && !saved.isFinished) saved.copy(isFinished = true, isSynced = false) else null
         }
-    }
 
     /** Every book's position on this device for this user, by book id. */
     fun readAllPositions(session: Session): Map<String, ReadingPosition> {
@@ -108,47 +76,56 @@ class BookStore(filesDir: String) {
         if (!SystemFileSystem.exists(dir)) return emptyMap()
         return SystemFileSystem.list(dir)
             .filter { it.name.endsWith(".json") }
-            .mapNotNull { file ->
-                file.name.removeSuffix(".json").let { id -> readPosition(session, id)?.let { id to it } }
-            }
+            .mapNotNull { file -> readJson<ReadingPosition>(file)?.let { file.name.removeSuffix(".json") to it } }
             .toMap()
     }
 
     /** Like [readPosition], but only after the saves requested before this call are written. */
-    suspend fun currentPosition(session: Session, bookId: String): ReadingPosition? = positionLock.withLock {
-        withContext(Dispatchers.IO) { readPosition(session, bookId) }
-    }
+    suspend fun currentPosition(session: Session, bookId: String): ReadingPosition? =
+        inTurn { readPosition(session, bookId) }
 
     /** Like [readAllPositions], but only after the saves requested before this call are written. */
-    suspend fun currentPositions(session: Session): Map<String, ReadingPosition> = positionLock.withLock {
-        withContext(Dispatchers.IO) { readAllPositions(session) }
-    }
+    suspend fun currentPositions(session: Session): Map<String, ReadingPosition> =
+        inTurn { readAllPositions(session) }
 
     /**
      * Records that [position] reached the server as [serverTicks]. Skipped if the book was read
      * further meanwhile: that newer position still has to be sent.
      */
-    suspend fun markSynced(
-        session: Session,
-        bookId: String,
-        position: ReadingPosition,
-        serverTicks: Long,
-    ) = positionLock.withLock {
-        withContext(Dispatchers.IO) {
-            if (readPosition(session, bookId) == position) {
-                val synced = position.copy(isSynced = true, serverTicks = serverTicks)
-                writeText(positionFile(session, bookId), JellyfinClient.json.encodeToString(synced))
-            }
+    suspend fun markSynced(session: Session, bookId: String, position: ReadingPosition, serverTicks: Long) =
+        updatePosition(session, bookId) { saved ->
+            if (saved == position) position.copy(isSynced = true, serverTicks = serverTicks) else null
         }
-    }
 
     /** Books whose last position hasn't reached the server yet, e.g. because they were read offline. */
     fun unsyncedBookIds(session: Session): List<String> =
         readAllPositions(session).filterValues { !it.isSynced }.keys.toList()
 
+    /** Saves what [change] makes of the saved position (null: leaves it as it is), [inTurn] with the other saves. */
+    private suspend fun updatePosition(
+        session: Session,
+        bookId: String,
+        change: (saved: ReadingPosition?) -> ReadingPosition?,
+    ) = inTurn {
+        val changed = change(readPosition(session, bookId)) ?: return@inTurn
+        SystemFileSystem.createDirectories(positionsDir(session))
+        writeJson(positionFile(session, bookId), changed)
+    }
+
+    /** Runs [block] on the IO threads after the saves requested before this call, and before later ones. */
+    private suspend fun <T> inTurn(block: () -> T): T =
+        positionLock.withLock { withContext(Dispatchers.IO) { block() } }
+
     private fun positionsDir(session: Session) = Path(positionsRoot, session.server.id, session.userId)
 
     private fun positionFile(session: Session, bookId: String) = Path(positionsDir(session), "$bookId.json")
+
+    /** [file] read as [T], or null if there is no such file or it isn't a valid [T]. */
+    private inline fun <reified T> readJson(file: Path): T? =
+        if (SystemFileSystem.exists(file)) JellyfinClient.json.decodeOrNull<T>(readText(file)) else null
+
+    private inline fun <reified T> writeJson(file: Path, value: T) =
+        writeText(file, JellyfinClient.json.encodeToString(value))
 
     private fun readText(file: Path) = SystemFileSystem.source(file).buffered().use { it.readString() }
 

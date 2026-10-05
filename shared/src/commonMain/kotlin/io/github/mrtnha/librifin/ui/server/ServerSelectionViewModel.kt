@@ -10,6 +10,7 @@ import io.github.mrtnha.librifin.api.DiscoveryResponse
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Server
 import io.github.mrtnha.librifin.api.ServerUrl
+import io.github.mrtnha.librifin.api.decodeOrNull
 import io.github.mrtnha.librifin.platform.ServerDiscovery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -91,7 +92,7 @@ class ServerSelectionViewModel(
                 isNothingFound = discoveredServers.isEmpty()
             }
             discovery.replies().collect { text ->
-                val reply = parseReply(text) ?: return@collect
+                val reply = JellyfinClient.json.decodeOrNull<DiscoveryResponse>(text) ?: return@collect
                 val id = reply.id ?: return@collect
                 val address = reply.address?.trimEnd('/') ?: return@collect
                 // Servers answer every broadcast; only check each one once at a time.
@@ -134,13 +135,6 @@ class ServerSelectionViewModel(
         }
         return Server(baseUrl = baseUrl, id = id, name = name, version = info.version)
     }
-
-    private fun parseReply(text: String): DiscoveryResponse? =
-        try {
-            JellyfinClient.json.decodeFromString<DiscoveryResponse>(text)
-        } catch (_: Exception) {
-            null
-        }
 
     private companion object {
         const val URL_TEST_DEBOUNCE_MS = 500L

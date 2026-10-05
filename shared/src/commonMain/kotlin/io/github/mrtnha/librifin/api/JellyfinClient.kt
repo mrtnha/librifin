@@ -165,3 +165,14 @@ class JellyfinClient(private val platform: Platform) {
         }
     }
 }
+
+/**
+ * [text] decoded as [T], or null if it isn't a valid [T], e.g. a damaged file or an unexpected reply.
+ * That includes a [kotlinx.serialization.SerializationException], which is an [IllegalArgumentException].
+ */
+inline fun <reified T> Json.decodeOrNull(text: String): T? =
+    try {
+        decodeFromString<T>(text)
+    } catch (_: IllegalArgumentException) {
+        null
+    }
