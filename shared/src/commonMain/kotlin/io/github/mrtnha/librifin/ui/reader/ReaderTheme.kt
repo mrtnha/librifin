@@ -14,6 +14,12 @@ enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, 
     /** Softer than dark for a dim room. Contrast about 7.4:1. Bars near black. */
     GRAY(background = Color(0xFF3C3C3E), text = Color(0xFFD4D4D4), bars = Color(0xFF1A1A1A), isDark = true),
 
+    /**
+     * Warm like the paper of a printed book: less bright than light, for long reading. Text and page share
+     * the same hue, dark brown ink on beige. Contrast about 10.3:1. Bars near black.
+     */
+    SEPIA(background = Color(0xFFF3E7D3), text = Color(0xFF3D3122), bars = Color(0xFF1A1A1A), isDark = false),
+
     /** A barely warm paper white. Contrast about 15:1. Bars near black. */
     LIGHT(background = Color(0xFFF8F6F1), text = Color(0xFF1E1E1E), bars = Color(0xFF1A1A1A), isDark = false),
 }

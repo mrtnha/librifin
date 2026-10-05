@@ -30,7 +30,7 @@ is shared between Android and iOS.
 - Tap a book to download and open it. Downloaded books can also be read offline.
 - Paginated reading: turn the page by tapping the edges or swiping. Tap the middle of the page to
   show or hide the bars.
-- A page slider to move through the whole book, three reading themes (dark, gray and light),
+- A page slider to move through the whole book, four reading themes (dark, gray, sepia and light),
   adjustable text size, and ten reading fonts to choose from instead of the book's own.
 - Your reading position is saved on the device and sent to Jellyfin. A book counts as finished at
   95 % or on its last page, and is then marked as played in Jellyfin.
