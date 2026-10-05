@@ -123,6 +123,19 @@ class BookStoreTest {
     }
 
     @Test
+    fun currentPositionsIncludeSavesRequestedBefore() = runBlocking {
+        coroutineScope {
+            launch(start = CoroutineStart.UNDISPATCHED) { store.savePosition(alice, "book1", position) }
+            launch(start = CoroutineStart.UNDISPATCHED) { store.markFinished(alice, "book1") }
+
+            val positions = store.currentPositions(alice)
+
+            assertEquals(0.4, positions["book1"]?.progress)
+            assertEquals(true, positions["book1"]?.isFinished)
+        }
+    }
+
+    @Test
     fun savedLibraryBelongsToTheUserAndServer() {
         val books = listOf(Book(id = "book1", title = "The Hobbit", coverUrl = null, authors = listOf("J. R. R. Tolkien")))
         store.saveLibrary(alice, books)

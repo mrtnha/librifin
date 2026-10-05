@@ -101,8 +101,13 @@ class LibraryViewModel(
     fun load(): Job {
         loadJob?.cancel()
         return viewModelScope.launch {
-            if (state !is LibraryState.Loaded) {
-                state = withContext(Dispatchers.IO) { bookStore.readLibrary(session) }
+            val shown = state as? LibraryState.Loaded
+            state = if (shown != null) {
+                // E.g. back from a book: its progress is on this device already, so it shows right away,
+                // not only once the server has answered below.
+                shown.copy(progress = progressOf(shown.books))
+            } else {
+                withContext(Dispatchers.IO) { bookStore.readLibrary(session) }
                     ?.let { LibraryState.Loaded(it, progressOf(it)) }
                     ?: LibraryState.Loading
             }
@@ -153,7 +158,8 @@ class LibraryViewModel(
      * Jellyfin's (e.g. read on another device). The same for whether it's finished.
      */
     private suspend fun progressOf(books: List<Book>): Map<String, BookProgress> {
-        val positions = withContext(Dispatchers.IO) { bookStore.readAllPositions(session) }
+        // After the saves still running: leaving a book right after a page turn may not have finished saving it.
+        val positions = bookStore.currentPositions(session)
         return books.mapNotNull { book ->
             val local = positions[book.id]
             val progress = BookProgress(

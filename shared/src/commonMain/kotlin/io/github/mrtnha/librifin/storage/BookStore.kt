@@ -119,6 +119,11 @@ class BookStore(filesDir: String) {
         withContext(Dispatchers.IO) { readPosition(session, bookId) }
     }
 
+    /** Like [readAllPositions], but only after the saves requested before this call are written. */
+    suspend fun currentPositions(session: Session): Map<String, ReadingPosition> = positionLock.withLock {
+        withContext(Dispatchers.IO) { readAllPositions(session) }
+    }
+
     /**
      * Records that [position] reached the server as [serverTicks]. Skipped if the book was read
      * further meanwhile: that newer position still has to be sent.
