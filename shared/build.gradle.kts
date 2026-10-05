@@ -43,6 +43,8 @@ kotlin {
             implementation(libs.readium.streamer)
             implementation(libs.readium.navigator)
             implementation(libs.androidx.fragment.compose)
+            // Starting the reader's WebView early (already in the app via Readium)
+            implementation(libs.androidx.webkit)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

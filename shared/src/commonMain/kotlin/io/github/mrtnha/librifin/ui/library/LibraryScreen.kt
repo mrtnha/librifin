@@ -67,6 +67,7 @@ import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.storage.Book
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import io.github.mrtnha.librifin.ui.components.SearchBar
+import io.github.mrtnha.librifin.ui.reader.PrepareReader
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,6 +97,9 @@ fun LibraryScreen(
             SingletonImageLoader.get(context).enqueue(ImageRequest.Builder(context).data(userImageUrl).build())
         }
     }
+
+    // Books are opened from here: get the reader ready, so the first one opens faster.
+    PrepareReader()
 
     /** Loads again; says so if the server can't be reached, as nothing else would change. */
     suspend fun retry() {
