@@ -10,6 +10,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -21,12 +22,16 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Surface
@@ -52,7 +57,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
 /**
- * The sheet from the "Aa" button: theme and text size, one row each. It covers only the bottom of
+ * The sheet from the "Aa" button: theme, text size and font, one row each. It covers only the bottom of
  * the screen and doesn't dim the page, so every change shows on the page right away.
  * Swiping it down closes it.
  */
@@ -65,6 +70,8 @@ fun AppearanceSheet(
     canIncreaseFontSize: Boolean,
     onDecreaseFontSize: () -> Unit,
     onIncreaseFontSize: () -> Unit,
+    font: ReaderFont,
+    onFontSelected: (ReaderFont) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -109,6 +116,8 @@ fun AppearanceSheet(
                 onIncrease = onIncreaseFontSize,
                 modifier = Modifier.padding(horizontal = 24.dp),
             )
+            Spacer(Modifier.height(ROW_GAP))
+            FontChips(font, onFontSelected)
         }
     }
 }
@@ -216,6 +225,28 @@ private const val DIVIDER_ALPHA = 0.24f
 
 /** Material's opacity for disabled content: at the smallest or largest size, that half looks inactive. */
 private const val DISABLED_ALPHA = 0.38f
+
+/**
+ * The fonts, each name in its own font, in one row that scrolls sideways to the screen's edges.
+ * It opens scrolled to the selected font, so that one is always in sight.
+ */
+@Composable
+private fun FontChips(selected: ReaderFont, onSelect: (ReaderFont) -> Unit) {
+    LazyRow(
+        state = rememberLazyListState(initialFirstVisibleItemIndex = selected.ordinal),
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(ReaderFont.entries) { font ->
+            FilterChip(
+                selected = font == selected,
+                onClick = { onSelect(font) },
+                label = { Text(font.label, fontFamily = rememberFontFamily(font)) },
+                modifier = Modifier.height(ROW_HEIGHT),
+            )
+        }
+    }
+}
 
 /** Dragged down further than this part of its height, the sheet closes when let go. */
 private const val CLOSE_DRAG_FRACTION = 1f / 3

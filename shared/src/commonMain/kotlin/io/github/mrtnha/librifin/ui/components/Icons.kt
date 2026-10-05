@@ -397,7 +397,7 @@ object LibrifinIcons {
         }
     }
 
-    /** "match_case" ("Aa"). Reader app bar: opens the appearance sheet (theme, text size). */
+    /** "match_case" ("Aa"). Reader app bar: opens the appearance sheet (theme, text size, font). */
     val MatchCase: ImageVector by lazy {
         symbol("MatchCase") {
             moveTo(3.28f, 17.7f)

@@ -30,8 +30,8 @@ is shared between Android and iOS.
 - Tap a book to download and open it. Downloaded books can also be read offline.
 - Paginated reading: turn the page by tapping the edges or swiping. Tap the middle of the page to
   show or hide the bars.
-- A page slider to move through the whole book, three reading themes (dark, gray and light) and
-  adjustable text size.
+- A page slider to move through the whole book, three reading themes (dark, gray and light),
+  adjustable text size, and ten reading fonts to choose from instead of the book's own.
 - Your reading position is saved on the device and sent to Jellyfin. A book counts as finished at
   95 % or on its last page, and is then marked as played in Jellyfin.
 
@@ -103,6 +103,12 @@ Librifin tries to get by with as few libraries as possible. The most important o
 
 The icons are [Material Symbols](https://fonts.google.com/icons) by Google (Apache-2.0). They're
 built into the app, so no icon fonts are downloaded.
+
+The reading fonts are built into the app as well, so choosing one downloads nothing: Literata,
+EB Garamond, Lora, Alegreya, Merriweather, Bitter, Source Sans 3, Nunito Sans,
+Atkinson Hyperlegible Next and Courier Prime. They're licensed under the SIL Open Font License 1.1;
+each font's license is next to its files in
+[`shared/src/androidMain/assets/fonts`](shared/src/androidMain/assets/fonts).
 
 ## Thanks
 

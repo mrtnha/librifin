@@ -39,9 +39,11 @@ import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.epub.EpubPreferences
+import org.readium.r2.navigator.epub.css.FontStyle
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.navigator.preferences.Color
+import org.readium.r2.navigator.preferences.FontFamily
 import org.readium.r2.navigator.preferences.Theme
 import org.readium.r2.navigator.util.DirectionalNavigationAdapter
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -65,6 +67,7 @@ actual fun EpubView(
     initialProgress: Double?,
     theme: ReaderTheme,
     fontSize: Int,
+    font: ReaderFont,
     jumpToProgress: Double?,
     onJumped: () -> Unit,
     onReachedEnd: () -> Unit,
@@ -80,7 +83,7 @@ actual fun EpubView(
     modifier: Modifier,
 ) {
     val application = LocalContext.current.applicationContext as Application
-    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, initialProgress, theme, fontSize) }
+    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, initialProgress, theme, fontSize, font) }
     val currentOnReachedEnd by rememberUpdatedState(onReachedEnd)
     DisposableEffect(vm) {
         vm.onReachedEnd = { currentOnReachedEnd() }
@@ -102,9 +105,9 @@ actual fun EpubView(
             LaunchedEffect(vm) { currentOnPagesLoaded(vm.pages) }
             var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
 
-            // The first theme and size are set when the book opens; later ones change the page in place.
-            LaunchedEffect(theme, fontSize, navigatorNow) {
-                navigatorNow?.submitPreferences(epubPreferences(theme, fontSize))
+            // The first theme, size and font are set when the book opens; later ones change the page in place.
+            LaunchedEffect(theme, fontSize, font, navigatorNow) {
+                navigatorNow?.submitPreferences(epubPreferences(theme, fontSize, font))
             }
 
             LaunchedEffect(jumpToProgress, navigatorNow) {
@@ -183,12 +186,30 @@ private fun parseLocator(json: String): Locator? =
  * Readium's night mode for the dark themes, with our colors on top: it also recolors headings and
  * links, which keep the book's own (often black) colors otherwise.
  */
-private fun epubPreferences(theme: ReaderTheme, fontSize: Int) = EpubPreferences(
+private fun epubPreferences(theme: ReaderTheme, fontSize: Int, font: ReaderFont) = EpubPreferences(
     theme = if (theme.isDark) Theme.DARK else Theme.LIGHT,
     backgroundColor = Color(theme.background.toArgb()),
     textColor = Color(theme.text.toArgb()),
     fontSize = fontSize / 100.0,
+    // No font family: the book's own.
+    fontFamily = font.takeIf { it != ReaderFont.ORIGINAL }?.let { FontFamily(it.label) },
 )
+
+/** Lets the book's pages use the fonts bundled with the app, under their [ReaderFont.label]s. */
+private fun fontConfiguration() = EpubNavigatorFragment.Configuration {
+    servedAssets += FONT_ASSETS
+    ReaderFont.entries.filter { it.faces.isNotEmpty() }.forEach { font ->
+        addFontFamilyDeclaration(FontFamily(font.label)) {
+            font.faces.forEach { face ->
+                addFontFace {
+                    addSource(face.assetPath())
+                    setFontStyle(if (face.isItalic) FontStyle.ITALIC else FontStyle.NORMAL)
+                    setFontWeight(face.weights)
+                }
+            }
+        }
+    }
+}
 
 /** A search through the book: the [results] for [query] found so far, all of them once [isDone]. */
 private data class BookSearch(val query: String, val results: List<SearchResult>, val isDone: Boolean)
@@ -210,6 +231,7 @@ private class EpubViewModel(
     private val initialProgress: Double?,
     private val initialTheme: ReaderTheme,
     private val initialFontSize: Int,
+    private val initialFont: ReaderFont,
 ) : ViewModel() {
     var state by mutableStateOf<EpubState>(EpubState.Opening)
         private set
@@ -257,13 +279,14 @@ private class EpubViewModel(
         val lastChapter = publication.readingOrder.lastOrNull()?.url()
         val factory = EpubNavigatorFactory(publication).createFragmentFactory(
             initialLocator = startLocator,
-            initialPreferences = epubPreferences(initialTheme, initialFontSize),
+            initialPreferences = epubPreferences(initialTheme, initialFontSize, initialFont),
             // Tells the page within the chapter: the most reliable way to see the book's last page.
             paginationListener = object : EpubNavigatorFragment.PaginationListener {
                 override fun onPageChanged(pageIndex: Int, totalPages: Int, locator: Locator) {
                     if (locator.href == lastChapter && pageIndex == totalPages - 1) onReachedEnd?.invoke()
                 }
             },
+            configuration = fontConfiguration(),
         )
         fragmentFactory = factory
         ReaderFragmentFactory.epub = factory

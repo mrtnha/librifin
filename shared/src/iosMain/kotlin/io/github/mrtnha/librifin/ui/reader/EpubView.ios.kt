@@ -17,6 +17,7 @@ actual fun EpubView(
     initialProgress: Double?,
     theme: ReaderTheme,
     fontSize: Int,
+    font: ReaderFont,
     jumpToProgress: Double?,
     onJumped: () -> Unit,
     onReachedEnd: () -> Unit,

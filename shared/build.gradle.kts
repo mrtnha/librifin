@@ -27,6 +27,10 @@ kotlin {
        compilerOptions {
            jvmTarget = JvmTarget.JVM_11
        }
+       // For the reader's bundled fonts in src/androidMain/assets; without it, assets aren't packaged.
+       androidResources {
+           enable = true
+       }
        withHostTest {}
     }
     

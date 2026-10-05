@@ -125,6 +125,7 @@ fun ReaderScreen(
                         initialProgress = state.startProgress,
                         theme = theme,
                         fontSize = vm.fontSize,
+                        font = vm.font,
                         jumpToProgress = vm.jumpToProgress,
                         onJumped = vm::onJumped,
                         onReachedEnd = vm::onReachedEnd,
@@ -218,6 +219,8 @@ fun ReaderScreen(
                             canIncreaseFontSize = vm.canIncreaseFontSize,
                             onDecreaseFontSize = vm::decreaseFontSize,
                             onIncreaseFontSize = vm::increaseFontSize,
+                            font = vm.font,
+                            onFontSelected = vm::selectFont,
                             onClose = vm::closeAppearance,
                         )
                     }

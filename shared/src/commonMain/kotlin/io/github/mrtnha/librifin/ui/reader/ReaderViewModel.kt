@@ -84,6 +84,12 @@ class ReaderViewModel(
     val canDecreaseFontSize get() = fontSize > MIN_FONT_SIZE
     val canIncreaseFontSize get() = fontSize < MAX_FONT_SIZE
 
+    /** The font of the book's text, the same for all books and kept between app starts. */
+    var font by mutableStateOf(
+        ReaderFont.entries.find { it.name == settings.read(KEY_FONT) } ?: ReaderFont.ORIGINAL,
+    )
+        private set
+
     /**
      * Set when the book was read further elsewhere while open here: the renderer jumps there (0..1)
      * and calls [onJumped].
@@ -99,7 +105,7 @@ class ReaderViewModel(
     var currentPage by mutableStateOf<Int?>(null)
         private set
 
-    /** The sheet at the bottom for theme and text size. The bars hide while it's open, so the page shows. */
+    /** The sheet at the bottom for theme, text size and font. The bars hide while it's open, so the page shows. */
     var isAppearanceOpen by mutableStateOf(false)
         private set
 
@@ -284,6 +290,11 @@ class ReaderViewModel(
         settings.write(KEY_THEME, theme.name)
     }
 
+    fun selectFont(selected: ReaderFont) {
+        font = selected
+        settings.write(KEY_FONT, font.name)
+    }
+
     fun decreaseFontSize() = changeFontSize(fontSize - FONT_SIZE_STEP)
 
     fun increaseFontSize() = changeFontSize(fontSize + FONT_SIZE_STEP)
@@ -375,6 +386,7 @@ class ReaderViewModel(
 
         const val KEY_THEME = "reader_theme"
         const val KEY_FONT_SIZE = "reader_font_size"
+        const val KEY_FONT = "reader_font"
 
         // Readium allows 10–500 %; beyond these limits text on a phone is too small to read,
         // or only a few words fit on a line.
