@@ -14,6 +14,7 @@ import io.github.mrtnha.librifin.storage.Book
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.sync.ProgressSync
 import io.ktor.http.HttpStatusCode
+import kotlin.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -103,12 +104,11 @@ class LibraryViewModel(
         return viewModelScope.launch {
             val shown = state as? LibraryState.Loaded
             state = if (shown != null) {
-                // E.g. back from a book: its progress is on this device already, so it shows right away,
-                // not only once the server has answered below.
-                shown.copy(progress = progressOf(shown.books))
+                // E.g. back from a book: its progress and place in the order are on this device already,
+                // so they show right away, not only once the server has answered below.
+                loaded(shown.books, shown.isOffline, shown.downloadedIds)
             } else {
-                withContext(Dispatchers.IO) { bookStore.readLibrary(session) }
-                    ?.let { LibraryState.Loaded(it, progressOf(it)) }
+                withContext(Dispatchers.IO) { bookStore.readLibrary(session) }?.let { loaded(it) }
                     ?: LibraryState.Loading
             }
             val saved = (state as? LibraryState.Loaded)?.books
@@ -128,12 +128,15 @@ class LibraryViewModel(
                                 ?.let { (it.toDouble() / BOOK_PROGRESS_TICKS).coerceIn(0.0, 1.0) },
                             isPlayed = item.userData?.played == true,
                             authors = item.people.orEmpty().filter { it.type == "Author" }.mapNotNull { it.name },
+                            lastPlayedMillis = item.userData?.lastPlayedDate
+                                ?.let { Instant.parseOrNull(it) }
+                                ?.toEpochMilliseconds(),
                         )
                     }
                     withContext(Dispatchers.IO) { bookStore.saveLibrary(session, books) }
                     // The server is reachable again: send what was read offline.
                     progressSync.sendUnsynced(session)
-                    LibraryState.Loaded(books, progressOf(books))
+                    loaded(books)
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -145,7 +148,7 @@ class LibraryViewModel(
                         val downloaded = withContext(Dispatchers.IO) {
                             saved.filter { bookStore.isDownloaded(it.id) }.mapTo(HashSet()) { it.id }
                         }
-                        LibraryState.Loaded(saved, progressOf(saved), isOffline = true, downloadedIds = downloaded)
+                        loaded(saved, isOffline = true, downloadedIds = downloaded)
                     }
                     else -> LibraryState.Error(e.toUserMessage())
                 }
@@ -154,13 +157,23 @@ class LibraryViewModel(
     }
 
     /**
-     * This device's progress where there is one (exact, and newest for books read here), else
-     * Jellyfin's (e.g. read on another device). The same for whether it's finished.
+     * [books] as the grid shows them, with this device's progress where there is one (exact, and newest
+     * for books read here), else Jellyfin's (e.g. read on another device); the same for whether it's
+     * finished.
+     *
+     * Most recently read first: the later of when a book was read here and when Jellyfin last saw it
+     * read, so a book read here moves up right away, also offline, and one read on another device still
+     * does. Only turning a page counts as reading, not just opening a book. Books never read keep their
+     * order, by title, after them.
      */
-    private suspend fun progressOf(books: List<Book>): Map<String, BookProgress> {
+    private suspend fun loaded(
+        books: List<Book>,
+        isOffline: Boolean = false,
+        downloadedIds: Set<String> = emptySet(),
+    ): LibraryState.Loaded {
         // After the saves still running: leaving a book right after a page turn may not have finished saving it.
         val positions = bookStore.currentPositions(session)
-        return books.mapNotNull { book ->
+        val progress = books.mapNotNull { book ->
             val local = positions[book.id]
             val progress = BookProgress(
                 fraction = (local?.progress ?: book.serverProgress ?: 0.0).toFloat(),
@@ -168,11 +181,18 @@ class LibraryViewModel(
             )
             (book.id to progress).takeIf { progress.isFinished || progress.fraction > 0f }
         }.toMap()
+        val ordered = books.sortedByDescending { book ->
+            maxOf(positions[book.id]?.updatedAtMillis ?: NEVER_READ, book.lastPlayedMillis ?: NEVER_READ)
+        }
+        return LibraryState.Loaded(ordered, progress, isOffline, downloadedIds)
     }
 
     private companion object {
         /** Half the width of a large phone screen in pixels, so covers stay sharp in a two-column grid. */
         const val COVER_MAX_WIDTH = 600
         const val LOGOUT_TIMEOUT_MS = 5_000L
+
+        /** Sorts after every book that was read. */
+        const val NEVER_READ = Long.MIN_VALUE
     }
 }

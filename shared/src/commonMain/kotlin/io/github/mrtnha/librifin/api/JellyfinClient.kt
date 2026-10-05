@@ -57,7 +57,7 @@ class JellyfinClient(private val platform: Platform) {
             parameter("userId", session.userId)
         }.body<BaseItemDtoQueryResult>().items
 
-    /** All books in a library, most recently read first, then by title. */
+    /** All books in a library, by title. The library itself puts the ones read most recently first. */
     suspend fun books(session: Session, libraryId: String): List<BaseItemDto> =
         http.get("${session.server.baseUrl}/Items") {
             authorize(session.accessToken)
@@ -65,8 +65,7 @@ class JellyfinClient(private val platform: Platform) {
             parameter("parentId", libraryId)
             parameter("includeItemTypes", "Book")
             parameter("recursive", true)
-            parameter("sortBy", "DatePlayed,SortName")
-            parameter("sortOrder", "Descending,Ascending")
+            parameter("sortBy", "SortName")
             parameter("fields", "People")
         }.body<BaseItemDtoQueryResult>().items
 
