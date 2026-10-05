@@ -24,14 +24,16 @@ is shared between Android and iOS.
 
 - Finds Jellyfin servers on your local network automatically. You can also enter an address by hand.
 - Log in once and stay logged in.
-- Your book library as a grid of covers, with each book's reading progress and a mark for finished
-  books.
-- Search by title or author.
+- Your book library as a grid of covers, most recently read first, with each book's reading
+  progress and a mark for finished books.
+- Search the library by title or author.
 - Tap a book to download and open it. Downloaded books can also be read offline.
 - Paginated reading: turn the page by tapping the edges or swiping. Tap the middle of the page to
   show or hide the bars.
 - A page slider to move through the whole book, four reading themes (dark, gray, sepia and light),
-  adjustable text size, and ten reading fonts to choose from instead of the book's own.
+  adjustable text size and ten reading fonts to choose from instead of the book's own.
+- Search inside the book you're reading: every match is listed with its chapter and page and you
+  can step from one match to the next.
 - Your reading position is saved on the device and sent to Jellyfin. A book counts as finished at
   95 % or on its last page, and is then marked as played in Jellyfin.
 
