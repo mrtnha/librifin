@@ -121,26 +121,8 @@ fun ReaderScreen(
         Surface(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize()) {
                 when (val state = vm.state) {
-                    is ReaderState.Ready -> EpubView(
-                        file = state.file,
-                        initialLocator = state.startLocator,
-                        theme = theme,
-                        fontSize = vm.fontSize,
-                        font = vm.font,
-                        jumpToProgress = vm.jumpToProgress,
-                        onJumped = vm::onJumped,
-                        onReachedEnd = vm::onReachedEnd,
-                        onPagesLoaded = vm::onPagesLoaded,
-                        onPositionChanged = vm::onPositionChanged,
-                        onCenterTap = vm::toggleBars,
-                        onOpenFailed = vm::onOpenFailed,
-                        searchQuery = vm.searchedQuery,
-                        onSearchResults = vm::onSearchResults,
-                        showSearchResult = vm.showSearchResult,
-                        onSearchResultShown = vm::onSearchResultShown,
-                        highlightedResult = vm.highlightedResult,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    is ReaderState.Ready ->
+                        EpubView(state.file, state.startLocator, host = vm, modifier = Modifier.fillMaxSize())
                     else -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
                         when (state) {
                             is ReaderState.Downloading ->

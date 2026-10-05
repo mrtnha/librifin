@@ -6,8 +6,14 @@ import kotlinx.io.files.Path
 
 /**
  * Renders the EPUB in [file] paginated, starting at [initialLocator] (a value from
- * [onPositionChanged]), else at the beginning, in the colors of [theme], with text at [fontSize]
- * percent of the book's own size, in [font].
+ * [EpubViewHost.onPositionChanged]), else at the beginning. [host] says how, and hears what happens.
+ */
+@Composable
+expect fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: Modifier = Modifier)
+
+/**
+ * What [EpubView] shows and reports. The book is in the colors of [theme], with text at [fontSize] percent of
+ * the book's own size, in [font].
  * When [jumpToProgress] is set, it goes there and calls [onJumped]. [onReachedEnd] is called when
  * the last page of the book is shown. [onPagesLoaded] gets the book's pages once it's open.
  * Taps on the left and right edges and swipes turn pages; other taps on the page call [onCenterTap].
@@ -15,31 +21,28 @@ import kotlinx.io.files.Path
  * progress through the whole book (0..1) and the page (1-based). If the file can't be opened as a
  * book, [onOpenFailed] gets a message for the user.
  *
- * While [searchQuery] is set, the book is searched for it, and [onSearchResults] gets the results found
+ * While [searchedQuery] is set, the book is searched for it, and [onSearchResults] gets the results found
  * so far after each chapter, with isDone once the whole book is searched. When [showSearchResult] is set,
  * it goes to that result and calls [onSearchResultShown]. [highlightedResult] is marked in the text.
  */
-@Composable
-expect fun EpubView(
-    file: Path,
-    initialLocator: String?,
-    theme: ReaderTheme,
-    fontSize: Int,
-    font: ReaderFont,
-    jumpToProgress: Double?,
-    onJumped: () -> Unit,
-    onReachedEnd: () -> Unit,
-    onPagesLoaded: (pages: List<BookPage>) -> Unit,
-    onPositionChanged: (locator: String, progress: Double, page: Int?) -> Unit,
-    onCenterTap: () -> Unit,
-    onOpenFailed: (message: String) -> Unit,
-    searchQuery: String?,
-    onSearchResults: (results: List<SearchResult>, isDone: Boolean) -> Unit,
-    showSearchResult: SearchResult?,
-    onSearchResultShown: () -> Unit,
-    highlightedResult: SearchResult?,
-    modifier: Modifier = Modifier,
-)
+interface EpubViewHost {
+    val theme: ReaderTheme
+    val fontSize: Int
+    val font: ReaderFont
+    val jumpToProgress: Double?
+    val searchedQuery: String?
+    val showSearchResult: SearchResult?
+    val highlightedResult: SearchResult?
+
+    fun onJumped()
+    fun onReachedEnd()
+    fun onPagesLoaded(pages: List<BookPage>)
+    fun onPositionChanged(locator: String, progress: Double, page: Int?)
+    fun onCenterTap()
+    fun onOpenFailed(message: String)
+    fun onSearchResults(results: List<SearchResult>, isDone: Boolean)
+    fun onSearchResultShown()
+}
 
 /**
  * One page of a book: a fixed part of about 1,000 characters (Readium's "positions"), so the page

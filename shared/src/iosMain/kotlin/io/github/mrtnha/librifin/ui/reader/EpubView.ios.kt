@@ -11,28 +11,9 @@ import kotlinx.io.files.Path
 
 // The iOS reader (Readium swift-toolkit) comes later.
 @Composable
-actual fun EpubView(
-    file: Path,
-    initialLocator: String?,
-    theme: ReaderTheme,
-    fontSize: Int,
-    font: ReaderFont,
-    jumpToProgress: Double?,
-    onJumped: () -> Unit,
-    onReachedEnd: () -> Unit,
-    onPagesLoaded: (pages: List<BookPage>) -> Unit,
-    onPositionChanged: (locator: String, progress: Double, page: Int?) -> Unit,
-    onCenterTap: () -> Unit,
-    onOpenFailed: (message: String) -> Unit,
-    searchQuery: String?,
-    onSearchResults: (results: List<SearchResult>, isDone: Boolean) -> Unit,
-    showSearchResult: SearchResult?,
-    onSearchResultShown: () -> Unit,
-    highlightedResult: SearchResult?,
-    modifier: Modifier,
-) {
+actual fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: Modifier) {
     // Nothing to search in, so every search is done right away.
-    LaunchedEffect(searchQuery) { if (searchQuery != null) onSearchResults(emptyList(), true) }
+    LaunchedEffect(host.searchedQuery) { if (host.searchedQuery != null) host.onSearchResults(emptyList(), true) }
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text("Reading books isn't supported on iOS yet.")
     }

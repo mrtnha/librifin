@@ -7,12 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,78 +60,48 @@ import org.readium.r2.streamer.PublicationOpener
 import org.readium.r2.streamer.parser.DefaultPublicationParser
 
 @Composable
-actual fun EpubView(
-    file: Path,
-    initialLocator: String?,
-    theme: ReaderTheme,
-    fontSize: Int,
-    font: ReaderFont,
-    jumpToProgress: Double?,
-    onJumped: () -> Unit,
-    onReachedEnd: () -> Unit,
-    onPagesLoaded: (pages: List<BookPage>) -> Unit,
-    onPositionChanged: (locator: String, progress: Double, page: Int?) -> Unit,
-    onCenterTap: () -> Unit,
-    onOpenFailed: (message: String) -> Unit,
-    searchQuery: String?,
-    onSearchResults: (results: List<SearchResult>, isDone: Boolean) -> Unit,
-    showSearchResult: SearchResult?,
-    onSearchResultShown: () -> Unit,
-    highlightedResult: SearchResult?,
-    modifier: Modifier,
-) {
+actual fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: Modifier) {
     val application = LocalContext.current.applicationContext as Application
-    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, theme, fontSize, font) }
-    val currentOnReachedEnd by rememberUpdatedState(onReachedEnd)
-    DisposableEffect(vm) {
-        vm.onReachedEnd = { currentOnReachedEnd() }
-        onDispose { vm.onReachedEnd = null }
-    }
+    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, host) }
 
     when (val state = vm.state) {
         EpubState.Opening -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-        is EpubState.Failed -> LaunchedEffect(state) { onOpenFailed(state.message) }
+        is EpubState.Failed -> LaunchedEffect(state) { host.onOpenFailed(state.message) }
         EpubState.Opened -> {
-            val currentOnCenterTap by rememberUpdatedState(onCenterTap)
-            val currentOnPositionChanged by rememberUpdatedState(onPositionChanged)
-            val currentOnJumped by rememberUpdatedState(onJumped)
-            val currentOnPagesLoaded by rememberUpdatedState(onPagesLoaded)
-            val currentOnSearchResults by rememberUpdatedState(onSearchResults)
-            val currentOnSearchResultShown by rememberUpdatedState(onSearchResultShown)
-            LaunchedEffect(vm) { currentOnPagesLoaded(vm.pages) }
+            LaunchedEffect(vm) { host.onPagesLoaded(vm.pages) }
             var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
 
             // The first theme, size and font are set when the book opens; later ones change the page in place.
-            LaunchedEffect(theme, fontSize, font, navigatorNow) {
-                navigatorNow?.submitPreferences(epubPreferences(theme, fontSize, font))
+            LaunchedEffect(host.theme, host.fontSize, host.font, navigatorNow) {
+                navigatorNow?.submitPreferences(host.epubPreferences())
             }
 
-            LaunchedEffect(jumpToProgress, navigatorNow) {
-                val progress = jumpToProgress ?: return@LaunchedEffect
+            LaunchedEffect(host.jumpToProgress, navigatorNow) {
+                val progress = host.jumpToProgress ?: return@LaunchedEffect
                 val navigator = navigatorNow ?: return@LaunchedEffect
                 vm.locate(progress)?.let { navigator.go(it) }
-                currentOnJumped()
+                host.onJumped()
             }
 
             // The search runs in the view model, so it goes on while the screen rotates.
-            LaunchedEffect(searchQuery) { vm.search(searchQuery) }
+            LaunchedEffect(host.searchedQuery) { vm.search(host.searchedQuery) }
             val search = vm.search
             LaunchedEffect(search) {
-                if (search != null && search.query == searchQuery) currentOnSearchResults(search.results, search.isDone)
+                if (search != null && search.query == host.searchedQuery) host.onSearchResults(search.results, search.isDone)
             }
 
-            LaunchedEffect(showSearchResult, navigatorNow) {
-                val result = showSearchResult ?: return@LaunchedEffect
+            LaunchedEffect(host.showSearchResult, navigatorNow) {
+                val result = host.showSearchResult ?: return@LaunchedEffect
                 val navigator = navigatorNow ?: return@LaunchedEffect
                 parseLocator(result.locator)?.let { navigator.go(it) }
-                currentOnSearchResultShown()
+                host.onSearchResultShown()
             }
 
-            LaunchedEffect(highlightedResult, navigatorNow) {
+            LaunchedEffect(host.highlightedResult, navigatorNow) {
                 val navigator = navigatorNow ?: return@LaunchedEffect
-                val decoration = highlightedResult?.let { result ->
+                val decoration = host.highlightedResult?.let { result ->
                     parseLocator(result.locator)?.let {
                         Decoration(id = SEARCH_DECORATIONS, locator = it, style = Decoration.Style.Highlight(JellyfinBlue.toArgb()))
                     }
@@ -150,14 +118,14 @@ actual fun EpubView(
                 navigator.addInputListener(DirectionalNavigationAdapter(navigator, animatedTransition = true))
                 navigator.addInputListener(object : InputListener {
                     override fun onTap(event: TapEvent): Boolean {
-                        currentOnCenterTap()
+                        host.onCenterTap()
                         return true
                     }
                 })
                 navigator.lifecycleScope.launch {
                     navigator.repeatOnLifecycle(Lifecycle.State.STARTED) {
                         navigator.currentLocator.collect { locator ->
-                            currentOnPositionChanged(
+                            host.onPositionChanged(
                                 locator.toJSON().toString(),
                                 locator.locations.totalProgression ?: 0.0,
                                 locator.locations.position,
@@ -186,7 +154,7 @@ private fun parseLocator(json: String): Locator? =
  * Readium's night mode for the dark themes, with our colors on top: it also recolors headings and
  * links, which keep the book's own (often black) colors otherwise.
  */
-private fun epubPreferences(theme: ReaderTheme, fontSize: Int, font: ReaderFont) = EpubPreferences(
+private fun EpubViewHost.epubPreferences() = EpubPreferences(
     theme = if (theme.isDark) Theme.DARK else Theme.LIGHT,
     backgroundColor = Color(theme.background.toArgb()),
     textColor = Color(theme.text.toArgb()),
@@ -223,20 +191,16 @@ private sealed interface EpubState {
 /**
  * Opens the book with Readium and keeps it open while the reader is on the back stack
  * (so it survives rotation). The publication is closed when the reader is left.
+ * [host] is the reader's view model, which lives on that back stack entry as long as this one.
  */
 private class EpubViewModel(
     private val application: Application,
     private val file: File,
     private val initialLocator: String?,
-    private val initialTheme: ReaderTheme,
-    private val initialFontSize: Int,
-    private val initialFont: ReaderFont,
+    private val host: EpubViewHost,
 ) : ViewModel() {
     var state by mutableStateOf<EpubState>(EpubState.Opening)
         private set
-
-    /** Called when the last page of the book is shown. */
-    var onReachedEnd: (() -> Unit)? = null
 
     /** The book's pages, known once it's open. */
     var pages: List<BookPage> = emptyList()
@@ -287,11 +251,11 @@ private class EpubViewModel(
         val lastChapter = publication.readingOrder.lastOrNull()?.url()
         val factory = EpubNavigatorFactory(publication).createFragmentFactory(
             initialLocator = startLocator,
-            initialPreferences = epubPreferences(initialTheme, initialFontSize, initialFont),
+            initialPreferences = host.epubPreferences(),
             // Tells the page within the chapter: the most reliable way to see the book's last page.
             paginationListener = object : EpubNavigatorFragment.PaginationListener {
                 override fun onPageChanged(pageIndex: Int, totalPages: Int, locator: Locator) {
-                    if (locator.href == lastChapter && pageIndex == totalPages - 1) onReachedEnd?.invoke()
+                    if (locator.href == lastChapter && pageIndex == totalPages - 1) host.onReachedEnd()
                 }
             },
             configuration = fontConfiguration(),

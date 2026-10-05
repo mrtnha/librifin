@@ -59,7 +59,7 @@ class ReaderViewModel(
     private val settings: SettingsStore,
     /** Outlives this screen, so the last position is still saved when the reader is left right away. */
     private val appScope: CoroutineScope,
-) : ViewModel() {
+) : ViewModel(), EpubViewHost {
     var state by mutableStateOf<ReaderState>(ReaderState.Downloading(progress = null))
         private set
 
@@ -68,13 +68,13 @@ class ReaderViewModel(
         private set
 
     /** The page colors, the same for all books and kept between app starts. */
-    var theme by mutableStateOf(
+    override var theme by mutableStateOf(
         ReaderTheme.entries.find { it.name == settings.read(KEY_THEME) } ?: ReaderTheme.DARK,
     )
         private set
 
     /** The text size in percent of the book's own, the same for all books and kept between app starts. */
-    var fontSize by mutableStateOf(
+    override var fontSize by mutableStateOf(
         settings.read(KEY_FONT_SIZE)?.toIntOrNull()?.coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE) ?: DEFAULT_FONT_SIZE,
     )
         private set
@@ -83,7 +83,7 @@ class ReaderViewModel(
     val canIncreaseFontSize get() = fontSize < MAX_FONT_SIZE
 
     /** The font of the book's text, the same for all books and kept between app starts. */
-    var font by mutableStateOf(
+    override var font by mutableStateOf(
         ReaderFont.entries.find { it.name == settings.read(KEY_FONT) } ?: ReaderFont.ORIGINAL,
     )
         private set
@@ -92,7 +92,7 @@ class ReaderViewModel(
      * Set when the book was read further elsewhere (see [checkReadElsewhere]) or a page was picked with
      * the page slider: the renderer jumps there (0..1) and calls [onJumped].
      */
-    var jumpToProgress by mutableStateOf<Double?>(null)
+    override var jumpToProgress by mutableStateOf<Double?>(null)
         private set
 
     /** The book's pages (see [BookPage]), empty until it's open. */
@@ -116,7 +116,7 @@ class ReaderViewModel(
         private set
 
     /** What the book is searched for: [searchQuery] once typing pauses, if it's long enough; else null. */
-    var searchedQuery by mutableStateOf<String?>(null)
+    override var searchedQuery by mutableStateOf<String?>(null)
         private set
 
     /** The results for [searchedQuery] found so far. */
@@ -131,7 +131,7 @@ class ReaderViewModel(
      * The result picked last, marked in the text until the search is closed. While it's set, the search
      * bar stays over the book: the way to the other matches and out of the search.
      */
-    var highlightedResult by mutableStateOf<SearchResult?>(null)
+    override var highlightedResult by mutableStateOf<SearchResult?>(null)
         private set
 
     /** Where [highlightedResult] is among [searchResults] (0-based); null if it isn't one of them. */
@@ -141,7 +141,7 @@ class ReaderViewModel(
     val canShowNextResult get() = highlightedIndex.let { it != null && it < searchResults.lastIndex }
 
     /** Set when a result was picked: the renderer goes there and calls [onSearchResultShown]. */
-    var showSearchResult by mutableStateOf<SearchResult?>(null)
+    override var showSearchResult by mutableStateOf<SearchResult?>(null)
         private set
 
     private val file = bookStore.bookFile(bookId)
@@ -180,7 +180,7 @@ class ReaderViewModel(
     }
 
     /** Called on every page turn with the renderer's position and how far into the book it is. */
-    fun onPositionChanged(locator: String, progress: Double, page: Int?) {
+    override fun onPositionChanged(locator: String, progress: Double, page: Int?) {
         currentPage = page
         // The renderer reports the same page again e.g. when the app comes back: that's no new reading,
         // and saving it would overwrite progress made elsewhere meanwhile.
@@ -200,7 +200,7 @@ class ReaderViewModel(
      * The last page of the book is shown: it counts as finished, here and in Jellyfin, also if that's
      * before [FINISHED_PROGRESS] (a very short book). Paging back makes it unfinished again.
      */
-    fun onReachedEnd() {
+    override fun onReachedEnd() {
         appScope.launch(start = CoroutineStart.UNDISPATCHED) { bookStore.markFinished(session, bookId) }
         progressSync.schedule(session, bookId)
     }
@@ -223,7 +223,7 @@ class ReaderViewModel(
         }
     }
 
-    fun onPagesLoaded(pages: List<BookPage>) {
+    override fun onPagesLoaded(pages: List<BookPage>) {
         this.pages = pages
     }
 
@@ -234,7 +234,7 @@ class ReaderViewModel(
         jumpToProgress = target.progress
     }
 
-    fun onJumped() {
+    override fun onJumped() {
         jumpToProgress = null
     }
 
@@ -265,7 +265,7 @@ class ReaderViewModel(
         isSearching = query != null
     }
 
-    fun onSearchResults(results: List<SearchResult>, isDone: Boolean) {
+    override fun onSearchResults(results: List<SearchResult>, isDone: Boolean) {
         searchResults = results
         isSearching = !isDone
     }
@@ -292,7 +292,7 @@ class ReaderViewModel(
         showSearchResult = result
     }
 
-    fun onSearchResultShown() {
+    override fun onSearchResultShown() {
         showSearchResult = null
     }
 
@@ -310,7 +310,7 @@ class ReaderViewModel(
         pages.indexOfLast { it.progress <= result.progress }.takeIf { it >= 0 }?.plus(1)
 
     /** A tap in the middle of the page. Not while a result is marked: the search bar is the way out, so it stays. */
-    fun toggleBars() {
+    override fun onCenterTap() {
         if (highlightedResult != null) return
         areBarsVisible = !areBarsVisible
     }
@@ -345,7 +345,7 @@ class ReaderViewModel(
     }
 
     /** The downloaded file isn't a book we can show. Deleted, so the next attempt gets a fresh copy. */
-    fun onOpenFailed(message: String) {
+    override fun onOpenFailed(message: String) {
         bookStore.deleteBook(bookId)
         state = ReaderState.Error(message, canRetry = false)
     }
