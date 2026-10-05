@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -128,20 +127,19 @@ private fun ThemeCards(selected: ReaderTheme, onSelect: (ReaderTheme) -> Unit, m
     Row(modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ReaderTheme.entries.forEach { theme ->
             val isSelected = theme == selected
-            val shape = RoundedCornerShape(12.dp)
             val colors = MaterialTheme.colorScheme
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .weight(1f)
                     .height(ROW_HEIGHT)
-                    .clip(shape)
+                    .clip(ROW_SHAPE)
                     .background(theme.background)
                     // Also around the others: the dark card would vanish on the dark sheet without it.
                     .border(
-                        width = if (isSelected) 2.dp else 1.dp,
+                        width = if (isSelected) 2.dp else BORDER_WIDTH,
                         color = if (isSelected) colors.primary else colors.outlineVariant,
-                        shape = shape,
+                        shape = ROW_SHAPE,
                     )
                     .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(theme) })
                     .semantics { contentDescription = theme.label },
@@ -182,8 +180,9 @@ private fun FontSizeControl(
         modifier
             .fillMaxWidth()
             .height(ROW_HEIGHT)
-            .clip(CircleShape)
-            .background(onSurface.copy(alpha = CONTROL_TINT_ALPHA)),
+            .clip(ROW_SHAPE)
+            .background(onSurface.copy(alpha = CONTROL_TINT_ALPHA))
+            .border(BORDER_WIDTH, MaterialTheme.colorScheme.outlineVariant, ROW_SHAPE),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FontSizeHalf(SMALL_LETTER_SIZE, "Smaller text", canDecrease, onDecrease)
@@ -216,6 +215,10 @@ private fun RowScope.FontSizeHalf(letterSize: TextUnit, description: String, ena
 /** All rows are the same height, with the same space between them. */
 private val ROW_HEIGHT = 48.dp
 private val ROW_GAP = 24.dp
+
+/** The theme cards and the text size control share their shape and border, so they look like one family. */
+private val ROW_SHAPE = RoundedCornerShape(12.dp)
+private val BORDER_WIDTH = 1.dp
 
 private val SMALL_LETTER_SIZE = 14.sp
 private val LARGE_LETTER_SIZE = 24.sp
