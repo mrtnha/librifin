@@ -49,6 +49,7 @@ import org.readium.r2.navigator.util.DirectionalNavigationAdapter
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.firstWithHref
 import org.readium.r2.shared.publication.flatten
 import org.readium.r2.shared.publication.services.isRestricted
 import org.readium.r2.shared.publication.services.locateProgression
@@ -272,7 +273,16 @@ private class EpubViewModel(
             publication.isRestricted -> return EpubState.Failed("This book is protected (DRM) and can't be opened.")
         }
 
-        val startLocator = initialLocator?.let(::parseLocator)
+        val startLocator = initialLocator?.let(::parseLocator)?.let { saved ->
+            // A position naming a file the book doesn't have (e.g. from another edition) would leave Readium
+            // waiting for that file forever: no page is reported and the slider stops working. Open at the
+            // same point of the whole book instead.
+            if (publication.readingOrder.firstWithHref(saved.href) != null) {
+                saved
+            } else {
+                saved.locations.totalProgression?.let { publication.locateProgression(it) }
+            }
+        }
         pages = pagesOf(publication)
         val lastChapter = publication.readingOrder.lastOrNull()?.url()
         val factory = EpubNavigatorFactory(publication).createFragmentFactory(
