@@ -453,6 +453,34 @@ object LibrifinIcons {
         }
     }
 
+    /** "keyboard_arrow_up". Reader search bar: previous match. */
+    val KeyboardArrowUp: ImageVector by lazy {
+        symbol("KeyboardArrowUp") {
+            moveTo(12f, 10.8f)
+            lineTo(7.4f, 15.4f)
+            lineTo(6f, 14f)
+            lineTo(12f, 8f)
+            lineToRelative(6f, 6f)
+            lineToRelative(-1.4f, 1.4f)
+            lineTo(12f, 10.8f)
+            close()
+        }
+    }
+
+    /** "keyboard_arrow_down". Reader search bar: next match. */
+    val KeyboardArrowDown: ImageVector by lazy {
+        symbol("KeyboardArrowDown") {
+            moveTo(12f, 15.4f)
+            lineTo(6f, 9.4f)
+            lineTo(7.4f, 8f)
+            lineTo(12f, 12.6f)
+            lineTo(16.6f, 8f)
+            lineTo(18f, 9.4f)
+            lineToRelative(-6f, 6f)
+            close()
+        }
+    }
+
     /** A 24×24 icon made of one filled path. */
     private fun symbol(name: String, pathBuilder: PathBuilder.() -> Unit): ImageVector =
         ImageVector.Builder(

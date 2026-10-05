@@ -97,15 +97,17 @@ fun ReaderScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onAppResumed() }
 
     // Full screen only while the book is shown; while loading or on errors the bars stay, so the way back is visible.
-    val showBars = vm.state !is ReaderState.Ready || vm.areBarsVisible || vm.isSearchOpen
+    // So does the search bar while a result is marked: it's the way out of the search.
+    val isResultMarked = vm.highlightedResult != null
+    val showBars = vm.state !is ReaderState.Ready || vm.areBarsVisible || vm.isSearchOpen || isResultMarked
     val theme = vm.theme
     SystemBarsVisible(showBars, darkBackground = theme.bars.luminance() < 0.5f)
     val barsColors = readerBarsColorScheme(theme.bars)
 
-    // While searching, back closes the search instead of leaving the book.
+    // While searching or a result is marked, back ends the search instead of leaving the book.
     NavigationBackHandler(
         state = rememberNavigationEventState(NavigationEventInfo.None),
-        isBackEnabled = vm.isSearchOpen,
+        isBackEnabled = vm.isSearchOpen || isResultMarked,
         onBackCompleted = vm::closeSearch,
     )
     NavigationBackHandler(
@@ -173,27 +175,31 @@ fun ReaderScreen(
 
                 AnimatedVisibility(visible = showBars, enter = fadeIn(), exit = fadeOut()) {
                     MaterialTheme(colorScheme = barsColors) {
-                        TopAppBar(
-                            title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            // Reserve room for the status bar even while it's hidden, so the app bar doesn't jump
-                            // down once the status bar has finished appearing.
-                            windowInsets = systemBarsIgnoringVisibility()
-                                .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
-                            navigationIcon = {
-                                IconButton(onClick = onBack) {
-                                    Icon(LibrifinIcons.ArrowBack, contentDescription = "Back")
-                                }
-                            },
-                            actions = {
-                                // Also while the book is loading: the search runs as soon as it's open.
-                                IconButton(onClick = vm::openSearch, enabled = vm.state !is ReaderState.Error) {
-                                    Icon(LibrifinIcons.Search, contentDescription = "Search in book")
-                                }
-                                IconButton(onClick = vm::openAppearance) {
-                                    Icon(LibrifinIcons.MatchCase, contentDescription = "Appearance")
-                                }
-                            },
-                        )
+                        if (isResultMarked) {
+                            SearchResultBar(vm)
+                        } else {
+                            TopAppBar(
+                                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                // Reserve room for the status bar even while it's hidden, so the app bar doesn't jump
+                                // down once the status bar has finished appearing.
+                                windowInsets = systemBarsIgnoringVisibility()
+                                    .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
+                                navigationIcon = {
+                                    IconButton(onClick = onBack) {
+                                        Icon(LibrifinIcons.ArrowBack, contentDescription = "Back")
+                                    }
+                                },
+                                actions = {
+                                    // Also while the book is loading: the search runs as soon as it's open.
+                                    IconButton(onClick = vm::openSearch, enabled = vm.state !is ReaderState.Error) {
+                                        Icon(LibrifinIcons.Search, contentDescription = "Search in book")
+                                    }
+                                    IconButton(onClick = vm::openAppearance) {
+                                        Icon(LibrifinIcons.MatchCase, contentDescription = "Appearance")
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -235,6 +241,53 @@ fun ReaderScreen(
             }
         }
     }
+}
+
+/**
+ * The app bar while a picked result is marked in the book: the search text, which brings back the results
+ * when tapped, which match this is, and arrows to the previous and next one. The arrow ends the search.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchResultBar(vm: ReaderViewModel) {
+    TopAppBar(
+        windowInsets = systemBarsIgnoringVisibility().only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
+        navigationIcon = {
+            IconButton(onClick = vm::closeSearch) {
+                Icon(LibrifinIcons.ArrowBack, contentDescription = "Close search")
+            }
+        },
+        title = {
+            // Where the search field shows it, so the text stays in place when the results come back.
+            Text(
+                vm.searchQuery,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClickLabel = "Show results", onClick = vm::openSearch)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+        },
+        actions = {
+            // "of", not "/": the page slider below shows pages as "57/412".
+            vm.highlightedIndex?.let { index ->
+                Text(
+                    "${index + 1} of ${vm.searchResults.size}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
+            IconButton(onClick = vm::showPreviousResult, enabled = vm.canShowPreviousResult) {
+                Icon(LibrifinIcons.KeyboardArrowUp, contentDescription = "Previous match")
+            }
+            IconButton(onClick = vm::showNextResult, enabled = vm.canShowNextResult) {
+                Icon(LibrifinIcons.KeyboardArrowDown, contentDescription = "Next match")
+            }
+        },
+    )
 }
 
 /** The search field in the app bar and the results below it, in the colors of the bars. */

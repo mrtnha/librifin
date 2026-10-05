@@ -129,9 +129,18 @@ class ReaderViewModel(
     var isSearching by mutableStateOf(false)
         private set
 
-    /** The result picked last, marked in the text until the search is closed. */
+    /**
+     * The result picked last, marked in the text until the search is closed. While it's set, the search
+     * bar stays over the book: the way to the other matches and out of the search.
+     */
     var highlightedResult by mutableStateOf<SearchResult?>(null)
         private set
+
+    /** Where [highlightedResult] is among [searchResults] (0-based); null if it isn't one of them. */
+    val highlightedIndex: Int? get() = searchResults.indexOf(highlightedResult).takeIf { it >= 0 }
+
+    val canShowPreviousResult get() = highlightedIndex.let { it != null && it > 0 }
+    val canShowNextResult get() = highlightedIndex.let { it != null && it < searchResults.lastIndex }
 
     /** Set when a result was picked: the renderer goes there and calls [onSearchResultShown]. */
     var showSearchResult by mutableStateOf<SearchResult?>(null)
@@ -247,9 +256,24 @@ class ReaderViewModel(
         isSearching = !isDone
     }
 
-    /** Goes to the picked result and marks it. The list closes; the search icon brings it back. */
+    /** Goes to the picked result and marks it. The list closes; tapping the search text brings it back. */
     fun selectSearchResult(result: SearchResult) {
         isSearchOpen = false
+        showResult(result)
+    }
+
+    /** The arrows in the search bar: the match before or after the marked one. */
+    fun showPreviousResult() {
+        val index = highlightedIndex ?: return
+        searchResults.getOrNull(index - 1)?.let(::showResult)
+    }
+
+    fun showNextResult() {
+        val index = highlightedIndex ?: return
+        searchResults.getOrNull(index + 1)?.let(::showResult)
+    }
+
+    private fun showResult(result: SearchResult) {
         highlightedResult = result
         showSearchResult = result
     }
@@ -258,7 +282,7 @@ class ReaderViewModel(
         showSearchResult = null
     }
 
-    /** The arrow or back while searching: the search is over, its text, results and mark are gone. */
+    /** The arrow or back while searching or a result is marked: the search ends, with its text, results and mark. */
     fun closeSearch() {
         searchDelay?.cancel()
         isSearchOpen = false
@@ -271,7 +295,9 @@ class ReaderViewModel(
     fun pageOf(result: SearchResult): Int? =
         pages.indexOfLast { it.progress <= result.progress }.takeIf { it >= 0 }?.plus(1)
 
+    /** A tap in the middle of the page. Not while a result is marked: the search bar is the way out, so it stays. */
     fun toggleBars() {
+        if (highlightedResult != null) return
         areBarsVisible = !areBarsVisible
     }
 
