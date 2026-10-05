@@ -1,0 +1,8 @@
+{
+  "uniqueId": "com.android.tools:desugar_jdk_libs",
+  "name": "desugar_jdk_libs",
+  "website": "https://github.com/google/desugar_jdk_libs",
+  "licenses": [
+    "gpl-2.0-classpath-exception"
+  ]
+}

@@ -78,6 +78,7 @@ fun LibraryScreen(
     onLoggedOut: () -> Unit,
     onSessionExpired: () -> Unit,
     onBookClick: (Book) -> Unit,
+    onLicensesClick: () -> Unit,
 ) {
     val vm = viewModel { LibraryViewModel(session, services.jellyfin, services.bookStore, services.progressSync) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -210,8 +211,13 @@ fun LibraryScreen(
         ProfileSheet(
             session = session,
             userImageUrl = userImageUrl,
+            appVersion = services.platform.appVersion,
             isLoggingOut = vm.isLoggingOut,
             onLogout = { vm.logout(onLoggedOut) },
+            onLicensesClick = {
+                vm.isProfileSheetOpen = false
+                onLicensesClick()
+            },
             onDismiss = { vm.isProfileSheetOpen = false },
         )
     }

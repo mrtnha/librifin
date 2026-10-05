@@ -1,5 +1,6 @@
 package io.github.mrtnha.librifin.ui.library
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,8 +39,10 @@ import io.github.mrtnha.librifin.api.Session
 fun ProfileSheet(
     session: Session,
     userImageUrl: String?,
+    appVersion: String,
     isLoggingOut: Boolean,
     onLogout: () -> Unit,
+    onLicensesClick: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -89,6 +92,28 @@ fun ProfileSheet(
                     Spacer(Modifier.width(8.dp))
                     Text("Log out", color = MaterialTheme.colorScheme.error)
                 }
+            }
+            Spacer(Modifier.height(16.dp))
+
+            // Only "Open Source Licenses" is tappable; the version next to it is plain text.
+            Row(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Librifin $appVersion ·",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Open Source Licenses",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable(onClick = onLicensesClick)
+                        .padding(horizontal = 4.dp, vertical = 8.dp),
+                )
             }
         }
     }

@@ -23,6 +23,12 @@ interface Platform {
 
     /** App-private directory for files kept until the app is uninstalled (downloaded books, the saved book list). */
     val filesDir: String
+
+    /**
+     * The libraries bundled into the app and their licenses, as AboutLibraries JSON made at build time, or null
+     * if there is none. Reads a file: call it off the main thread.
+     */
+    fun readLicensesJson(): String?
 }
 
 /** Stores one serialized session. Must be private to the app and excluded from backups. */

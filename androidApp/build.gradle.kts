@@ -1,8 +1,12 @@
+import java.util.regex.Pattern
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
+    // Collects the licenses of everything bundled into the app (also the shared module's dependencies) at build
+    // time, for the "Open Source Licenses" screen
+    alias(libs.plugins.aboutLibraries)
 }
 
 kotlin {
@@ -45,5 +49,26 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+}
+
+aboutLibraries {
+    collect {
+        // What the plugin can't see or only knows in part: the icons and fonts copied into the app,
+        // desugar_jdk_libs, and exact license texts
+        configPath = file("config")
+    }
+    library {
+        // On Android, JetBrains' Compose and Lifecycle artifacts only point to Google's androidx ones, which are
+        // listed already (same names, same license)
+        exclusionPatterns.addAll(
+            Pattern.compile("org\\.jetbrains\\.compose\\..*"),
+            Pattern.compile("org\\.jetbrains\\.androidx\\..*"),
+            // Replaced by entries in config/ with their exact license text: the plugin only has a generic one
+            // without the copyright line (Readium's three modules become one entry)
+            Pattern.compile("org\\.readium\\.kotlin-toolkit:.*"),
+            Pattern.compile("org\\.jsoup:jsoup"),
+            Pattern.compile("org\\.slf4j:slf4j-api"),
+        )
     }
 }

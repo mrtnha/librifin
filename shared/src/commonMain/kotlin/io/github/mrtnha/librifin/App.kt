@@ -20,6 +20,8 @@ import coil3.request.crossfade
 import io.github.mrtnha.librifin.navigation.Navigator
 import io.github.mrtnha.librifin.navigation.Screen
 import io.github.mrtnha.librifin.ui.library.LibraryScreen
+import io.github.mrtnha.librifin.ui.licenses.LicenseScreen
+import io.github.mrtnha.librifin.ui.licenses.LicensesScreen
 import io.github.mrtnha.librifin.ui.login.LoginScreen
 import io.github.mrtnha.librifin.ui.reader.ReaderScreen
 import io.github.mrtnha.librifin.ui.server.ServerSelectionScreen
@@ -103,12 +105,22 @@ fun App(services: AppServices) {
                             onBookClick = { book ->
                                 ifOnTop { navigator.push(Screen.Reader(screen.session, book.id, book.title)) }
                             },
+                            onLicensesClick = { ifOnTop { navigator.push(Screen.Licenses) } },
                         )
                         is Screen.Reader -> ReaderScreen(
                             session = screen.session,
                             bookId = screen.bookId,
                             title = screen.title,
                             services = services,
+                            onBack = { ifOnTop(navigator::pop) },
+                        )
+                        Screen.Licenses -> LicensesScreen(
+                            platform = services.platform,
+                            onBack = { ifOnTop(navigator::pop) },
+                            onLibraryClick = { ifOnTop { navigator.push(Screen.License(it)) } },
+                        )
+                        is Screen.License -> LicenseScreen(
+                            library = screen.library,
                             onBack = { ifOnTop(navigator::pop) },
                         )
                     }

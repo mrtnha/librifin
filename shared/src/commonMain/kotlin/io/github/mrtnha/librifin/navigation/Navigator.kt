@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import com.mikepenz.aboutlibraries.entity.Library as BundledLibrary
 import io.github.mrtnha.librifin.api.Server
 import io.github.mrtnha.librifin.api.Session
 
@@ -18,6 +19,9 @@ sealed interface Screen {
     data class Login(val server: Server, val username: String = "") : Screen
     data class Library(val session: Session) : Screen
     data class Reader(val session: Session, val bookId: String, val title: String) : Screen
+    data object Licenses : Screen
+    /** The license of one library, font or icon set bundled into the app. */
+    data class License(val library: BundledLibrary) : Screen
 }
 
 /**

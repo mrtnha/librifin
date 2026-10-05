@@ -5,7 +5,11 @@ import android.os.Build
 import android.provider.Settings
 import java.util.UUID
 
-class AndroidPlatform(context: Context) : Platform {
+/**
+ * [licensesJsonReader] reads the license list, which the app module generates as a raw resource. Only the app
+ * module knows its id.
+ */
+class AndroidPlatform(context: Context, private val licensesJsonReader: () -> String) : Platform {
     private val appContext = context.applicationContext
 
     // App-private file. Excluded from cloud backup and device transfer (see res/xml in androidApp):
@@ -40,6 +44,8 @@ class AndroidPlatform(context: Context) : Platform {
     }
 
     override val filesDir: String = appContext.filesDir.absolutePath
+
+    override fun readLicensesJson(): String = licensesJsonReader()
 
     private companion object {
         const val PREFS_FILE = "librifin" // → shared_prefs/librifin.xml

@@ -1,0 +1,8 @@
+{
+  "uniqueId": "org.jsoup:jsoup",
+  "name": "jsoup",
+  "website": "https://jsoup.org",
+  "licenses": [
+    "jsoup-mit"
+  ]
+}

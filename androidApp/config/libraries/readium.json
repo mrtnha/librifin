@@ -1,0 +1,8 @@
+{
+  "uniqueId": "org.readium.kotlin-toolkit",
+  "name": "Readium Kotlin Toolkit",
+  "website": "https://github.com/readium/kotlin-toolkit",
+  "licenses": [
+    "readium-bsd-3-clause"
+  ]
+}

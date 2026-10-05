@@ -107,6 +107,7 @@ Librifin tries to get by with as few libraries as possible. The most important o
 | [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) | Runs network and file work in the background | Apache-2.0 |
 | [Coil](https://coil-kt.github.io/coil/) | Loads and caches the book covers | Apache-2.0 |
 | [AndroidX](https://developer.android.com/jetpack/androidx) Lifecycle, Activity, Fragment, Core, WebKit | Android app basics; hosts Readium's reader in Compose and starts its WebView early | Apache-2.0 |
+| [AboutLibraries](https://github.com/mikepenz/AboutLibraries) | Collects the licenses of everything bundled into the app for its "Open Source Licenses" screen | Apache-2.0 |
 | [desugar_jdk_libs](https://github.com/google/desugar_jdk_libs) | Newer Java APIs on older Android versions, required by Readium | GPL-2.0 with Classpath Exception |
 
 The icons are [Material Symbols](https://fonts.google.com/icons) by Google (Apache-2.0). They're

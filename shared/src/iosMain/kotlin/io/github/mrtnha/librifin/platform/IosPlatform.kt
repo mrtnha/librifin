@@ -29,6 +29,9 @@ class IosPlatform : Platform {
     override val filesDir: String =
         NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true).first() as String
 
+    // The license list is only generated for the Android app so far.
+    override fun readLicensesJson(): String? = null
+
     private companion object {
         const val KEY_DEVICE_ID = "device_id"
     }

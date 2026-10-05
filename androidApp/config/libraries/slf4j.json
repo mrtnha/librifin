@@ -1,0 +1,8 @@
+{
+  "uniqueId": "org.slf4j:slf4j-api",
+  "name": "SLF4J API",
+  "website": "https://www.slf4j.org",
+  "licenses": [
+    "slf4j-mit"
+  ]
+}

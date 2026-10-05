@@ -64,6 +64,8 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinxJson)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
+            // Reads the license list the app generates at build time (Open Source Licenses screen)
+            implementation(libs.aboutlibraries.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
