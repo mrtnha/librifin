@@ -2,7 +2,6 @@ package io.github.mrtnha.librifin.ui.reader
 
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -44,11 +43,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -133,13 +135,11 @@ private fun ThemeCards(selected: ReaderTheme, onSelect: (ReaderTheme) -> Unit, m
                 modifier = Modifier
                     .weight(1f)
                     .height(ROW_HEIGHT)
-                    .clip(ROW_SHAPE)
-                    .background(theme.background)
                     // Also around the others: the dark card would vanish on the dark sheet without it.
-                    .border(
-                        width = if (isSelected) 2.dp else BORDER_WIDTH,
-                        color = if (isSelected) colors.primary else colors.outlineVariant,
-                        shape = ROW_SHAPE,
+                    .framed(
+                        fill = theme.background,
+                        borderColor = if (isSelected) colors.primary else colors.outlineVariant,
+                        borderWidth = if (isSelected) 2.dp else BORDER_WIDTH,
                     )
                     .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(theme) })
                     .semantics { contentDescription = theme.label },
@@ -175,14 +175,18 @@ private fun FontSizeControl(
     onIncrease: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val onSurface = MaterialTheme.colorScheme.onSurface
+    val colors = MaterialTheme.colorScheme
+    val onSurface = colors.onSurface
     Row(
         modifier
             .fillMaxWidth()
             .height(ROW_HEIGHT)
-            .clip(ROW_SHAPE)
-            .background(onSurface.copy(alpha = CONTROL_TINT_ALPHA))
-            .border(BORDER_WIDTH, MaterialTheme.colorScheme.outlineVariant, ROW_SHAPE),
+            .framed(
+                // Made opaque over the sheet, so the border color doesn't show through the tint.
+                fill = onSurface.copy(alpha = CONTROL_TINT_ALPHA).compositeOver(colors.surface),
+                borderColor = colors.outlineVariant,
+                borderWidth = BORDER_WIDTH,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FontSizeHalf(SMALL_LETTER_SIZE, "Smaller text", canDecrease, onDecrease)
@@ -216,9 +220,22 @@ private fun RowScope.FontSizeHalf(letterSize: TextUnit, description: String, ena
 private val ROW_HEIGHT = 48.dp
 private val ROW_GAP = 24.dp
 
-/** The theme cards and the text size control share their shape and border, so they look like one family. */
-private val ROW_SHAPE = RoundedCornerShape(12.dp)
+/** The theme cards and the text size control share their corners and border, so they look like one family. */
+private val ROW_CORNER_RADIUS = 12.dp
 private val BORDER_WIDTH = 1.dp
+
+/**
+ * An opaque [fill] with a border around it, drawn as a frame: the border color over the whole shape,
+ * then the fill inset by [borderWidth], with corners that follow the outer ones. A border drawn on top of
+ * the fill instead lets a light fill show through its smoothed outer edge wherever that edge falls between
+ * two pixels, as a light seam along some sides but not others.
+ */
+private fun Modifier.framed(fill: Color, borderColor: Color, borderWidth: Dp): Modifier = this
+    .clip(RoundedCornerShape(ROW_CORNER_RADIUS))
+    .background(borderColor)
+    .padding(borderWidth)
+    .clip(RoundedCornerShape(ROW_CORNER_RADIUS - borderWidth))
+    .background(fill)
 
 private val SMALL_LETTER_SIZE = 14.sp
 private val LARGE_LETTER_SIZE = 24.sp
