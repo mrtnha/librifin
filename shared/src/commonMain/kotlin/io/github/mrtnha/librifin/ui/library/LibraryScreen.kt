@@ -271,7 +271,7 @@ private fun BookItem(book: Book, progress: BookProgress?, isDimmed: Boolean, onC
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        LibrifinIcons.CheckCircle,
+                        LibrifinIcons.Check,
                         contentDescription = "Finished",
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(22.dp),
