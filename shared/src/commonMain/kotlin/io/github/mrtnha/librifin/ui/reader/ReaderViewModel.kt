@@ -156,22 +156,26 @@ class ReaderViewModel(
     fun load() {
         state = ReaderState.Downloading(progress = null)
         viewModelScope.launch {
-            state = try {
-                val local = withContext(Dispatchers.IO) {
+            val local = try {
+                withContext(Dispatchers.IO) {
                     downloadIfMissing()
                     bookStore.readPosition(session, bookId)
                 }
-                // The renderer reports this place again once it's shown; that's no new reading.
-                lastLocator = local?.locator
-                ReaderState.Ready(file, startLocator = local?.locator)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 // With an expired login, trying again fails the same way. The library offers to log in again.
                 val isLoginExpired = e.clientErrorStatus == HttpStatusCode.Unauthorized
-                ReaderState.Error(e.toDownloadMessage(), canRetry = !isLoginExpired)
+                state = ReaderState.Error(e.toDownloadMessage(), canRetry = !isLoginExpired)
+                return@launch
             }
-            checkReadElsewhere()
+            // The renderer reports this place again once it's shown; that's no new reading.
+            lastLocator = local?.locator
+            state = ReaderState.Ready(file, startLocator = local?.locator)
+            // Compared with where the book opened, not with what the renderer reported since: that's the
+            // opening, not reading. Jellyfin answers within SERVER_POSITION_TIMEOUT_MS, usually before the
+            // page is even shown.
+            checkReadElsewhere { local }
         }
     }
 
@@ -201,18 +205,21 @@ class ReaderViewModel(
         progressSync.schedule(session, bookId)
     }
 
-    /** Back in the app with the book open: maybe it was read further elsewhere meanwhile. */
-    fun onAppResumed() = checkReadElsewhere()
+    /**
+     * Back in the app with the book open: maybe it was read further elsewhere meanwhile. Compared with
+     * the position now, so pages turned here win.
+     */
+    fun onAppResumed() = checkReadElsewhere { bookStore.currentPosition(session, bookId) }
 
     /**
-     * Asks Jellyfin in the background whether the book was read further elsewhere, and jumps there if so.
-     * The book can be read meanwhile; once a page was turned here, that progress wins and nothing jumps.
+     * Asks Jellyfin in the background whether the book was read further elsewhere than [localPosition]
+     * says, and jumps there if so. The book can be read meanwhile.
      */
-    private fun checkReadElsewhere() {
+    private fun checkReadElsewhere(localPosition: suspend () -> ReadingPosition?) {
         if (state !is ReaderState.Ready || serverCheck?.isActive == true) return
         serverCheck = viewModelScope.launch {
             val server = serverUserData() ?: return@launch
-            jumpToProgress = serverProgressIfReadElsewhere(bookStore.currentPosition(session, bookId), server) ?: return@launch
+            jumpToProgress = serverProgressIfReadElsewhere(localPosition(), server) ?: return@launch
         }
     }
 
