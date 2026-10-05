@@ -124,7 +124,6 @@ fun ReaderScreen(
                     is ReaderState.Ready -> EpubView(
                         file = state.file,
                         initialLocator = state.startLocator,
-                        initialProgress = state.startProgress,
                         theme = theme,
                         fontSize = vm.fontSize,
                         font = vm.font,

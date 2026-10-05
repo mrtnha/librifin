@@ -34,11 +34,8 @@ sealed interface ReaderState {
     /** [progress] is 0..1, or null while the size is unknown. */
     data class Downloading(val progress: Float?) : ReaderState
 
-    /**
-     * Where to open the book: at the exact [startLocator] saved on this device, else at
-     * [startProgress] (0..1) from Jellyfin, else at the beginning.
-     */
-    data class Ready(val file: Path, val startLocator: String?, val startProgress: Double?) : ReaderState
+    /** Where to open the book: at the exact [startLocator] saved on this device, else at the beginning. */
+    data class Ready(val file: Path, val startLocator: String?) : ReaderState
 
     /**
      * [canRetry]: false if trying again won't help: the file arrived but isn't a readable book,
@@ -50,7 +47,8 @@ sealed interface ReaderState {
 /**
  * Gets the book's EPUB onto the device. Opening a book is the download: the file is kept and reused
  * next time, so books that were read once open instantly, also without a connection.
- * Opens the book where it was left off, on this device or elsewhere (Jellyfin), whichever is newer.
+ * Opens the book where it was left off on this device, without waiting for Jellyfin. If Jellyfin then
+ * says it was read further elsewhere, it jumps there.
  */
 class ReaderViewModel(
     private val session: Session,
@@ -91,8 +89,8 @@ class ReaderViewModel(
         private set
 
     /**
-     * Set when the book was read further elsewhere while open here: the renderer jumps there (0..1)
-     * and calls [onJumped].
+     * Set when the book was read further elsewhere (see [checkReadElsewhere]) or a page was picked with
+     * the page slider: the renderer jumps there (0..1) and calls [onJumped].
      */
     var jumpToProgress by mutableStateOf<Double?>(null)
         private set
@@ -163,7 +161,9 @@ class ReaderViewModel(
                     downloadIfMissing()
                     bookStore.readPosition(session, bookId)
                 }
-                readyState(local, serverUserData())
+                // The renderer reports this place again once it's shown; that's no new reading.
+                lastLocator = local?.locator
+                ReaderState.Ready(file, startLocator = local?.locator)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -171,6 +171,7 @@ class ReaderViewModel(
                 val isLoginExpired = e.clientErrorStatus == HttpStatusCode.Unauthorized
                 ReaderState.Error(e.toDownloadMessage(), canRetry = !isLoginExpired)
             }
+            checkReadElsewhere()
         }
     }
 
@@ -201,7 +202,13 @@ class ReaderViewModel(
     }
 
     /** Back in the app with the book open: maybe it was read further elsewhere meanwhile. */
-    fun onAppResumed() {
+    fun onAppResumed() = checkReadElsewhere()
+
+    /**
+     * Asks Jellyfin in the background whether the book was read further elsewhere, and jumps there if so.
+     * The book can be read meanwhile; once a page was turned here, that progress wins and nothing jumps.
+     */
+    private fun checkReadElsewhere() {
         if (state !is ReaderState.Ready || serverCheck?.isActive == true) return
         serverCheck = viewModelScope.launch {
             val server = serverUserData() ?: return@launch
@@ -352,17 +359,6 @@ class ReaderViewModel(
             }
         }
 
-    /** Opens where the book was read last: the exact spot on this device, or Jellyfin's if it was read elsewhere. */
-    private fun readyState(local: ReadingPosition?, server: UserItemDataDto?): ReaderState.Ready {
-        val serverProgress = server?.let { serverProgressIfReadElsewhere(local, it) }
-        return if (serverProgress != null) {
-            ReaderState.Ready(file, startLocator = null, startProgress = serverProgress)
-        } else {
-            lastLocator = local?.locator
-            ReaderState.Ready(file, startLocator = local?.locator, startProgress = null)
-        }
-    }
-
     /** Downloads to a temporary file first, so an interrupted download is never mistaken for the book. */
     private suspend fun downloadIfMissing() {
         if (bookStore.isDownloaded(bookId)) return
@@ -394,7 +390,10 @@ class ReaderViewModel(
         }
 
     private companion object {
-        /** Asking Jellyfin must not keep a downloaded book from opening offline for long. */
+        /**
+         * A later answer is ignored: by then the page is being read, and jumping away from it would
+         * disturb. This device's position stands.
+         */
         const val SERVER_POSITION_TIMEOUT_MS = 2_000L
 
         /**

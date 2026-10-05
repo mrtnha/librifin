@@ -64,7 +64,6 @@ import org.readium.r2.streamer.parser.DefaultPublicationParser
 actual fun EpubView(
     file: Path,
     initialLocator: String?,
-    initialProgress: Double?,
     theme: ReaderTheme,
     fontSize: Int,
     font: ReaderFont,
@@ -83,7 +82,7 @@ actual fun EpubView(
     modifier: Modifier,
 ) {
     val application = LocalContext.current.applicationContext as Application
-    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, initialProgress, theme, fontSize, font) }
+    val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, theme, fontSize, font) }
     val currentOnReachedEnd by rememberUpdatedState(onReachedEnd)
     DisposableEffect(vm) {
         vm.onReachedEnd = { currentOnReachedEnd() }
@@ -228,7 +227,6 @@ private class EpubViewModel(
     private val application: Application,
     private val file: File,
     private val initialLocator: String?,
-    private val initialProgress: Double?,
     private val initialTheme: ReaderTheme,
     private val initialFontSize: Int,
     private val initialFont: ReaderFont,
@@ -274,7 +272,7 @@ private class EpubViewModel(
             publication.isRestricted -> return EpubState.Failed("This book is protected (DRM) and can't be opened.")
         }
 
-        val startLocator = initialLocator?.let(::parseLocator) ?: initialProgress?.let { publication.locateProgression(it) }
+        val startLocator = initialLocator?.let(::parseLocator)
         pages = pagesOf(publication)
         val lastChapter = publication.readingOrder.lastOrNull()?.url()
         val factory = EpubNavigatorFactory(publication).createFragmentFactory(

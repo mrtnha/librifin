@@ -14,7 +14,6 @@ import kotlinx.io.files.Path
 actual fun EpubView(
     file: Path,
     initialLocator: String?,
-    initialProgress: Double?,
     theme: ReaderTheme,
     fontSize: Int,
     font: ReaderFont,
