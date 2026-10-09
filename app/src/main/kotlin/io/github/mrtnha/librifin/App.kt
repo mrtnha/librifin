@@ -25,6 +25,7 @@ import io.github.mrtnha.librifin.ui.licenses.LicensesScreen
 import io.github.mrtnha.librifin.ui.login.LoginScreen
 import io.github.mrtnha.librifin.ui.reader.ReaderScreen
 import io.github.mrtnha.librifin.ui.server.ServerSelectionScreen
+import io.github.mrtnha.librifin.ui.settings.SettingsScreen
 import io.github.mrtnha.librifin.ui.theme.LibrifinTheme
 import io.github.mrtnha.librifin.ui.welcome.WelcomeScreen
 
@@ -88,10 +89,6 @@ fun App(services: AppServices) {
                         is Screen.Library -> LibraryScreen(
                             session = screen.session,
                             services = services,
-                            onLoggedOut = {
-                                services.clearSession()
-                                navigator.replaceAll(Screen.Welcome)
-                            },
                             onSessionExpired = {
                                 ifOnTop {
                                     services.clearSession()
@@ -105,7 +102,7 @@ fun App(services: AppServices) {
                             onBookClick = { book ->
                                 ifOnTop { navigator.push(Screen.Reader(screen.session, book.id, book.title)) }
                             },
-                            onLicensesClick = { ifOnTop { navigator.push(Screen.Licenses) } },
+                            onSettingsClick = { ifOnTop { navigator.push(Screen.Settings(screen.session)) } },
                         )
                         is Screen.Reader -> ReaderScreen(
                             session = screen.session,
@@ -113,6 +110,16 @@ fun App(services: AppServices) {
                             title = screen.title,
                             services = services,
                             onBack = { ifOnTop(navigator::pop) },
+                        )
+                        is Screen.Settings -> SettingsScreen(
+                            session = screen.session,
+                            services = services,
+                            onBack = { ifOnTop(navigator::pop) },
+                            onLoggedOut = {
+                                services.clearSession()
+                                navigator.replaceAll(Screen.Welcome)
+                            },
+                            onLicensesClick = { ifOnTop { navigator.push(Screen.Licenses) } },
                         )
                         Screen.Licenses -> LicensesScreen(
                             platform = services.platform,

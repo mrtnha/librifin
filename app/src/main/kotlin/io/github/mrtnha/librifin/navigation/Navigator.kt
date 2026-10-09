@@ -19,6 +19,7 @@ sealed interface Screen {
     data class Login(val server: Server, val username: String = "") : Screen
     data class Library(val session: Session) : Screen
     data class Reader(val session: Session, val bookId: String, val title: String) : Screen
+    data class Settings(val session: Session) : Screen
     data object Licenses : Screen
     /** The license of one library, font or icon set bundled into the app. */
     data class License(val library: BundledLibrary) : Screen

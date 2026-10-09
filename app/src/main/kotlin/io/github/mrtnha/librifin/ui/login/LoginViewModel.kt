@@ -48,7 +48,6 @@ class LoginViewModel(
                             server = server,
                             userId = user.id,
                             userName = user.name ?: name,
-                            userImageTag = user.primaryImageTag,
                             accessToken = token,
                         ),
                     )

@@ -21,7 +21,6 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 
 /** How far a book was read: [fraction] 0..1, [isFinished] once the book was read to the end (or nearly). */
 data class BookProgress(val fraction: Float, val isFinished: Boolean)
@@ -54,40 +53,16 @@ class LibraryViewModel(
     var state by mutableStateOf<LibraryState>(LibraryState.Loading)
         private set
 
-    var isProfileSheetOpen by mutableStateOf(false)
-
     /**
      * The search text while searching, else null. Filters the books on the device, so it works offline too.
      * Kept while a book is open, so the results are still there when coming back.
      */
     var searchQuery by mutableStateOf<String?>(null)
 
-    var isLoggingOut by mutableStateOf(false)
-        private set
-
     private var loadJob: Job? = null
 
     init {
         load()
-    }
-
-    /**
-     * Tells the server to end the session, then calls [onLoggedOut]. If the server can't be
-     * reached, the user is still logged out locally: the token is simply forgotten.
-     */
-    fun logout(onLoggedOut: () -> Unit) {
-        if (isLoggingOut) return
-        isLoggingOut = true
-        viewModelScope.launch {
-            try {
-                withTimeoutOrNull(LOGOUT_TIMEOUT_MS) { jellyfin.logout(session) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                // Server unreachable or token already invalid: nothing left to end on the server.
-            }
-            onLoggedOut()
-        }
     }
 
     /** Loads again, unless a load is already running. */
@@ -190,7 +165,6 @@ class LibraryViewModel(
     private companion object {
         /** Half the width of a large phone screen in pixels, so covers stay sharp in a two-column grid. */
         const val COVER_MAX_WIDTH = 600
-        const val LOGOUT_TIMEOUT_MS = 5_000L
 
         /** Sorts after every book that was read. */
         const val NEVER_READ = Long.MIN_VALUE

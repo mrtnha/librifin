@@ -85,7 +85,36 @@ object LibrifinIcons {
         )
     }
 
-    /** "account_circle". Profile button in the library top bar. */
+    /** "settings". Settings button in the library top bar. */
+    val Settings: ImageVector by lazy {
+        symbol(
+            "Settings",
+            "m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585" +
+                "l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78" +
+                "q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106" +
+                "q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42" +
+                "q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30" +
+                "t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99" +
+                "q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z",
+        )
+    }
+
+    /** "chevron_right". End of a settings row that opens another screen. */
+    val ChevronRight: ImageVector by lazy {
+        symbol("ChevronRight", "M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z")
+    }
+
+    /** "description" (a page of text). Open source licenses row in the settings. */
+    val Licenses: ImageVector by lazy {
+        symbol(
+            "Licenses",
+            "M320-240h320v-80H320v80Zm0-160h320v-80H320v80ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5" +
+                "T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520Z" +
+                "M240-800v200-200 640-640Z",
+        )
+    }
+
+    /** "account_circle". Settings row with the name of the logged-in user. */
     val Profile: ImageVector by lazy {
         symbol(
             "Profile",
@@ -96,6 +125,19 @@ object LibrifinIcons {
                 "q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm100-95.5" +
                 "q47-15.5 86-44.5-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160q53 0 100-15.5Z" +
                 "M523-537q17-17 17-43t-17-43q-17-17-43-17t-43 17q-17 17-17 43t17 43q17 17 43 17t43-17Zm-43-43Zm0 360Z",
+        )
+    }
+
+    /** "dns" (a server). Settings row with the address of the server the user is logged in to. */
+    val Server: ImageVector by lazy {
+        symbol(
+            "Server",
+            "M300-720q-25 0-42.5 17.5T240-660q0 25 17.5 42.5T300-600q25 0 42.5-17.5T360-660q0-25-17.5-42.5" +
+                "T300-720Zm0 400q-25 0-42.5 17.5T240-260q0 25 17.5 42.5T300-200q25 0 42.5-17.5T360-260" +
+                "q0-25-17.5-42.5T300-320ZM160-840h640q17 0 28.5 11.5T840-800v280q0 17-11.5 28.5T800-480H160" +
+                "q-17 0-28.5-11.5T120-520v-280q0-17 11.5-28.5T160-840Zm40 80v200h560v-200H200Zm-40 320h640" +
+                "q17 0 28.5 11.5T840-400v280q0 17-11.5 28.5T800-80H160q-17 0-28.5-11.5T120-120v-280" +
+                "q0-17 11.5-28.5T160-440Zm40 80v200h560v-200H200Zm0-400v200-200Zm0 400v200-200Z",
         )
     }
 

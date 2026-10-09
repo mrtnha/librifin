@@ -17,7 +17,5 @@ data class Session(
     val server: Server,
     val userId: String,
     val userName: String,
-    /** Tag of the user's profile picture, null if there is none. */
-    val userImageTag: String?,
     val accessToken: String,
 )

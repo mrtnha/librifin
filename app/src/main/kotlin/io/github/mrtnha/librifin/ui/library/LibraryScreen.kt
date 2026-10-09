@@ -33,7 +33,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,10 +57,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
 import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.storage.Book
@@ -75,10 +71,9 @@ import kotlinx.coroutines.launch
 fun LibraryScreen(
     session: Session,
     services: AppServices,
-    onLoggedOut: () -> Unit,
     onSessionExpired: () -> Unit,
     onBookClick: (Book) -> Unit,
-    onLicensesClick: () -> Unit,
+    onSettingsClick: () -> Unit,
 ) {
     val vm = viewModel { LibraryViewModel(session, services.jellyfin, services.bookStore, services.progressSync) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -88,16 +83,6 @@ fun LibraryScreen(
     // Back in the app (or back from a book): refresh quietly, e.g. to leave offline mode once the
     // server is reachable again.
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.refresh() }
-
-    // Loads the profile picture into memory now, so the profile sheet shows it at once instead of
-    // the initial first (reading it from the disk cache takes a moment after the app starts).
-    val userImageUrl = services.jellyfin.userImageUrl(session)
-    val context = LocalPlatformContext.current
-    LaunchedEffect(userImageUrl) {
-        if (userImageUrl != null) {
-            SingletonImageLoader.get(context).enqueue(ImageRequest.Builder(context).data(userImageUrl).build())
-        }
-    }
 
     // Books are opened from here: get the reader ready, so the first one opens faster.
     PrepareReader()
@@ -150,8 +135,8 @@ fun LibraryScreen(
                         IconButton(onClick = { vm.searchQuery = "" }) {
                             Icon(LibrifinIcons.Search, contentDescription = "Search books")
                         }
-                        IconButton(onClick = { vm.isProfileSheetOpen = true }) {
-                            Icon(LibrifinIcons.Profile, contentDescription = "Profile")
+                        IconButton(onClick = onSettingsClick) {
+                            Icon(LibrifinIcons.Settings, contentDescription = "Settings")
                         }
                     },
                 )
@@ -205,21 +190,6 @@ fun LibraryScreen(
                 }
             }
         }
-    }
-
-    if (vm.isProfileSheetOpen) {
-        ProfileSheet(
-            session = session,
-            userImageUrl = userImageUrl,
-            appVersion = services.platform.appVersion,
-            isLoggingOut = vm.isLoggingOut,
-            onLogout = { vm.logout(onLoggedOut) },
-            onLicensesClick = {
-                vm.isProfileSheetOpen = false
-                onLicensesClick()
-            },
-            onDismiss = { vm.isProfileSheetOpen = false },
-        )
     }
 }
 
