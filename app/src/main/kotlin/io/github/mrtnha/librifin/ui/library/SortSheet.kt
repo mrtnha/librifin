@@ -72,6 +72,7 @@ private val LibrarySort.label: String
         LibrarySort.RECENTLY_READ -> "Recently read"
         LibrarySort.AUTHOR -> "Author"
         LibrarySort.TITLE -> "Title"
+        LibrarySort.PROGRESS -> "Progress"
         LibrarySort.DATE_ADDED -> "Date added"
     }
 

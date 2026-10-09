@@ -282,13 +282,7 @@ private fun BookItem(book: Book, progress: BookProgress?, isDimmed: Boolean, onC
             // Along the bottom edge of the cover, like in Jellyfin. On every book: an empty track until
             // started, then filling up in blue. The dark, see-through track stays visible on any cover.
             LinearProgressIndicator(
-                progress = {
-                    when {
-                        progress == null -> 0f
-                        progress.isFinished -> 1f
-                        else -> progress.fraction
-                    }
-                },
+                progress = { progress?.shown ?: 0f },
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(6.dp),
                 trackColor = Color.Black.copy(alpha = 0.5f),
                 // One continuous bar with square ends, flush with the cover: no gap, no dot at the end.

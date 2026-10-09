@@ -32,7 +32,10 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 
 /** How far a book was read: [fraction] 0..1, [isFinished] once the book was read to the end (or nearly). */
-data class BookProgress(val fraction: Float, val isFinished: Boolean)
+data class BookProgress(val fraction: Float, val isFinished: Boolean) {
+    /** How full the cover's bar is: all the way once finished. Also what the Progress sort goes by. */
+    val shown: Float get() = if (isFinished) 1f else fraction
+}
 
 /**
  * The orders the library can be shown in, each in the direction readers expect. Listed in the sort sheet
@@ -47,6 +50,12 @@ enum class LibrarySort {
 
     /** A to Z. */
     TITLE,
+
+    /**
+     * Furthest read first: finished books, then the ones in progress, then the unread ones. Equal progress,
+     * e.g. all the finished books, most recently read first.
+     */
+    PROGRESS,
 
     /** Most recently added to Jellyfin first. */
     DATE_ADDED,
@@ -68,6 +77,10 @@ sealed interface LibraryState {
         val lastReadMillis: Map<String, Long> = emptyMap(),
     ) : LibraryState {
         fun canOpen(book: Book) = !isOffline || book.id in downloadedIds
+
+        /** [books] in [sort]'s order. */
+        fun sorted(sort: LibrarySort, authorSortNames: Map<String, AuthorSortName>) =
+            sortBooks(books, sort, progress, lastReadMillis, authorSortNames)
     }
     /** [isSessionExpired]: the server no longer accepts the token, so retrying won't help. */
     data class Error(val message: String, val isSessionExpired: Boolean = false) : LibraryState
@@ -121,7 +134,7 @@ class LibraryViewModel(
         this.sort = sort
         settings.write(KEY_SORT, sort.name)
         val shown = state as? LibraryState.Loaded ?: return
-        state = shown.copy(books = sortBooks(shown.books, sort, shown.lastReadMillis, authorSortNames.orEmpty()))
+        state = shown.copy(books = shown.sorted(sort, authorSortNames.orEmpty()))
         readMissingAuthorSortNames()
     }
 
@@ -249,7 +262,7 @@ class LibraryViewModel(
         withContext(NonCancellable + Dispatchers.IO) { bookStore.saveAuthorSortNames(session, names) }
         val shown = state as? LibraryState.Loaded ?: return
         if (sort == LibrarySort.AUTHOR) {
-            state = shown.copy(books = sortBooks(shown.books, sort, shown.lastReadMillis, names))
+            state = shown.copy(books = shown.sorted(sort, names))
         }
     }
 
@@ -281,7 +294,7 @@ class LibraryViewModel(
             listOfNotNull(positions[book.id]?.updatedAtMillis, book.lastPlayedMillis).maxOrNull()?.let { book.id to it }
         }.toMap()
         // The sort and author names are read only now, after the wait above, so changes meanwhile aren't lost.
-        val ordered = sortBooks(books, sort, lastRead, authorSortNames.orEmpty())
+        val ordered = sortBooks(books, sort, progress, lastRead, authorSortNames.orEmpty())
         return LibraryState.Loaded(ordered, progress, isOffline, downloadedIds, lastRead)
     }
 
@@ -297,10 +310,10 @@ class LibraryViewModel(
 }
 
 /**
- * [books] in [sort]'s order. [lastReadMillis] is when each book that was read was last read,
- * [authorSortNames] how each book's file files its first author. Books that are equal in that order
- * (never read, added at the same time, by the same author) are sorted by title, so the order never
- * depends on the order the server sent them in.
+ * [books] in [sort]'s order. [progress] is how far each started book was read, [lastReadMillis] when
+ * each book that was read was last read, [authorSortNames] how each book's file files its first author.
+ * Books that are equal in that order (never read, added at the same time, by the same author) are
+ * sorted by title, so the order never depends on the order the server sent them in.
  *
  * Titles and authors are compared in the order of the phone's language, so "Ödipus" comes with the O's
  * and not after Z. Titles as Jellyfin sorts them ("prince" for "The Prince"); in lists saved before
@@ -309,18 +322,22 @@ class LibraryViewModel(
 fun sortBooks(
     books: List<Book>,
     sort: LibrarySort,
+    progress: Map<String, BookProgress>,
     lastReadMillis: Map<String, Long>,
     authorSortNames: Map<String, AuthorSortName>,
 ): List<Book> {
     val collator = Collator.getInstance()
     val byTitle = compareBy<Book, String>(collator) { it.sortTitle ?: it.title }
+    val byLastRead = compareBy(nullsLast(reverseOrder())) { book: Book -> lastReadMillis[book.id] }
     val order = when (sort) {
-        LibrarySort.RECENTLY_READ -> compareBy(nullsLast(reverseOrder())) { book: Book -> lastReadMillis[book.id] }
+        LibrarySort.RECENTLY_READ -> byLastRead
         LibrarySort.AUTHOR -> {
             val keys = books.associate { it.id to authorSortKey(it, authorSortNames[it.id]) }
             compareBy(nullsLast<String>(collator)) { book: Book -> keys[book.id] }
         }
         LibrarySort.TITLE -> byTitle
+        // As full as the cover's bar shows; the finished books, all full, in the order they were read.
+        LibrarySort.PROGRESS -> compareByDescending { book: Book -> progress[book.id]?.shown ?: 0f }.then(byLastRead)
         LibrarySort.DATE_ADDED -> compareBy(nullsLast(reverseOrder())) { book: Book -> book.dateAddedMillis }
     }
     return books.sortedWith(order.then(byTitle))

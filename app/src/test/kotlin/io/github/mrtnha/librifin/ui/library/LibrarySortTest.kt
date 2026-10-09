@@ -104,6 +104,62 @@ class LibrarySortTest {
     }
 
     @Test
+    fun progressFurthestReadFirstThenUnreadByTitle() {
+        val books = listOf(book("Walden"), book("Emma"), book("The Prince"), book("Short Fiction"), book("Buddenbrooks"))
+        val progress = mapOf("Walden" to reading(0.3f), "The Prince" to finished(), "Short Fiction" to reading(0.8f))
+
+        assertEquals(
+            listOf("The Prince", "Short Fiction", "Walden", "Buddenbrooks", "Emma"),
+            sorted(books, LibrarySort.PROGRESS, progress = progress),
+        )
+    }
+
+    @Test
+    fun finishedCountsAsFullEvenIfFinishedEarlier() {
+        val books = listOf(book("Almost"), book("Done"))
+        // Finished at 95 %, like the cover's bar shows it full.
+        val progress = mapOf("Almost" to reading(0.99f), "Done" to finished(0.95f))
+
+        assertEquals(listOf("Done", "Almost"), sorted(books, LibrarySort.PROGRESS, progress = progress))
+    }
+
+    @Test
+    fun equalProgressMostRecentlyReadFirstThenByTitle() {
+        val books = listOf(
+            book("Walden"),
+            book("Emma"),
+            book("Buddenbrooks"),
+            book("The Prince"),
+            book("Anna Karenina"),
+            book("Short Fiction"),
+            book("Middlemarch"),
+        )
+        // Buddenbrooks and Anna Karenina: marked played in Jellyfin, with no time it was read.
+        val progress = mapOf(
+            "Walden" to finished(),
+            "Emma" to finished(),
+            "Buddenbrooks" to finished(),
+            "The Prince" to finished(),
+            "Anna Karenina" to finished(),
+        )
+        // Middlemarch was paged back to its start: read, but at 0 %.
+        val lastRead = mapOf("Walden" to 100L, "Emma" to 300L, "The Prince" to 200L, "Middlemarch" to 50L)
+
+        assertEquals(
+            listOf(
+                "Emma",
+                "The Prince",
+                "Walden",
+                "Anna Karenina",
+                "Buddenbrooks",
+                "Middlemarch",
+                "Short Fiction",
+            ),
+            sorted(books, LibrarySort.PROGRESS, lastRead = lastRead, progress = progress),
+        )
+    }
+
+    @Test
     fun surnameIsGuessedAsLibrariesFileNames() {
         mapOf(
             "Terry Pratchett" to "Pratchett, Terry",
@@ -141,7 +197,12 @@ class LibrarySortTest {
         sort: LibrarySort,
         lastRead: Map<String, Long> = emptyMap(),
         authorSortNames: Map<String, AuthorSortName> = emptyMap(),
-    ) = sortBooks(books, sort, lastRead, authorSortNames).map { it.title }
+        progress: Map<String, BookProgress> = emptyMap(),
+    ) = sortBooks(books, sort, progress, lastRead, authorSortNames).map { it.title }
+
+    private fun reading(fraction: Float) = BookProgress(fraction, isFinished = false)
+
+    private fun finished(fraction: Float = 1f) = BookProgress(fraction, isFinished = true)
 
     /** Runs [block] with [locale] as the default, as the order of letters depends on the language. */
     private fun <T> inLocale(locale: Locale, block: () -> T): T {
