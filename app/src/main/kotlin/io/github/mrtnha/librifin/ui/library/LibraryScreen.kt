@@ -145,7 +145,7 @@ fun LibraryScreen(
                 )
             } else {
                 TopAppBar(
-                    title = { Text("Librifin", fontWeight = FontWeight.SemiBold) },
+                    title = { Text("Library", fontWeight = FontWeight.SemiBold) },
                     actions = {
                         IconButton(onClick = { vm.searchQuery = "" }) {
                             Icon(LibrifinIcons.Search, contentDescription = "Search books")
