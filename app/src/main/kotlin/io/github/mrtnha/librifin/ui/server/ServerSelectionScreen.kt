@@ -148,10 +148,9 @@ private fun ServerUrlField(value: String, onValueChange: (String) -> Unit) {
             confirmButton = { TextButton(onClick = { showInfo = false }) { Text("OK") } },
             text = {
                 Text(
-                    "At home, the local address of your server works (for example 192.168.1.10). " +
-                        "To connect from outside your network, use its external address or domain.\n\n" +
-                        "If your server uses the default ports (80, 443 or Jellyfin's 8096), you don't need to " +
-                        "enter the port.\n\nOnce the address is right, your server appears below the field."
+                    "Enter your server's address, for example 192.168.1.10 at home or your domain from outside. " +
+                        "You don't need to add http:// or Jellyfin's port 8096.\n\n" +
+                        "Once the address is right, your server appears below the field."
                 )
             },
         )
