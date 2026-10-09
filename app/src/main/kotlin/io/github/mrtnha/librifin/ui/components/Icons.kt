@@ -31,8 +31,9 @@ object LibrifinIcons {
     val Book: ImageVector by lazy { symbol("Book", OPEN_BOOK) }
 
     /**
-     * The open book of [Book] in Jellyfin's gradient: purple at the bottom left to blue at the top right,
-     * like the Jellyfin logo. The app logo; show it with `Image`, as tinting would hide the gradient.
+     * The open book of [Book] in Jellyfin's gradient: purple at the top left to blue at the bottom right,
+     * along the same line as in the launcher icon (ic_launcher_foreground.xml). The app logo; show it with
+     * `Image`, as tinting would hide the gradient.
      */
     val Logo: ImageVector by lazy {
         symbol(
@@ -41,8 +42,8 @@ object LibrifinIcons {
             fill = Brush.linearGradient(
                 listOf(JellyfinPurple, JellyfinBlue),
                 // In the path's coordinates, see symbol().
-                start = Offset(40f, -160f),
-                end = Offset(920f, -800f),
+                start = Offset(172f, -570f),
+                end = Offset(986f, -100f),
             ),
         )
     }
