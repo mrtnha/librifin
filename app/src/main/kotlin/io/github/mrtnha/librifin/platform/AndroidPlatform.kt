@@ -12,7 +12,7 @@ import java.util.UUID
 class AndroidPlatform(context: Context, private val licensesJsonReader: () -> String) : Platform {
     private val appContext = context.applicationContext
 
-    // App-private file. Excluded from cloud backup and device transfer (see res/xml in androidApp):
+    // App-private file. Excluded from cloud backup and device transfer (see res/xml):
     // it holds the access token, and a restored device id would make two phones one device to Jellyfin.
     private val prefs = appContext.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
 

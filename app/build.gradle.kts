@@ -4,8 +4,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
-    // Collects the licenses of everything bundled into the app (also the shared module's dependencies) at build
-    // time, for the "Open Source Licenses" screen
+    alias(libs.plugins.kotlinSerialization)
+    // Collects the licenses of everything bundled into the app at build time, for the "Open Source Licenses" screen
     alias(libs.plugins.aboutLibraries)
 }
 
@@ -15,14 +15,44 @@ kotlin {
     }
 }
 dependencies {
-    implementation(project(":shared"))
-
     implementation(libs.androidx.activity.compose)
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.ui)
+    implementation(libs.androidx.lifecycle.viewmodelCompose)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
+    implementation(libs.androidx.navigationevent.compose)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.contentNegotiation)
+    implementation(libs.ktor.serialization.kotlinxJson)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.ktor3)
+    // Showing and hiding the system bars in the reader (already in the app via Compose and Readium)
+    implementation(libs.androidx.core.ktx)
+    // EPUB parsing, and the EPUB renderer (a Fragment, shown in Compose via fragment-compose)
+    implementation(libs.readium.streamer)
+    implementation(libs.readium.navigator)
+    implementation(libs.androidx.fragment.compose)
     // MainActivity is a FragmentActivity: Readium's EPUB renderer is a Fragment
     implementation(libs.androidx.fragment)
+    // Starting the reader's WebView early (already in the app via Readium)
+    implementation(libs.androidx.webkit)
+    // Reads the license list the app generates at build time (Open Source Licenses screen)
+    implementation(libs.aboutlibraries.core)
     // Required by Readium (its libraries are built with core library desugaring)
     coreLibraryDesugaring(libs.desugarJdkLibs)
 
+    constraints {
+        // Material 3 asks for an older ripple: keep it on the same Compose release as the rest
+        implementation(libs.compose.materialRipple)
+    }
+
+    // kotlin.test on JUnit 4, which the unit tests run on
+    testImplementation(libs.kotlin.test.junit)
     debugImplementation(libs.compose.uiTooling)
 }
 

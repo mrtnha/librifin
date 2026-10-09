@@ -13,11 +13,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 
 /**
+ * Gets the book renderer ready ahead of time while this is in the composition, so the first book
+ * after an app start opens faster. Only the first call per app start does anything.
+ *
  * Starts WebView's engine, which Readium shows the books in. Its first start in an app process
  * takes 0.15–0.25 s; started here, in the background, it's ready before a book is tapped.
  */
 @Composable
-actual fun PrepareReader() {
+fun PrepareReader() {
     val context = LocalContext.current.applicationContext
     LaunchedEffect(Unit) {
         if (isWebViewStarted) return@LaunchedEffect

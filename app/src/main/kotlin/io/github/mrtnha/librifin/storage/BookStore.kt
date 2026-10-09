@@ -142,7 +142,7 @@ class BookStore(filesDir: String) {
 }
 
 /**
- * A place in a book. [locator] is the renderer's exact position (opaque to shared code); [progress]
+ * A place in a book. [locator] is the renderer's exact position (only it understands it); [progress]
  * is how far into the whole book it is, 0..1; [updatedAtMillis] is when it was read there;
  * [isSynced] is whether Jellyfin knows about it.
  *

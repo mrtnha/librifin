@@ -77,17 +77,14 @@ Librifin works well for how I use it but it isn't perfect:
 You need JDK 17 or newer and the Android SDK (with `ANDROID_HOME` set).
 
 ```sh
-./gradlew :androidApp:assembleDebug
-adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk
+./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Run the tests with `./gradlew :shared:testAndroidHostTest`.
+Run the tests with `./gradlew :app:testDebugUnitTest`.
 
-Nearly all code lives in
-[`shared/src/commonMain`](shared/src/commonMain/kotlin/io/github/mrtnha/librifin). What needs
-Android's own APIs is in [`androidMain`](shared/src/androidMain/kotlin/io/github/mrtnha/librifin)
-(e.g. server discovery and the book renderer). [`androidApp`](androidApp) is the Android app around
-it.
+The code is in [`app/src/main/kotlin`](app/src/main/kotlin/io/github/mrtnha/librifin), the tests
+are in [`app/src/test/kotlin`](app/src/test/kotlin/io/github/mrtnha/librifin).
 
 ## Dependencies
 
@@ -96,8 +93,8 @@ Librifin tries to get by with as few libraries as possible. The most important o
 | Library | What it does in Librifin | License |
 |---|---|---|
 | [Readium Kotlin Toolkit](https://github.com/readium/kotlin-toolkit) | Opens and renders the EPUB books | BSD-3-Clause |
-| [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) with Material 3 | Draws the user interface | Apache-2.0 |
-| [Ktor client](https://ktor.io) | Talks to the Jellyfin server (with OkHttp on Android) | Apache-2.0 |
+| [Jetpack Compose](https://developer.android.com/compose) with Material 3 | Draws the user interface | Apache-2.0 |
+| [Ktor client](https://ktor.io) | Talks to the Jellyfin server (with OkHttp) | Apache-2.0 |
 | [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization) | Reads and writes Jellyfin's JSON | Apache-2.0 |
 | [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) | Runs network and file work in the background | Apache-2.0 |
 | [Coil](https://coil-kt.github.io/coil/) | Loads and caches the book covers | Apache-2.0 |
@@ -112,7 +109,7 @@ The reading fonts are built into the app as well, so choosing one downloads noth
 EB Garamond, Lora, Alegreya, Merriweather, Bitter, Source Sans 3, Nunito Sans,
 Atkinson Hyperlegible Next and Courier Prime. They're licensed under the SIL Open Font License 1.1;
 each font's license is next to its files in
-[`shared/src/androidMain/assets/fonts`](shared/src/androidMain/assets/fonts).
+[`app/src/main/assets/fonts`](app/src/main/assets/fonts).
 
 ## Thanks
 

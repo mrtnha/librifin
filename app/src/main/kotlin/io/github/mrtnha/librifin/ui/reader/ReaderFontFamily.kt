@@ -12,8 +12,9 @@ internal fun FontFace.assetPath(): String = "fonts/$path"
 /** The pattern for [assetPath]s, to let the reader load them. */
 internal const val FONT_ASSETS = "fonts/.*"
 
+/** [font] for the app's own text, e.g. to show a font's name in that font. The app's font for [ReaderFont.ORIGINAL]. */
 @Composable
-actual fun rememberFontFamily(font: ReaderFont): FontFamily {
+fun rememberFontFamily(font: ReaderFont): FontFamily {
     val assets = LocalContext.current.assets
     return remember(font) {
         // The regular face is enough for a font's name; for variable fonts, Compose picks the normal weight.
