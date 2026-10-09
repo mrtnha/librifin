@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class LicensesViewModel(platform: Platform) : ViewModel() {
-    /** Sorted by name. Null while loading, empty if the platform has no list. */
+    /** Sorted by name. Null while loading. */
     var libraries by mutableStateOf<List<Library>?>(null)
         private set
 
@@ -28,7 +28,7 @@ class LicensesViewModel(platform: Platform) : ViewModel() {
     init {
         viewModelScope.launch {
             libraries = withContext(Dispatchers.IO) {
-                platform.readLicensesJson()?.let { Libs.Builder().withJson(it).build().libraries }.orEmpty()
+                Libs.Builder().withJson(platform.readLicensesJson()).build().libraries
             }
         }
     }

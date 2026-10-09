@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 class ServerSelectionViewModel(
     private val jellyfin: JellyfinClient,
-    private val discovery: ServerDiscovery?,
+    private val discovery: ServerDiscovery,
 ) : ViewModel() {
 
     // Manual entry
@@ -33,15 +33,14 @@ class ServerSelectionViewModel(
         private set
 
     // Discovery
-    val isDiscoverySupported = discovery != null
     val discoveredServers = mutableStateListOf<Server>()
 
     /** Set when discovery has run for a while without finding anything. */
     var isNothingFound by mutableStateOf(false)
         private set
 
-    /** Discovered servers come first; manual entry is opened on request (or always shown without discovery). */
-    var isManualEntryVisible by mutableStateOf(!isDiscoverySupported)
+    /** Discovered servers come first; manual entry is opened on request. */
+    var isManualEntryVisible by mutableStateOf(false)
         private set
 
     fun showManualEntry() {
@@ -85,7 +84,7 @@ class ServerSelectionViewModel(
 
     /** Runs while the screen is visible, see [ServerSelectionScreen]. */
     fun startDiscovery() {
-        if (discovery == null || discoveryJob?.isActive == true) return
+        if (discoveryJob?.isActive == true) return
         discoveryJob = viewModelScope.launch {
             launch {
                 delay(NOTHING_FOUND_AFTER_MS)

@@ -16,12 +16,13 @@ import java.net.NetworkInterface
 import java.net.SocketTimeoutException
 
 /**
- * Sends the discovery message as UDP broadcast every [ServerDiscovery.RESEND_INTERVAL_MS]
- * (UDP is unreliable and servers may come online later) and emits every reply.
+ * Jellyfin UDP server discovery (https://jellyfin.org/docs/general/networking/).
+ * [replies] broadcasts [MESSAGE] to [PORT] every [RESEND_INTERVAL_MS] (UDP is unreliable and servers may
+ * come online later) and emits the raw text of every reply, until the collecting coroutine is cancelled.
  */
-internal class AndroidServerDiscovery(private val context: Context) : ServerDiscovery {
+class ServerDiscovery(private val context: Context) {
 
-    override fun replies(): Flow<String> = flow {
+    fun replies(): Flow<String> = flow {
         val wifi = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
         // To save power, many devices drop incoming broadcast and multicast packets unless an app holds this lock.
         val lock = wifi?.createMulticastLock("librifin-discovery")?.apply {
@@ -33,7 +34,7 @@ internal class AndroidServerDiscovery(private val context: Context) : ServerDisc
             soTimeout = RECEIVE_TIMEOUT_MS // lets us check for cancellation and resend regularly
         }
         try {
-            val message = ServerDiscovery.MESSAGE.encodeToByteArray()
+            val message = MESSAGE.encodeToByteArray()
             val buffer = ByteArray(4096)
             var nextSendAt = 0L
             while (true) {
@@ -42,12 +43,12 @@ internal class AndroidServerDiscovery(private val context: Context) : ServerDisc
                 if (now >= nextSendAt) {
                     for (address in broadcastAddresses()) {
                         try {
-                            socket.send(DatagramPacket(message, message.size, address, ServerDiscovery.PORT))
+                            socket.send(DatagramPacket(message, message.size, address, PORT))
                         } catch (_: IOException) {
                             // Interface went away or isn't routable; try the others.
                         }
                     }
-                    nextSendAt = now + ServerDiscovery.RESEND_INTERVAL_MS
+                    nextSendAt = now + RESEND_INTERVAL_MS
                 }
                 val packet = DatagramPacket(buffer, buffer.size)
                 try {
@@ -78,6 +79,9 @@ internal class AndroidServerDiscovery(private val context: Context) : ServerDisc
     }
 
     private companion object {
+        const val MESSAGE = "Who is JellyfinServer?"
+        const val PORT = 7359
+        const val RESEND_INTERVAL_MS = 1_500L
         const val RECEIVE_TIMEOUT_MS = 250
     }
 }

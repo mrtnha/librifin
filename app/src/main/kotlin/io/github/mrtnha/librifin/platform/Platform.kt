@@ -1,60 +1,73 @@
 package io.github.mrtnha.librifin.platform
 
-import kotlinx.coroutines.flow.Flow
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.Build
+import android.provider.Settings
+import io.github.mrtnha.librifin.R
+import java.util.UUID
 
-/** Everything the shared code needs from the operating system. Implemented once per platform. */
-interface Platform {
+/** Everything the app needs from Android. */
+class Platform(context: Context) {
+    private val appContext = context.applicationContext
+
+    // App-private file. Excluded from cloud backup and device transfer (see res/xml):
+    // it holds the access token, and a restored device id would make two phones one device to Jellyfin.
+    private val prefs = appContext.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+
     /** Human-readable device name, shown in the Jellyfin dashboard. */
-    val deviceName: String
+    val deviceName: String =
+        Settings.Global.getString(appContext.contentResolver, Settings.Global.DEVICE_NAME)
+            ?.takeIf { it.isNotBlank() }
+            ?: Build.MODEL
 
     /** Random id generated on first launch and kept for the lifetime of the installation. */
-    val deviceId: String
+    val deviceId: String = run {
+        prefs.getString(KEY_DEVICE_ID, null) ?: UUID.randomUUID().toString().also {
+            prefs.edit().putString(KEY_DEVICE_ID, it).apply()
+        }
+    }
 
-    val appVersion: String
+    val appVersion: String =
+        appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName ?: "0"
 
-    /** Local network server discovery, or null if the platform doesn't support it (yet). */
-    val serverDiscovery: ServerDiscovery?
+    val serverDiscovery = ServerDiscovery(appContext)
 
     /** Where the logged-in session (including the access token) is kept between app starts. */
-    val sessionStore: SessionStore
+    val sessionStore = SessionStore(prefs)
 
     /** Small app settings kept between app starts, e.g. the reading theme. */
-    val settingsStore: SettingsStore
+    val settingsStore = SettingsStore(prefs)
 
     /** App-private directory for files kept until the app is uninstalled (downloaded books, the saved book list). */
-    val filesDir: String
+    val filesDir: String = appContext.filesDir.absolutePath
 
     /**
-     * The libraries bundled into the app and their licenses, as AboutLibraries JSON made at build time, or null
-     * if there is none. Reads a file: call it off the main thread.
+     * The libraries bundled into the app and their licenses, as AboutLibraries JSON made at build time.
+     * Reads a file: call it off the main thread.
      */
-    fun readLicensesJson(): String?
+    fun readLicensesJson(): String =
+        appContext.resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() }
+
+    private companion object {
+        const val PREFS_FILE = "librifin" // → shared_prefs/librifin.xml
+        const val KEY_DEVICE_ID = "device_id"
+    }
 }
 
-/** Stores one serialized session. Must be private to the app and excluded from backups. */
-interface SessionStore {
-    fun read(): String?
-    fun write(value: String)
-    fun clear()
+/** Stores one serialized session. */
+class SessionStore(private val prefs: SharedPreferences) {
+    fun read(): String? = prefs.getString(KEY_SESSION, null)
+    fun write(value: String) = prefs.edit().putString(KEY_SESSION, value).apply()
+    fun clear() = prefs.edit().remove(KEY_SESSION).apply()
+
+    private companion object {
+        const val KEY_SESSION = "session"
+    }
 }
 
 /** Stores small settings as text under a key. Nothing secret goes here. */
-interface SettingsStore {
-    fun read(key: String): String?
-    fun write(key: String, value: String)
-}
-
-/**
- * Jellyfin UDP server discovery (https://jellyfin.org/docs/general/networking/).
- * Implementations broadcast [MESSAGE] to [PORT] repeatedly and emit the raw text of every reply,
- * until the collecting coroutine is cancelled.
- */
-interface ServerDiscovery {
-    fun replies(): Flow<String>
-
-    companion object {
-        const val MESSAGE = "Who is JellyfinServer?"
-        const val PORT = 7359
-        const val RESEND_INTERVAL_MS = 1_500L
-    }
+class SettingsStore(private val prefs: SharedPreferences) {
+    fun read(key: String): String? = prefs.getString(key, null)
+    fun write(key: String, value: String) = prefs.edit().putString(key, value).apply()
 }

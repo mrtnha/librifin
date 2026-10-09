@@ -54,40 +54,38 @@ fun ServerSelectionScreen(
     }
 
     FlowScaffold(title = "Connect to Jellyfin", onBack = onBack) {
-        if (vm.isDiscoverySupported) {
-            SectionTitle("Servers on your local network")
-            vm.discoveredServers.forEach { server ->
-                ServerCard(server, onClick = { onServerSelected(server) }, modifier = Modifier.padding(bottom = 8.dp))
-            }
-            ProgressRow("Scanning for servers…", Modifier.padding(vertical = 12.dp))
-            if (vm.isNothingFound && vm.discoveredServers.isEmpty()) {
-                Text(
-                    "No servers found yet. Make sure you're on the same Wi-Fi as your Jellyfin server, " +
-                        "or enter its address below.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-            }
-            if (!vm.isManualEntryVisible) {
-                TextButton(onClick = vm::showManualEntry, modifier = Modifier.padding(top = 4.dp)) {
-                    Text("Server not listed? Tap here to enter its address.")
-                }
+        SectionTitle("Servers on your local network")
+        vm.discoveredServers.forEach { server ->
+            ServerCard(server, onClick = { onServerSelected(server) }, modifier = Modifier.padding(bottom = 8.dp))
+        }
+        ProgressRow("Scanning for servers…", Modifier.padding(vertical = 12.dp))
+        if (vm.isNothingFound && vm.discoveredServers.isEmpty()) {
+            Text(
+                "No servers found yet. Make sure you're on the same Wi-Fi as your Jellyfin server, " +
+                    "or enter its address below.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
+        if (!vm.isManualEntryVisible) {
+            TextButton(onClick = vm::showManualEntry, modifier = Modifier.padding(top = 4.dp)) {
+                Text("Server not listed? Tap here to enter its address.")
             }
         }
 
         // Fades in where the link was, instead of sliding open.
         AnimatedVisibility(visible = vm.isManualEntryVisible, enter = fadeIn(), exit = fadeOut()) {
-            ManualEntry(vm, onServerSelected, requestFocus = vm.isDiscoverySupported)
+            ManualEntry(vm, onServerSelected)
         }
     }
 }
 
 @Composable
-private fun ManualEntry(vm: ServerSelectionViewModel, onServerSelected: (Server) -> Unit, requestFocus: Boolean) {
+private fun ManualEntry(vm: ServerSelectionViewModel, onServerSelected: (Server) -> Unit) {
     Column(Modifier.fillMaxWidth()) {
         SectionTitle("Server address")
-        ServerUrlField(value = vm.urlInput, onValueChange = vm::onUrlChanged, requestFocus = requestFocus)
+        ServerUrlField(value = vm.urlInput, onValueChange = vm::onUrlChanged)
 
         Column(Modifier.fillMaxWidth().heightIn(min = 80.dp).padding(top = 12.dp)) {
             val manual = vm.manualServer
@@ -116,12 +114,10 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun ServerUrlField(value: String, onValueChange: (String) -> Unit, requestFocus: Boolean) {
+private fun ServerUrlField(value: String, onValueChange: (String) -> Unit) {
     var showInfo by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
-    if (requestFocus) {
-        LaunchedEffect(Unit) { focusRequester.requestFocus() }
-    }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     TextField(
         value = value,
