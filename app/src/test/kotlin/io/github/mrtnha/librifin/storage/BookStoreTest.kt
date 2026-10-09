@@ -155,6 +155,38 @@ class BookStoreTest {
         assertNull(store.readLibrary(alice))
     }
 
+    @Test
+    fun downloadsAreTheFinishedBooks() {
+        writeText(store.partialBookFile("book1"), "123")
+        assertEquals(Downloads(bookCount = 0, bytes = 0), store.downloads())
+
+        writeText(store.bookFile("book1"), "12345")
+        writeText(store.bookFile("book2"), "1234567")
+        assertEquals(Downloads(bookCount = 2, bytes = 12), store.downloads())
+    }
+
+    @Test
+    fun nothingDownloadedYet() {
+        assertEquals(Downloads(bookCount = 0, bytes = 0), store.downloads())
+        store.deleteAllBooks()
+    }
+
+    @Test
+    fun deletingAllBooksKeepsPositionsAndTheLibrary() = runBlocking {
+        val books = listOf(Book(id = "book1", title = "The Hobbit", coverUrl = null, authors = emptyList()))
+        store.saveLibrary(alice, books)
+        store.savePosition(alice, "book1", position)
+        writeText(store.partialBookFile("book2"), "123")
+        writeText(store.bookFile("book1"), "12345")
+
+        store.deleteAllBooks()
+
+        assertFalse(store.isDownloaded("book1"))
+        assertFalse(SystemFileSystem.exists(store.partialBookFile("book2")))
+        assertEquals(books, store.readLibrary(alice))
+        assertEquals(0.4, store.readPosition(alice, "book1")?.progress)
+    }
+
     private fun writeText(file: Path, text: String) =
         SystemFileSystem.sink(file).buffered().use { it.writeString(text) }
 

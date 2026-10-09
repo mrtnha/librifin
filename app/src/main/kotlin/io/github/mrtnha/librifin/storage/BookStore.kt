@@ -41,6 +41,19 @@ class BookStore(filesDir: String) {
 
     fun deleteBook(bookId: String) = SystemFileSystem.delete(bookFile(bookId), mustExist = false)
 
+    /** The books downloaded on this device, for every user who logged in here. */
+    fun downloads(): Downloads {
+        val books = filesInBooksDir().filter { it.name.endsWith(".epub") }
+        val bytes = books.sumOf { SystemFileSystem.metadataOrNull(it)?.size ?: 0L }
+        return Downloads(bookCount = books.size, bytes = bytes)
+    }
+
+    /** Deletes every downloaded book and unfinished download. Positions and the saved book list stay. */
+    fun deleteAllBooks() = filesInBooksDir().forEach { SystemFileSystem.delete(it, mustExist = false) }
+
+    private fun filesInBooksDir(): Collection<Path> =
+        if (SystemFileSystem.exists(booksDir)) SystemFileSystem.list(booksDir) else emptyList()
+
     /** The book list saved for this user on this server, or null if there is none (or it's unreadable). */
     fun readLibrary(session: Session): List<Book>? =
         readJson<SavedLibrary>(libraryFile)
@@ -140,6 +153,9 @@ class BookStore(filesDir: String) {
     @Serializable
     private class SavedLibrary(val serverId: String, val userId: String, val books: List<Book>)
 }
+
+/** [bookCount] downloaded books, which take [bytes] together. */
+data class Downloads(val bookCount: Int, val bytes: Long)
 
 /**
  * A place in a book. [locator] is the renderer's exact position (only it understands it); [progress]
