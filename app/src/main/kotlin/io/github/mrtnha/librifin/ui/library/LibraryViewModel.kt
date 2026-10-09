@@ -40,6 +40,13 @@ data class BookProgress(val fraction: Float, val isFinished: Boolean) {
 /**
  * The orders the library can be shown in, each in the direction readers expect. Listed in the sort sheet
  * in this order: by how often they're likely used.
+ *
+ * There's deliberately no order by year. Jellyfin's year for a book comes from the EPUB's only date,
+ * dc:date, which is when that edition was published, not when the work first appeared: Standard Ebooks'
+ * Walden says 2014, and 1854 is only mentioned in its description. EPUBs from stores or Calibre usually
+ * carry an edition's date as well. The year of first publication is only in outside databases (Open
+ * Library, Wikidata), and Librifin talks to the Jellyfin server only. Years corrected by hand in
+ * Jellyfin's metadata would work, but few would keep that up for a whole library.
  */
 enum class LibrarySort {
     /** Most recently read first. Books never read come after them, by title. */
