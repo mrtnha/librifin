@@ -9,9 +9,9 @@ import androidx.lifecycle.viewModelScope
 import io.github.mrtnha.librifin.api.DiscoveryResponse
 import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Server
+import io.github.mrtnha.librifin.api.ServerDiscovery
 import io.github.mrtnha.librifin.api.ServerUrl
 import io.github.mrtnha.librifin.api.decodeOrNull
-import io.github.mrtnha.librifin.platform.ServerDiscovery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

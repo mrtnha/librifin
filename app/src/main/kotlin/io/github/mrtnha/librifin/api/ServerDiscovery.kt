@@ -1,4 +1,4 @@
-package io.github.mrtnha.librifin.platform
+package io.github.mrtnha.librifin.api
 
 import android.content.Context
 import android.net.wifi.WifiManager

@@ -8,13 +8,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.entity.Library
-import io.github.mrtnha.librifin.platform.Platform
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class LicensesViewModel(platform: Platform) : ViewModel() {
+class LicensesViewModel(readLicensesJson: () -> String) : ViewModel() {
     /** Sorted by name. Null while loading. */
     var libraries by mutableStateOf<List<Library>?>(null)
         private set
@@ -28,7 +27,7 @@ class LicensesViewModel(platform: Platform) : ViewModel() {
     init {
         viewModelScope.launch {
             libraries = withContext(Dispatchers.IO) {
-                Libs.Builder().withJson(platform.readLicensesJson()).build().libraries
+                Libs.Builder().withJson(readLicensesJson()).build().libraries
             }
         }
     }

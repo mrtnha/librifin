@@ -1,6 +1,5 @@
 package io.github.mrtnha.librifin.api
 
-import io.github.mrtnha.librifin.platform.Platform
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
@@ -28,8 +27,15 @@ import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.serialization.json.Json
 
-/** Thin wrapper around the Jellyfin REST API. All calls take the server's base URL explicitly. */
-class JellyfinClient(private val platform: Platform) {
+/**
+ * Thin wrapper around the Jellyfin REST API. All calls take the server's base URL explicitly.
+ * [deviceName], [deviceId] and [appVersion] go into the Authorization header of every request.
+ */
+class JellyfinClient(
+    private val deviceName: String,
+    private val deviceId: String,
+    private val appVersion: String,
+) {
 
     private val http = HttpClient {
         expectSuccess = true // non-2xx responses throw, see toUserMessage()
@@ -158,9 +164,9 @@ class JellyfinClient(private val platform: Platform) {
     private fun authorizationHeader(token: String?): String {
         val params = buildList {
             add("Client" to CLIENT_NAME)
-            add("Device" to platform.deviceName)
-            add("DeviceId" to platform.deviceId)
-            add("Version" to platform.appVersion)
+            add("Device" to deviceName)
+            add("DeviceId" to deviceId)
+            add("Version" to appVersion)
             if (token != null) add("Token" to token)
         }
         return "MediaBrowser " + params.joinToString(", ") { (key, value) ->

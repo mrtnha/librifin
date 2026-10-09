@@ -10,9 +10,9 @@ import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.UserItemDataDto
 import io.github.mrtnha.librifin.api.clientErrorStatus
 import io.github.mrtnha.librifin.api.toUserMessage
-import io.github.mrtnha.librifin.platform.SettingsStore
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.storage.ReadingPosition
+import io.github.mrtnha.librifin.storage.SettingsStore
 import io.github.mrtnha.librifin.sync.ProgressSync
 import io.github.mrtnha.librifin.sync.serverProgressIfReadElsewhere
 import io.ktor.http.HttpStatusCode

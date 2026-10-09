@@ -90,7 +90,7 @@ fun ReaderScreen(
             services.jellyfin,
             services.bookStore,
             services.progressSync,
-            services.platform.settingsStore,
+            services.settingsStore,
             services.scope,
         )
     }

@@ -83,7 +83,7 @@ fun LibraryScreen(
             services.jellyfin,
             services.bookStore,
             services.progressSync,
-            services.platform.settingsStore,
+            services.settingsStore,
         )
     }
     val snackbarHostState = remember { SnackbarHostState() }

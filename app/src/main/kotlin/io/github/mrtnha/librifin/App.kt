@@ -122,7 +122,7 @@ fun App(services: AppServices) {
                             onLicensesClick = { ifOnTop { navigator.push(Screen.Licenses) } },
                         )
                         Screen.Licenses -> LicensesScreen(
-                            platform = services.platform,
+                            services = services,
                             onBack = { ifOnTop(navigator::pop) },
                             onLibraryClick = { ifOnTop { navigator.push(Screen.License(it)) } },
                         )

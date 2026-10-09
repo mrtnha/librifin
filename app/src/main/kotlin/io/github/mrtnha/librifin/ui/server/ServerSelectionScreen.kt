@@ -45,7 +45,7 @@ fun ServerSelectionScreen(
     onBack: () -> Unit,
     onServerSelected: (Server) -> Unit,
 ) {
-    val vm = viewModel { ServerSelectionViewModel(services.jellyfin, services.platform.serverDiscovery) }
+    val vm = viewModel { ServerSelectionViewModel(services.jellyfin, services.serverDiscovery) }
 
     // Discover only while this screen is shown, like Finamp.
     DisposableEffect(vm) {

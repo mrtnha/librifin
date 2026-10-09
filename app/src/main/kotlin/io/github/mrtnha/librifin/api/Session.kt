@@ -10,7 +10,7 @@ data class Server(
     val name: String,
 )
 
-/** A logged-in user on a server. Saved between app starts via [io.github.mrtnha.librifin.platform.SessionStore]. */
+/** A logged-in user on a server. Saved between app starts via [io.github.mrtnha.librifin.storage.SessionStore]. */
 @Serializable
 data class Session(
     val server: Server,

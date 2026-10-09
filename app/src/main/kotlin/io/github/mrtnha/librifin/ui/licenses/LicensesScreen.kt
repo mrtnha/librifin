@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mikepenz.aboutlibraries.entity.Library
-import io.github.mrtnha.librifin.platform.Platform
+import io.github.mrtnha.librifin.AppServices
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 
 /**
@@ -27,8 +27,8 @@ import io.github.mrtnha.librifin.ui.components.LibrifinIcons
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LicensesScreen(platform: Platform, onBack: () -> Unit, onLibraryClick: (Library) -> Unit) {
-    val vm = viewModel { LicensesViewModel(platform) }
+fun LicensesScreen(services: AppServices, onBack: () -> Unit, onLibraryClick: (Library) -> Unit) {
+    val vm = viewModel { LicensesViewModel(services::readLicensesJson) }
 
     Scaffold(
         topBar = {

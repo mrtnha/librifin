@@ -11,10 +11,10 @@ import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.clientErrorStatus
 import io.github.mrtnha.librifin.api.toUserMessage
 import io.github.mrtnha.librifin.epub.readAuthorFileAs
-import io.github.mrtnha.librifin.platform.SettingsStore
 import io.github.mrtnha.librifin.storage.AuthorSortName
 import io.github.mrtnha.librifin.storage.Book
 import io.github.mrtnha.librifin.storage.BookStore
+import io.github.mrtnha.librifin.storage.SettingsStore
 import io.github.mrtnha.librifin.sync.ProgressSync
 import io.ktor.client.plugins.ResponseException
 import io.ktor.http.HttpStatusCode

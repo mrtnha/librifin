@@ -123,7 +123,7 @@ fun SettingsScreen(
                 )
             }
             Text(
-                "Version ${services.platform.appVersion}",
+                "Version ${services.appVersion}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp),
