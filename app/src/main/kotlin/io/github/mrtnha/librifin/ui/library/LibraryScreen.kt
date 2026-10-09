@@ -60,7 +60,7 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import coil3.compose.AsyncImage
-import io.github.mrtnha.librifin.AppServices
+import io.github.mrtnha.librifin.AppContainer
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.storage.Book
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
@@ -72,7 +72,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LibraryScreen(
     session: Session,
-    services: AppServices,
+    appContainer: AppContainer,
     onSessionExpired: () -> Unit,
     onBookClick: (Book) -> Unit,
     onSettingsClick: () -> Unit,
@@ -80,10 +80,10 @@ fun LibraryScreen(
     val vm = viewModel {
         LibraryViewModel(
             session,
-            services.jellyfin,
-            services.bookStore,
-            services.progressSync,
-            services.settingsStore,
+            appContainer.jellyfin,
+            appContainer.bookStore,
+            appContainer.progressSync,
+            appContainer.settingsStore,
         )
     }
     val snackbarHostState = remember { SnackbarHostState() }

@@ -22,7 +22,7 @@ import java.util.UUID
  * [BookStore] would no longer keep the saves of the first in order. Lives as long as the process,
  * so nothing here is ever closed or cancelled. Everything the app needs from Android comes in through [context].
  */
-class AppServices(context: Context) {
+class AppContainer(context: Context) {
     private val appContext = context.applicationContext
 
     // App-private file. Excluded from cloud backup and device transfer (see res/xml):

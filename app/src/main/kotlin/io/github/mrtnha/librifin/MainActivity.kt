@@ -14,9 +14,9 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         ReaderFragmentFactory.removeOrphans(supportFragmentManager)
 
-        val services = (application as LibrifinApplication).services
+        val appContainer = (application as LibrifinApplication).appContainer
         setContent {
-            App(services)
+            App(appContainer)
         }
     }
 }

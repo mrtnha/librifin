@@ -30,7 +30,7 @@ import io.github.mrtnha.librifin.ui.theme.LibrifinTheme
 import io.github.mrtnha.librifin.ui.welcome.WelcomeScreen
 
 @Composable
-fun App(services: AppServices) {
+fun App(appContainer: AppContainer) {
     // Covers are loaded with Coil over Ktor (coil-network-ktor3 registers itself); fade them in.
     setSingletonImageLoaderFactory { context ->
         ImageLoader.Builder(context).crossfade(true).build()
@@ -39,7 +39,7 @@ fun App(services: AppServices) {
     LibrifinTheme {
         // Logged in before? Go straight to the library.
         val navigator = viewModel {
-            Navigator(services.loadSession()?.let { Screen.Library(it) } ?: Screen.Welcome)
+            Navigator(appContainer.loadSession()?.let { Screen.Library(it) } ?: Screen.Welcome)
         }
 
         NavigationBackHandler(
@@ -72,26 +72,26 @@ fun App(services: AppServices) {
                             onGetStarted = { ifOnTop { navigator.push(Screen.ServerSelection) } },
                         )
                         Screen.ServerSelection -> ServerSelectionScreen(
-                            services = services,
+                            appContainer = appContainer,
                             onBack = { ifOnTop(navigator::pop) },
                             onServerSelected = { ifOnTop { navigator.push(Screen.Login(it)) } },
                         )
                         is Screen.Login -> LoginScreen(
                             server = screen.server,
                             initialUsername = screen.username,
-                            services = services,
+                            appContainer = appContainer,
                             onBack = { ifOnTop(navigator::pop) },
                             onLoggedIn = { session ->
-                                services.saveSession(session)
+                                appContainer.saveSession(session)
                                 navigator.replaceAll(Screen.Library(session))
                             },
                         )
                         is Screen.Library -> LibraryScreen(
                             session = screen.session,
-                            services = services,
+                            appContainer = appContainer,
                             onSessionExpired = {
                                 ifOnTop {
-                                    services.clearSession()
+                                    appContainer.clearSession()
                                     navigator.replaceAll(
                                         Screen.Welcome,
                                         Screen.ServerSelection,
@@ -108,21 +108,21 @@ fun App(services: AppServices) {
                             session = screen.session,
                             bookId = screen.bookId,
                             title = screen.title,
-                            services = services,
+                            appContainer = appContainer,
                             onBack = { ifOnTop(navigator::pop) },
                         )
                         is Screen.Settings -> SettingsScreen(
                             session = screen.session,
-                            services = services,
+                            appContainer = appContainer,
                             onBack = { ifOnTop(navigator::pop) },
                             onLoggedOut = {
-                                services.clearSession()
+                                appContainer.clearSession()
                                 navigator.replaceAll(Screen.Welcome)
                             },
                             onLicensesClick = { ifOnTop { navigator.push(Screen.Licenses) } },
                         )
                         Screen.Licenses -> LicensesScreen(
-                            services = services,
+                            appContainer = appContainer,
                             onBack = { ifOnTop(navigator::pop) },
                             onLibraryClick = { ifOnTop { navigator.push(Screen.License(it)) } },
                         )

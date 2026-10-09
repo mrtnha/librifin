@@ -31,7 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.mrtnha.librifin.AppServices
+import io.github.mrtnha.librifin.AppContainer
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.storage.Downloads
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
@@ -45,12 +45,12 @@ import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 @Composable
 fun SettingsScreen(
     session: Session,
-    services: AppServices,
+    appContainer: AppContainer,
     onBack: () -> Unit,
     onLoggedOut: () -> Unit,
     onLicensesClick: () -> Unit,
 ) {
-    val vm = viewModel { SettingsViewModel(session, services.jellyfin, services.bookStore) }
+    val vm = viewModel { SettingsViewModel(session, appContainer.jellyfin, appContainer.bookStore) }
     var isLogoutDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isRemoveDownloadsDialogOpen by rememberSaveable { mutableStateOf(false) }
 
@@ -123,7 +123,7 @@ fun SettingsScreen(
                 )
             }
             Text(
-                "Version ${services.appVersion}",
+                "Version ${appContainer.appVersion}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp),

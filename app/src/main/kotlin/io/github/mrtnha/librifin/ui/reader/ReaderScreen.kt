@@ -64,7 +64,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import io.github.mrtnha.librifin.AppServices
+import io.github.mrtnha.librifin.AppContainer
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import io.github.mrtnha.librifin.ui.components.SearchBar
@@ -80,18 +80,18 @@ fun ReaderScreen(
     session: Session,
     bookId: String,
     title: String,
-    services: AppServices,
+    appContainer: AppContainer,
     onBack: () -> Unit,
 ) {
     val vm = viewModel {
         ReaderViewModel(
             session,
             bookId,
-            services.jellyfin,
-            services.bookStore,
-            services.progressSync,
-            services.settingsStore,
-            services.scope,
+            appContainer.jellyfin,
+            appContainer.bookStore,
+            appContainer.progressSync,
+            appContainer.settingsStore,
+            appContainer.scope,
         )
     }
 

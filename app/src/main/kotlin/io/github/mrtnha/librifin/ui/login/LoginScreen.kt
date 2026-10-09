@@ -27,7 +27,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.mrtnha.librifin.AppServices
+import io.github.mrtnha.librifin.AppContainer
 import io.github.mrtnha.librifin.api.Server
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.ui.components.FlowScaffold
@@ -38,11 +38,11 @@ import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 fun LoginScreen(
     server: Server,
     initialUsername: String,
-    services: AppServices,
+    appContainer: AppContainer,
     onBack: () -> Unit,
     onLoggedIn: (Session) -> Unit,
 ) {
-    val vm = viewModel { LoginViewModel(server, services.jellyfin, initialUsername) }
+    val vm = viewModel { LoginViewModel(server, appContainer.jellyfin, initialUsername) }
     val submit = { vm.login(onLoggedIn) }
 
     FlowScaffold(title = "Log in", onBack = onBack) {

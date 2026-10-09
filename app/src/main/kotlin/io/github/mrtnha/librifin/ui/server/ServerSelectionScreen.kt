@@ -32,7 +32,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.mrtnha.librifin.AppServices
+import io.github.mrtnha.librifin.AppContainer
 import io.github.mrtnha.librifin.api.Server
 import io.github.mrtnha.librifin.ui.components.FlowScaffold
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
@@ -41,11 +41,11 @@ import io.github.mrtnha.librifin.ui.components.ServerCard
 
 @Composable
 fun ServerSelectionScreen(
-    services: AppServices,
+    appContainer: AppContainer,
     onBack: () -> Unit,
     onServerSelected: (Server) -> Unit,
 ) {
-    val vm = viewModel { ServerSelectionViewModel(services.jellyfin, services.serverDiscovery) }
+    val vm = viewModel { ServerSelectionViewModel(appContainer.jellyfin, appContainer.serverDiscovery) }
 
     // Discover only while this screen is shown, like Finamp.
     DisposableEffect(vm) {

@@ -2,7 +2,7 @@ package io.github.mrtnha.librifin
 
 import android.app.Application
 
-/** Holds the [AppServices] for the whole process, so they outlive the activity (see [AppServices]). */
+/** Holds the [AppContainer] for the whole process, so it outlives the activity (see [AppContainer]). */
 class LibrifinApplication : Application() {
-    val services by lazy { AppServices(this) }
+    val appContainer by lazy { AppContainer(this) }
 }
