@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
@@ -452,6 +453,8 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, onPageSelected:
                     draggedPage = null
                 },
                 valueRange = 1f..pages.size.toFloat(),
+                // A bit closer to the text, with that room added below; the touch area keeps its full height.
+                modifier = Modifier.offset(y = (-4).dp),
                 // A thin line with a round dot instead of Material's thick track, tall handle, gaps and end dot.
                 thumb = { Box(Modifier.size(THUMB_SIZE).background(MaterialTheme.colorScheme.primary, CircleShape)) },
                 track = { sliderState ->
