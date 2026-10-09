@@ -426,9 +426,10 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, onPageSelected:
                 .windowInsetsPadding(
                     systemBarsIgnoringVisibility().only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
                 )
-                .padding(start = 24.dp, end = 24.dp, top = 12.dp),
+                // The text sits 24 dp from the edges and the slider's line ends right below it.
+                .padding(start = 24.dp - THUMB_SIZE / 2, end = 24.dp - THUMB_SIZE / 2, top = 12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(horizontal = THUMB_SIZE / 2), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     pages[page - 1].chapter.orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
@@ -452,7 +453,7 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, onPageSelected:
                 },
                 valueRange = 1f..pages.size.toFloat(),
                 // A thin line with a round dot instead of Material's thick track, tall handle, gaps and end dot.
-                thumb = { Box(Modifier.size(16.dp).background(MaterialTheme.colorScheme.primary, CircleShape)) },
+                thumb = { Box(Modifier.size(THUMB_SIZE).background(MaterialTheme.colorScheme.primary, CircleShape)) },
                 track = { sliderState ->
                     SliderDefaults.Track(
                         sliderState = sliderState,
@@ -466,6 +467,9 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, onPageSelected:
         }
     }
 }
+
+/** The page slider's dot. Material shortens the slider's line by half of it on each side. */
+private val THUMB_SIZE = 16.dp
 
 /** How long the finger has to rest on the page slider before the book shows that page. */
 private const val PREVIEW_DELAY_MS = 50L
