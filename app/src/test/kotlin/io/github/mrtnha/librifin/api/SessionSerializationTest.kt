@@ -4,7 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class SessionSerializationTest {
-    private val server = Server(baseUrl = "http://192.168.1.10:8096", id = "abc", name = "home", version = null)
+    private val server = Server(baseUrl = "http://192.168.1.10:8096", id = "abc", name = "home")
 
     @Test
     fun sessionSurvivesRoundTrip() {
@@ -18,6 +18,15 @@ class SessionSerializationTest {
         // Sessions saved while the app showed the profile picture also have its tag; it's ignored now.
         val saved = """{"server":{"baseUrl":"http://192.168.1.10:8096","id":"abc","name":"home"},""" +
             """"userId":"u1","userName":"admin","userImageTag":"tag1","accessToken":"t0k3n"}"""
+        val session = Session(server, userId = "u1", userName = "admin", accessToken = "t0k3n")
+        assertEquals(session, JellyfinClient.json.decodeFromString<Session>(saved))
+    }
+
+    @Test
+    fun sessionSavedWithServerVersionStillLoads() {
+        // Sessions saved while the app showed the server version also have it; it's ignored now.
+        val saved = """{"server":{"baseUrl":"http://192.168.1.10:8096","id":"abc","name":"home","version":"10.10.7"},""" +
+            """"userId":"u1","userName":"admin","accessToken":"t0k3n"}"""
         val session = Session(server, userId = "u1", userName = "admin", accessToken = "t0k3n")
         assertEquals(session, JellyfinClient.json.decodeFromString<Session>(saved))
     }

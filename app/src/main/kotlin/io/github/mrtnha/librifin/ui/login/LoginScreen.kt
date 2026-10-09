@@ -49,7 +49,7 @@ fun LoginScreen(
         Text(server.name, style = MaterialTheme.typography.titleMedium)
         Text(
             server.baseUrl,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(16.dp))

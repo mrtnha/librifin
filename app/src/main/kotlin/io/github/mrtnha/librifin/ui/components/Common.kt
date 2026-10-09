@@ -82,10 +82,9 @@ fun ServerCard(server: Server, onClick: () -> Unit, modifier: Modifier = Modifie
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            server.version?.let { Text("v$it", style = MaterialTheme.typography.bodySmall) }
             Text(
                 server.baseUrl,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

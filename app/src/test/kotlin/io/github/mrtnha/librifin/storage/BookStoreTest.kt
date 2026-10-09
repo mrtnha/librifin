@@ -23,7 +23,7 @@ class BookStoreTest {
     private val dir = Path(SystemTemporaryDirectory, "librifin-test-${Random.nextLong().toULong()}")
     private val store = BookStore(dir.toString()).also { SystemFileSystem.createDirectories(dir) }
 
-    private val server = Server(baseUrl = "http://192.168.1.10:8096", id = "server1", name = "home", version = null)
+    private val server = Server(baseUrl = "http://192.168.1.10:8096", id = "server1", name = "home")
     private val alice = Session(server, userId = "alice", userName = "alice", accessToken = "a")
     private val bob = Session(server, userId = "bob", userName = "bob", accessToken = "b")
     private val position = ReadingPosition(locator = "{}", progress = 0.4, updatedAtMillis = 1)

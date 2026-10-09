@@ -132,7 +132,7 @@ class ServerSelectionViewModel(
             discoveryName.isNullOrBlank() || discoveryName == serverName -> serverName
             else -> "$serverName ($discoveryName)"
         }
-        return Server(baseUrl = baseUrl, id = id, name = name, version = info.version)
+        return Server(baseUrl = baseUrl, id = id, name = name)
     }
 
     private companion object {

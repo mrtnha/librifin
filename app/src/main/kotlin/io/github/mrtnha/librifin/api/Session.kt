@@ -8,7 +8,6 @@ data class Server(
     val baseUrl: String,
     val id: String,
     val name: String,
-    val version: String?,
 )
 
 /** A logged-in user on a server. Saved between app starts via [io.github.mrtnha.librifin.platform.SessionStore]. */
