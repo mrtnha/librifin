@@ -17,6 +17,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentLength
 import io.ktor.http.contentType
 import io.ktor.http.encodeURLParameter
@@ -103,6 +104,24 @@ class JellyfinClient(private val platform: Platform) {
         }
     }
 
+    /**
+     * The part of a book's original file that [range] names, in the form of an HTTP Range header:
+     * `bytes=-16384` for the last 16 KB, `bytes=100-199` for bytes 100 to 199. If the server sends the
+     * whole file instead, it isn't read: this throws [RangeNotSupportedException].
+     */
+    suspend fun bookBytes(session: Session, itemId: String, range: String): FilePart =
+        http.prepareGet("${session.server.baseUrl}/Items/$itemId/Download") {
+            authorize(session.accessToken)
+            header(HttpHeaders.Range, range)
+        }.execute { response ->
+            // "bytes 100-199/1014737": the size of the whole file comes after the slash.
+            val fileSize = response.headers[HttpHeaders.ContentRange]?.substringAfterLast('/')?.toLongOrNull()
+            if (response.status != HttpStatusCode.PartialContent || fileSize == null) {
+                throw RangeNotSupportedException()
+            }
+            FilePart(response.body(), fileSize)
+        }
+
     /** The user's state of one item, e.g. how far a book has been read. */
     suspend fun userData(session: Session, itemId: String): UserItemDataDto =
         http.get("${session.server.baseUrl}/UserItems/$itemId/UserData") {
@@ -159,6 +178,9 @@ class JellyfinClient(private val platform: Platform) {
         }
     }
 }
+
+/** [bytes] from a file of [fileSize] bytes. */
+class FilePart(val bytes: ByteArray, val fileSize: Long)
 
 /**
  * [text] decoded as [T], or null if it isn't a valid [T], e.g. a damaged file or an unexpected reply.

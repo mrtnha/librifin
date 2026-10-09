@@ -70,6 +70,7 @@ fun SortSheet(selected: LibrarySort, onSelect: (LibrarySort) -> Unit, onDismiss:
 private val LibrarySort.label: String
     get() = when (this) {
         LibrarySort.RECENTLY_READ -> "Recently read"
+        LibrarySort.AUTHOR -> "Author"
         LibrarySort.TITLE -> "Title"
         LibrarySort.DATE_ADDED -> "Date added"
     }

@@ -9,6 +9,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.ContentConvertException
 import kotlinx.serialization.SerializationException
 
+/** The server sent a whole file when only part of it was asked for, so reading files in parts won't work. */
+class RangeNotSupportedException : Exception("The server doesn't send parts of files.")
+
 /**
  * The status the server refused the request with (4xx), or null if it failed another way.
  * [HttpStatusCode.Unauthorized] means the server doesn't accept the login: a wrong password at login,

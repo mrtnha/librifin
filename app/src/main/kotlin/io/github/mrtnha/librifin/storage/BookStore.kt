@@ -16,8 +16,9 @@ import kotlinx.io.writeString
 import kotlinx.serialization.Serializable
 
 /**
- * What Librifin keeps on the device: the downloaded books, where each book was left off, and the
- * last loaded book list so the library shows up instantly and while the server can't be reached.
+ * What Librifin keeps on the device: the downloaded books, where each book was left off, the last
+ * loaded book list so the library shows up instantly and while the server can't be reached, and how
+ * each book files its author, as read from its file.
  * Positions and the book list belong to one user on one server, so another login never sees them.
  * Blocking file I/O (except the suspend functions): call it off the main thread.
  */
@@ -25,6 +26,7 @@ class BookStore(filesDir: String) {
     private val booksDir = Path(filesDir, "books")
     private val libraryFile = Path(filesDir, "library.json")
     private val positionsRoot = Path(filesDir, "positions")
+    private val authorSortNamesFile = Path(filesDir, "author-sort-names.json")
 
     /** Saves run one at a time, in the order they were requested, so an older position never wins. */
     private val positionLock = Mutex()
@@ -62,6 +64,16 @@ class BookStore(filesDir: String) {
 
     fun saveLibrary(session: Session, books: List<Book>) =
         writeJson(libraryFile, SavedLibrary(session.server.id, session.userId, books))
+
+    /** How the books on this server file their authors, by book id; empty if nothing was read yet. */
+    fun readAuthorSortNames(session: Session): Map<String, AuthorSortName> =
+        readJson<SavedAuthorSortNames>(authorSortNamesFile)
+            ?.takeIf { it.serverId == session.server.id }
+            ?.names
+            .orEmpty()
+
+    fun saveAuthorSortNames(session: Session, names: Map<String, AuthorSortName>) =
+        writeJson(authorSortNamesFile, SavedAuthorSortNames(session.server.id, names))
 
     /** Where the user stopped reading this book on this device, or null if never opened (or unreadable). */
     fun readPosition(session: Session, bookId: String): ReadingPosition? = readJson(positionFile(session, bookId))
@@ -152,7 +164,18 @@ class BookStore(filesDir: String) {
     /** Saved with the user and server it belongs to, so another login never shows someone else's books. */
     @Serializable
     private class SavedLibrary(val serverId: String, val userId: String, val books: List<Book>)
+
+    /** Saved with the server: book ids belong to it. The same for every user, as it's read from the files. */
+    @Serializable
+    private class SavedAuthorSortNames(val serverId: String, val names: Map<String, AuthorSortName>)
 }
+
+/**
+ * How a book's file files [author], the book's first author in Jellyfin when the file was read:
+ * [fileAs], e.g. "Mann, Thomas", or null if the file doesn't say.
+ */
+@Serializable
+data class AuthorSortName(val author: String, val fileAs: String? = null)
 
 /** [bookCount] downloaded books, which take [bytes] together. */
 data class Downloads(val bookCount: Int, val bytes: Long)

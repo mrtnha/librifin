@@ -146,6 +146,19 @@ class BookStoreTest {
     }
 
     @Test
+    fun authorSortNamesBelongToTheServerForEveryUser() {
+        val names = mapOf(
+            "book1" to AuthorSortName("Thomas Mann", "Mann, Thomas"),
+            "book2" to AuthorSortName("Homer"),
+        )
+        store.saveAuthorSortNames(alice, names)
+
+        assertEquals(names, store.readAuthorSortNames(alice))
+        assertEquals(names, store.readAuthorSortNames(bob))
+        assertEquals(emptyMap(), store.readAuthorSortNames(alice.copy(server = server.copy(id = "server2"))))
+    }
+
+    @Test
     fun unreadableFilesCountAsMissing() = runBlocking {
         store.savePosition(alice, "book1", position)
         writeText(Path(dir, "positions", "server1", "alice", "book1.json"), "{ not json")

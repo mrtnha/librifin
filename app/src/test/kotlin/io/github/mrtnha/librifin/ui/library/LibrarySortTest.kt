@@ -1,5 +1,6 @@
 package io.github.mrtnha.librifin.ui.library
 
+import io.github.mrtnha.librifin.storage.AuthorSortName
 import io.github.mrtnha.librifin.storage.Book
 import java.util.Locale
 import kotlin.test.Test
@@ -60,12 +61,87 @@ class LibrarySortTest {
         )
     }
 
-    /** The book's id is its title, so tests can refer to books by title. */
-    private fun book(title: String, sortTitle: String? = null, dateAddedMillis: Long? = null) =
-        Book(id = title, title = title, coverUrl = null, sortTitle = sortTitle, dateAddedMillis = dateAddedMillis)
+    @Test
+    fun authorBySurnameAsTheFileSaysElseGuessedOneAuthorsBooksByTitleWithoutAuthorLast() {
+        val books = listOf(
+            book("Walden", authors = listOf("Henry David Thoreau")),
+            book("Notes"),
+            book("Great Expectations", authors = listOf("Charles Dickens")),
+            book("One Hundred Years of Solitude", authors = listOf("Gabriel García Márquez")),
+            book("The Left Hand of Darkness", authors = listOf("Ursula K. Le Guin")),
+            book("A Tale of Two Cities", authors = listOf("Charles Dickens")),
+        )
+        // The guess would file him under M.
+        val names = mapOf(
+            "One Hundred Years of Solitude" to AuthorSortName("Gabriel García Márquez", "García Márquez, Gabriel"),
+        )
 
-    private fun sorted(books: List<Book>, sort: LibrarySort, lastRead: Map<String, Long> = emptyMap()) =
-        sortBooks(books, sort, lastRead).map { it.title }
+        val titles = inLocale(Locale.ENGLISH) { sorted(books, LibrarySort.AUTHOR, authorSortNames = names) }
+
+        assertEquals(
+            listOf(
+                "A Tale of Two Cities",
+                "Great Expectations",
+                "One Hundred Years of Solitude",
+                "The Left Hand of Darkness",
+                "Walden",
+                "Notes",
+            ),
+            titles,
+        )
+    }
+
+    @Test
+    fun authorNameReadForAnotherAuthorIsIgnored() {
+        val books = listOf(
+            book("Walden", authors = listOf("Henry David Thoreau")),
+            book("Buddenbrooks", authors = listOf("Thomas Mann")),
+        )
+        // Read when Jellyfin still had another author for the book.
+        val names = mapOf("Walden" to AuthorSortName("Someone Else", "Aaron, Someone"))
+
+        assertEquals(listOf("Buddenbrooks", "Walden"), sorted(books, LibrarySort.AUTHOR, authorSortNames = names))
+    }
+
+    @Test
+    fun surnameIsGuessedAsLibrariesFileNames() {
+        mapOf(
+            "Terry Pratchett" to "Pratchett, Terry",
+            "Martin Luther King Jr." to "King, Martin Luther Jr.",
+            "Martin Luther King, Jr." to "King, Martin Luther Jr.",
+            "E. M. Forster" to "Forster, E. M.",
+            "Homer" to "Homer",
+            "Ursula K. Le Guin" to "Le Guin, Ursula K.",
+            "Thomas De Quincey" to "De Quincey, Thomas",
+            "Johann Wolfgang von Goethe" to "Goethe, Johann Wolfgang von",
+            "Ludwig van Beethoven" to "Beethoven, Ludwig van",
+            "Honoré de Balzac" to "Balzac, Honoré de",
+            "Van Morrison" to "Morrison, Van",
+            "Mann, Thomas" to "Mann, Thomas",
+        ).forEach { (name, expected) -> assertEquals(expected, surnameFirst(name), name) }
+    }
+
+    /** The book's id is its title, so tests can refer to books by title. */
+    private fun book(
+        title: String,
+        sortTitle: String? = null,
+        dateAddedMillis: Long? = null,
+        authors: List<String> = emptyList(),
+    ) = Book(
+        id = title,
+        title = title,
+        coverUrl = null,
+        sortTitle = sortTitle,
+        dateAddedMillis = dateAddedMillis,
+        authors = authors,
+    )
+
+    private fun sorted(
+        books: List<Book>,
+        sort: LibrarySort,
+        lastRead: Map<String, Long> = emptyMap(),
+        authorSortNames: Map<String, AuthorSortName> = emptyMap(),
+    ) = sortBooks(books, sort, lastRead, authorSortNames).map { it.title }
 
     /** Runs [block] with [locale] as the default, as the order of letters depends on the language. */
     private fun <T> inLocale(locale: Locale, block: () -> T): T {

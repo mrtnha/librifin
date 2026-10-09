@@ -25,8 +25,8 @@ couldn't find an app I liked, so I built my own:
 - Finds Jellyfin servers on your local network automatically, with manual address entry as a
   fallback.
 - Log in once and stay logged in.
-- Your book library as a grid of covers, sorted by recently read, title or date added, with each
-  book's reading progress and a mark for finished books.
+- Your book library as a grid of covers, sorted by recently read, author, title or date added,
+  with each book's reading progress and a mark for finished books.
 - Search the library by title or author.
 - Tap a book to download and open it. Downloaded books work offline; the others are grayed out
   until the server is back.
