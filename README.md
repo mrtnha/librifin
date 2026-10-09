@@ -72,16 +72,16 @@ Librifin works well for how I use it but it isn't perfect:
   the exact spot. When you continue on another device, you land near the right page, not exactly
   on it.
 
-## Building
+## Build from source
 
 You need JDK 17 or newer and the Android SDK (with `ANDROID_HOME` set).
 
 ```sh
-./gradlew :app:assembleDebug
+./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Run the tests with `./gradlew :app:testDebugUnitTest`.
+Run the tests with `./gradlew testDebugUnitTest`.
 
 The code is in [`app/src/main/kotlin`](app/src/main/kotlin/io/github/mrtnha/librifin), the tests
 are in [`app/src/test/kotlin`](app/src/test/kotlin/io/github/mrtnha/librifin).
