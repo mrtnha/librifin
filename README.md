@@ -28,8 +28,8 @@ couldn't find an app I liked, so I built my own:
 - Your book library as a grid of covers, sorted by recently read, author, title, progress or date
   added, with each book's reading progress and a mark for finished books.
 - Search the library by title or author.
-- Tap a book to download and open it. Downloaded books work offline; the others are grayed out
-  until the server is back.
+- Tap a book to download and open it. Downloaded books carry a mark and work offline; the others
+  are grayed out until the server is back.
 - Paginated reading: turn the page by tapping the edges or swiping. Tap the middle of the page to
   show or hide the bars.
 - A page slider to move through the whole book.

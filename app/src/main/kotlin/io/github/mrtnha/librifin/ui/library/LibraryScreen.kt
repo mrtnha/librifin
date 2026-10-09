@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -196,6 +197,7 @@ fun LibraryScreen(
                                 BookGrid(
                                     books = books,
                                     progress = state.progress,
+                                    isDownloaded = state::isDownloaded,
                                     canOpen = state::canOpen,
                                     onBookClick = { book ->
                                         if (state.canOpen(book)) onBookClick(book) else explainNotDownloaded()
@@ -218,6 +220,7 @@ fun LibraryScreen(
 private fun BookGrid(
     books: List<Book>,
     progress: Map<String, BookProgress>,
+    isDownloaded: (Book) -> Boolean,
     canOpen: (Book) -> Boolean,
     onBookClick: (Book) -> Unit,
 ) {
@@ -229,13 +232,25 @@ private fun BookGrid(
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         items(books, key = { it.id }) { book ->
-            BookItem(book, progress[book.id], isDimmed = !canOpen(book), onClick = { onBookClick(book) })
+            BookItem(
+                book,
+                progress[book.id],
+                isDownloaded = isDownloaded(book),
+                isDimmed = !canOpen(book),
+                onClick = { onBookClick(book) },
+            )
         }
     }
 }
 
 @Composable
-private fun BookItem(book: Book, progress: BookProgress?, isDimmed: Boolean, onClick: () -> Unit) {
+private fun BookItem(
+    book: Book,
+    progress: BookProgress?,
+    isDownloaded: Boolean,
+    isDimmed: Boolean,
+    onClick: () -> Unit,
+) {
     // Books that can't be opened right now (offline, not downloaded) are shown faded and in grey.
     Column(Modifier.clickable(onClick = onClick).alpha(if (isDimmed) DIMMED_ALPHA else 1f)) {
         Box(
@@ -262,22 +277,20 @@ private fun BookItem(book: Book, progress: BookProgress?, isDimmed: Boolean, onC
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+            // On the phone, so it opens without the server: top left, as the finished mark is top right.
+            if (isDownloaded) {
+                CoverBadge(
+                    LibrifinIcons.Download,
+                    contentDescription = "Downloaded",
+                    modifier = Modifier.align(Alignment.TopStart),
+                )
+            }
             if (progress?.isFinished == true) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(28.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        LibrifinIcons.Check,
-                        contentDescription = "Finished",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
+                CoverBadge(
+                    LibrifinIcons.Check,
+                    contentDescription = "Finished",
+                    modifier = Modifier.align(Alignment.TopEnd),
+                )
             }
             // Along the bottom edge of the cover, like in Jellyfin. On every book: an empty track until
             // started, then filling up in blue. The dark, see-through track stays visible on any cover.
@@ -297,6 +310,25 @@ private fun BookItem(book: Book, progress: BookProgress?, isDimmed: Boolean, onC
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+}
+
+/** A round mark in the app's blue in a corner of a cover, like Jellyfin's mark for played items. */
+@Composable
+private fun CoverBadge(icon: ImageVector, contentDescription: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .padding(8.dp)
+            .size(28.dp)
+            .background(MaterialTheme.colorScheme.primary, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(22.dp),
         )
     }
 }

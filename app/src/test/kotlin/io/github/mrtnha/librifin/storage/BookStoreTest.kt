@@ -172,15 +172,18 @@ class BookStoreTest {
     fun downloadsAreTheFinishedBooks() {
         writeText(store.partialBookFile("book1"), "123")
         assertEquals(Downloads(bookCount = 0, bytes = 0), store.downloads())
+        assertEquals(emptySet(), store.downloadedBookIds())
 
         writeText(store.bookFile("book1"), "12345")
         writeText(store.bookFile("book2"), "1234567")
         assertEquals(Downloads(bookCount = 2, bytes = 12), store.downloads())
+        assertEquals(setOf("book1", "book2"), store.downloadedBookIds())
     }
 
     @Test
     fun nothingDownloadedYet() {
         assertEquals(Downloads(bookCount = 0, bytes = 0), store.downloads())
+        assertEquals(emptySet(), store.downloadedBookIds())
         store.deleteAllBooks()
     }
 

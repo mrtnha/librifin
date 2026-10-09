@@ -45,13 +45,19 @@ class BookStore(filesDir: String) {
 
     /** The books downloaded on this device, for every user who logged in here. */
     fun downloads(): Downloads {
-        val books = filesInBooksDir().filter { it.name.endsWith(".epub") }
+        val books = downloadedBookFiles()
         val bytes = books.sumOf { SystemFileSystem.metadataOrNull(it)?.size ?: 0L }
         return Downloads(bookCount = books.size, bytes = bytes)
     }
 
+    /** The ids of the books downloaded on this device, for every user who logged in here. */
+    fun downloadedBookIds(): Set<String> = downloadedBookFiles().mapTo(HashSet()) { it.name.removeSuffix(".epub") }
+
     /** Deletes every downloaded book and unfinished download. Positions and the saved book list stay. */
     fun deleteAllBooks() = filesInBooksDir().forEach { SystemFileSystem.delete(it, mustExist = false) }
+
+    /** The files of the downloaded books, without unfinished downloads. */
+    private fun downloadedBookFiles() = filesInBooksDir().filter { it.name.endsWith(".epub") }
 
     private fun filesInBooksDir(): Collection<Path> =
         if (SystemFileSystem.exists(booksDir)) SystemFileSystem.list(booksDir) else emptyList()

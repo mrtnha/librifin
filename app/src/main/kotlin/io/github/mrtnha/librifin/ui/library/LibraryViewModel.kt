@@ -72,9 +72,10 @@ sealed interface LibraryState {
     data object Loading : LibraryState
     data object NoBookLibrary : LibraryState
     /**
-     * [books] in the chosen order. [progress]: only for books that were started. [isOffline]: the
-     * server can't be reached, so this is the saved list and only the books in [downloadedIds] can be
-     * opened. [lastReadMillis]: when each book that was read was last read, to sort them again.
+     * [books] in the chosen order. [progress]: only for books that were started. [downloadedIds]: the
+     * books on this device. [isOffline]: the server can't be reached, so this is the saved list and only
+     * the downloaded books can be opened. [lastReadMillis]: when each book that was read was last read,
+     * to sort them again.
      */
     data class Loaded(
         val books: List<Book>,
@@ -83,7 +84,9 @@ sealed interface LibraryState {
         val downloadedIds: Set<String> = emptySet(),
         val lastReadMillis: Map<String, Long> = emptyMap(),
     ) : LibraryState {
-        fun canOpen(book: Book) = !isOffline || book.id in downloadedIds
+        fun isDownloaded(book: Book) = book.id in downloadedIds
+
+        fun canOpen(book: Book) = !isOffline || isDownloaded(book)
 
         /** [books] in [sort]'s order. */
         fun sorted(sort: LibrarySort, authorSortNames: Map<String, AuthorSortName>) =
@@ -159,7 +162,7 @@ class LibraryViewModel(
             state = if (shown != null) {
                 // E.g. back from a book: its progress and place in the order are on this device already,
                 // so they show right away, not only once the server has answered below.
-                loaded(shown.books, shown.isOffline, shown.downloadedIds)
+                loaded(shown.books, shown.isOffline)
             } else {
                 withContext(Dispatchers.IO) { bookStore.readLibrary(session) }?.let { loaded(it) }
                     ?: LibraryState.Loading
@@ -199,12 +202,7 @@ class LibraryViewModel(
                 when {
                     e.clientErrorStatus == HttpStatusCode.Unauthorized ->
                         LibraryState.Error(e.toUserMessage(), isSessionExpired = true)
-                    saved != null -> {
-                        val downloaded = withContext(Dispatchers.IO) {
-                            saved.filter { bookStore.isDownloaded(it.id) }.mapTo(HashSet()) { it.id }
-                        }
-                        loaded(saved, isOffline = true, downloadedIds = downloaded)
-                    }
+                    saved != null -> loaded(saved, isOffline = true)
                     else -> LibraryState.Error(e.toUserMessage())
                 }
             }
@@ -281,14 +279,14 @@ class LibraryViewModel(
      * A book was last read at the later of when it was read here and when Jellyfin last saw it read, so
      * a book read here moves up right away, also offline, and one read on another device still does.
      * Only turning a page counts as reading, not just opening a book.
+     *
+     * Which books are downloaded is looked up each time, so books opened or removed meanwhile (e.g. in
+     * the settings) show as they are now.
      */
-    private suspend fun loaded(
-        books: List<Book>,
-        isOffline: Boolean = false,
-        downloadedIds: Set<String> = emptySet(),
-    ): LibraryState.Loaded {
+    private suspend fun loaded(books: List<Book>, isOffline: Boolean = false): LibraryState.Loaded {
         // After the saves still running: leaving a book right after a page turn may not have finished saving it.
         val positions = bookStore.currentPositions(session)
+        val downloadedIds = withContext(Dispatchers.IO) { bookStore.downloadedBookIds() }
         val progress = books.mapNotNull { book ->
             val local = positions[book.id]
             val progress = BookProgress(
