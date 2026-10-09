@@ -34,6 +34,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -75,7 +76,15 @@ fun LibraryScreen(
     onBookClick: (Book) -> Unit,
     onSettingsClick: () -> Unit,
 ) {
-    val vm = viewModel { LibraryViewModel(session, services.jellyfin, services.bookStore, services.progressSync) }
+    val vm = viewModel {
+        LibraryViewModel(
+            session,
+            services.jellyfin,
+            services.bookStore,
+            services.progressSync,
+            services.platform.settingsStore,
+        )
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var isPullRefreshing by remember { mutableStateOf(false) }
@@ -132,6 +141,10 @@ fun LibraryScreen(
                 TopAppBar(
                     title = { Text("Library", fontWeight = FontWeight.SemiBold) },
                     actions = {
+                        IconButton(onClick = { vm.isSortSheetOpen = true }) {
+                            Icon(LibrifinIcons.Sort, contentDescription = "Sort books")
+                        }
+                        // Second from the right, as in the reader's top bar.
                         IconButton(onClick = { vm.searchQuery = "" }) {
                             Icon(LibrifinIcons.Search, contentDescription = "Search books")
                         }
@@ -177,19 +190,27 @@ fun LibraryScreen(
                                 }
                             },
                         ) {
-                            BookGrid(
-                                books = books,
-                                progress = state.progress,
-                                canOpen = state::canOpen,
-                                onBookClick = { book ->
-                                    if (state.canOpen(book)) onBookClick(book) else explainNotDownloaded()
-                                },
-                            )
+                            // A new grid for a new sort, so it starts at the top with the first book of the
+                            // new order, instead of staying on the book in view, which is now elsewhere.
+                            key(vm.sort) {
+                                BookGrid(
+                                    books = books,
+                                    progress = state.progress,
+                                    canOpen = state::canOpen,
+                                    onBookClick = { book ->
+                                        if (state.canOpen(book)) onBookClick(book) else explainNotDownloaded()
+                                    },
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    if (vm.isSortSheetOpen) {
+        SortSheet(selected = vm.sort, onSelect = vm::selectSort, onDismiss = { vm.isSortSheetOpen = false })
     }
 }
 

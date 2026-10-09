@@ -35,6 +35,10 @@ data class UserDto(
 data class BaseItemDto(
     @SerialName("Id") val id: String,
     @SerialName("Name") val name: String? = null,
+    /** Only when requested with the "SortName" field. The name as Jellyfin sorts it, e.g. "prince" for "The Prince". */
+    @SerialName("SortName") val sortName: String? = null,
+    /** Only when requested with the "DateCreated" field. When the item was added to the library, ISO 8601. */
+    @SerialName("DateCreated") val dateCreated: String? = null,
     @SerialName("CollectionType") val collectionType: String? = null,
     @SerialName("ImageTags") val imageTags: Map<String, String?>? = null,
     @SerialName("UserData") val userData: UserItemDataDto? = null,

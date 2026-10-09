@@ -10,10 +10,12 @@ import io.github.mrtnha.librifin.api.JellyfinClient
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.clientErrorStatus
 import io.github.mrtnha.librifin.api.toUserMessage
+import io.github.mrtnha.librifin.platform.SettingsStore
 import io.github.mrtnha.librifin.storage.Book
 import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.sync.ProgressSync
 import io.ktor.http.HttpStatusCode
+import java.text.Collator
 import kotlin.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -25,18 +27,32 @@ import kotlinx.coroutines.withContext
 /** How far a book was read: [fraction] 0..1, [isFinished] once the book was read to the end (or nearly). */
 data class BookProgress(val fraction: Float, val isFinished: Boolean)
 
+/** The orders the library can be shown in, each in the direction readers expect. */
+enum class LibrarySort {
+    /** Most recently read first. Books never read come after them, by title. */
+    RECENTLY_READ,
+
+    /** A to Z. */
+    TITLE,
+
+    /** Most recently added to Jellyfin first. */
+    DATE_ADDED,
+}
+
 sealed interface LibraryState {
     data object Loading : LibraryState
     data object NoBookLibrary : LibraryState
     /**
-     * [progress]: only for books that were started. [isOffline]: the server can't be reached, so
-     * this is the saved list and only the books in [downloadedIds] can be opened.
+     * [books] in the chosen order. [progress]: only for books that were started. [isOffline]: the
+     * server can't be reached, so this is the saved list and only the books in [downloadedIds] can be
+     * opened. [lastReadMillis]: when each book that was read was last read, to sort them again.
      */
     data class Loaded(
         val books: List<Book>,
         val progress: Map<String, BookProgress>,
         val isOffline: Boolean = false,
         val downloadedIds: Set<String> = emptySet(),
+        val lastReadMillis: Map<String, Long> = emptyMap(),
     ) : LibraryState {
         fun canOpen(book: Book) = !isOffline || book.id in downloadedIds
     }
@@ -49,9 +65,18 @@ class LibraryViewModel(
     private val jellyfin: JellyfinClient,
     private val bookStore: BookStore,
     private val progressSync: ProgressSync,
+    private val settings: SettingsStore,
 ) : ViewModel() {
     var state by mutableStateOf<LibraryState>(LibraryState.Loading)
         private set
+
+    /** The order of the books, kept between app starts. */
+    var sort by mutableStateOf(
+        LibrarySort.entries.find { it.name == settings.read(KEY_SORT) } ?: LibrarySort.RECENTLY_READ,
+    )
+        private set
+
+    var isSortSheetOpen by mutableStateOf(false)
 
     /**
      * The search text while searching, else null. Filters the books on the device, so it works offline too.
@@ -68,6 +93,14 @@ class LibraryViewModel(
     /** Loads again, unless a load is already running. */
     fun refresh() {
         if (loadJob?.isActive != true) load()
+    }
+
+    /** Shows the books in [sort]'s order right away, and keeps it for the next app start. */
+    fun selectSort(sort: LibrarySort) {
+        this.sort = sort
+        settings.write(KEY_SORT, sort.name)
+        val shown = state as? LibraryState.Loaded ?: return
+        state = shown.copy(books = sortBooks(shown.books, sort, shown.lastReadMillis))
     }
 
     /**
@@ -106,6 +139,8 @@ class LibraryViewModel(
                             lastPlayedMillis = item.userData?.lastPlayedDate
                                 ?.let { Instant.parseOrNull(it) }
                                 ?.toEpochMilliseconds(),
+                            sortTitle = item.sortName,
+                            dateAddedMillis = item.dateCreated?.let { Instant.parseOrNull(it) }?.toEpochMilliseconds(),
                         )
                     }
                     withContext(Dispatchers.IO) { bookStore.saveLibrary(session, books) }
@@ -132,14 +167,13 @@ class LibraryViewModel(
     }
 
     /**
-     * [books] as the grid shows them, with this device's progress where there is one (exact, and newest
-     * for books read here), else Jellyfin's (e.g. read on another device); the same for whether it's
-     * finished.
+     * [books] as the grid shows them, in the chosen [sort], with this device's progress where there is
+     * one (exact, and newest for books read here), else Jellyfin's (e.g. read on another device); the
+     * same for whether it's finished.
      *
-     * Most recently read first: the later of when a book was read here and when Jellyfin last saw it
-     * read, so a book read here moves up right away, also offline, and one read on another device still
-     * does. Only turning a page counts as reading, not just opening a book. Books never read keep their
-     * order, by title, after them.
+     * A book was last read at the later of when it was read here and when Jellyfin last saw it read, so
+     * a book read here moves up right away, also offline, and one read on another device still does.
+     * Only turning a page counts as reading, not just opening a book.
      */
     private suspend fun loaded(
         books: List<Book>,
@@ -156,17 +190,36 @@ class LibraryViewModel(
             )
             (book.id to progress).takeIf { progress.isFinished || progress.fraction > 0f }
         }.toMap()
-        val ordered = books.sortedByDescending { book ->
-            maxOf(positions[book.id]?.updatedAtMillis ?: NEVER_READ, book.lastPlayedMillis ?: NEVER_READ)
-        }
-        return LibraryState.Loaded(ordered, progress, isOffline, downloadedIds)
+        val lastRead = books.mapNotNull { book ->
+            listOfNotNull(positions[book.id]?.updatedAtMillis, book.lastPlayedMillis).maxOrNull()?.let { book.id to it }
+        }.toMap()
+        // The sort is read only now, after the wait above, so a sort chosen meanwhile isn't lost.
+        return LibraryState.Loaded(sortBooks(books, sort, lastRead), progress, isOffline, downloadedIds, lastRead)
     }
 
     private companion object {
         /** Half the width of a large phone screen in pixels, so covers stay sharp in a two-column grid. */
         const val COVER_MAX_WIDTH = 600
 
-        /** Sorts after every book that was read. */
-        const val NEVER_READ = Long.MIN_VALUE
+        const val KEY_SORT = "library_sort"
     }
+}
+
+/**
+ * [books] in [sort]'s order. [lastReadMillis] is when each book that was read was last read. Books
+ * that are equal in that order (never read, added at the same time) are sorted by title, so the order
+ * never depends on the order the server sent them in.
+ *
+ * Titles are compared as Jellyfin sorts them ("prince" for "The Prince"), in the order of the phone's
+ * language, so "Ödipus" comes with the O's and not after Z. In lists saved before Jellyfin's sort title
+ * was loaded, the shown title stands in for it until the server is reached.
+ */
+fun sortBooks(books: List<Book>, sort: LibrarySort, lastReadMillis: Map<String, Long>): List<Book> {
+    val byTitle = compareBy<Book, String>(Collator.getInstance()) { it.sortTitle ?: it.title }
+    val order = when (sort) {
+        LibrarySort.RECENTLY_READ -> compareBy(nullsLast(reverseOrder())) { book: Book -> lastReadMillis[book.id] }
+        LibrarySort.TITLE -> byTitle
+        LibrarySort.DATE_ADDED -> compareBy(nullsLast(reverseOrder())) { book: Book -> book.dateAddedMillis }
+    }
+    return books.sortedWith(order.then(byTitle))
 }

@@ -7,6 +7,9 @@ import kotlinx.serialization.Serializable
  * [serverProgress] (0..1) and [isPlayed] are Jellyfin's view of how far it was read, [lastPlayedMillis]
  * when Jellyfin last saw it read (on any device; null if never, or in lists saved before it was loaded).
  * [authors] is empty in lists saved before authors were loaded.
+ * [sortTitle] is the title as Jellyfin sorts it, without a leading "The" or "A"; only for ordering, never
+ * shown. [dateAddedMillis] is when the book was added to Jellyfin. Both are null in lists saved before
+ * they were loaded.
  */
 @Serializable
 data class Book(
@@ -17,6 +20,8 @@ data class Book(
     val isPlayed: Boolean = false,
     val authors: List<String> = emptyList(),
     val lastPlayedMillis: Long? = null,
+    val sortTitle: String? = null,
+    val dateAddedMillis: Long? = null,
 ) {
     /** Every word of [query] is in the title or an author's name, ignoring case: "tolkien hobbit" finds the book. */
     fun matches(query: String): Boolean =

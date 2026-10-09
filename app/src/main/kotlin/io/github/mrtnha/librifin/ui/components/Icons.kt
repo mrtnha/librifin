@@ -169,6 +169,11 @@ object LibrifinIcons {
         )
     }
 
+    /** "sort". Sort button in the library top bar: opens the sheet to choose the order of the books. */
+    val Sort: ImageVector by lazy {
+        symbol("Sort", "M120-240v-80h240v80H120Zm0-200v-80h480v80H120Zm0-200v-80h720v80H120Z")
+    }
+
     /** "match_case" ("Aa"). Reader app bar: opens the appearance sheet (theme, text size, font). */
     val MatchCase: ImageVector by lazy {
         symbol(
