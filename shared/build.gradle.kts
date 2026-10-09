@@ -9,16 +9,6 @@ plugins {
 }
 
 kotlin {
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
-        }
-    }
-    
     android {
        namespace = "io.github.mrtnha.librifin.shared"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -45,9 +35,6 @@ kotlin {
             implementation(libs.androidx.fragment.compose)
             // Starting the reader's WebView early (already in the app via Readium)
             implementation(libs.androidx.webkit)
-        }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

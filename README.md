@@ -65,9 +65,6 @@ couldn't find an app I liked, so I built my own:
 
 Librifin works well for how I use it but it isn't perfect:
 
-- **Android only:** The iOS app has never been built. Most of the code is shared but server
-  discovery and the reader exist only for Android. On iOS, the login and settings aren't saved
-  between app starts.
 - **Single account:** One server and one user at a time.
 - **Syncing isn't fully robust:** Progress made in Jellyfin's web reader isn't always picked
   up by Librifin.
@@ -87,12 +84,10 @@ adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk
 Run the tests with `./gradlew :shared:testAndroidHostTest`.
 
 Nearly all code lives in
-[`shared/src/commonMain`](shared/src/commonMain/kotlin/io/github/mrtnha/librifin), which is shared
-between Android and iOS. Only what can't be shared is in
-[`androidMain`](shared/src/androidMain/kotlin/io/github/mrtnha/librifin) and
-[`iosMain`](shared/src/iosMain/kotlin/io/github/mrtnha/librifin) (e.g. server discovery and the
-book renderer). [`androidApp`](androidApp) is the Android app around it and [`iosApp`](iosApp) the
-iOS app.
+[`shared/src/commonMain`](shared/src/commonMain/kotlin/io/github/mrtnha/librifin). What needs
+Android's own APIs is in [`androidMain`](shared/src/androidMain/kotlin/io/github/mrtnha/librifin)
+(e.g. server discovery and the book renderer). [`androidApp`](androidApp) is the Android app around
+it.
 
 ## Dependencies
 

@@ -12,7 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 
 /**
  * App-wide objects, shared by all screens (no DI framework). Create exactly one per app process
- * (Android: LibrifinApplication, iOS: MainViewController), not per activity or window: a second
+ * (in LibrifinApplication), not per activity: a second
  * [BookStore] would no longer keep the saves of the first in order. Lives as long as the process,
  * so nothing here is ever closed or cancelled.
  */
