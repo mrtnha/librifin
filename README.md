@@ -127,3 +127,11 @@ Librifin is not an official Jellyfin app and I'm not affiliated with the Jellyfi
 ## License
 
 Librifin is licensed under the [Mozilla Public License 2.0](LICENSE).
+
+## Alternatives
+
+If Librifin doesn't do what you need, one of these apps might:
+
+- [JellyBook](https://github.com/JellyBookOrg/JellyBook)
+- [Readest](https://github.com/readest/readest)
+- [Stump](https://github.com/stumpapp/stump)
