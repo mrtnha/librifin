@@ -115,9 +115,9 @@ each font's license is next to its files in
 
 - [Jellyfin](https://github.com/jellyfin/jellyfin) for making the server this app is built for.
 - [Finamp](https://github.com/finamp-app/finamp) for showing me how to connect to a Jellyfin server.
-- [Findroid](https://github.com/jarnedemeulemeester/findroid) and the
-  [Jellyfin Kotlin SDK](https://github.com/jellyfin/jellyfin-sdk-kotlin) for helping me understand
-  Jellyfin's API.
+- [Findroid](https://github.com/jarnedemeulemeester/findroid) for the look of the badges on the covers
+  and, together with the [Jellyfin Kotlin SDK](https://github.com/jellyfin/jellyfin-sdk-kotlin), for
+  helping me understand Jellyfin's API.
 - [Readium](https://github.com/readium/kotlin-toolkit) for doing the hard work of rendering the books.
 
 ## Disclaimer

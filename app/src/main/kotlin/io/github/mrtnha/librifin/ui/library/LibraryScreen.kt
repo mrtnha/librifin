@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -277,20 +278,13 @@ private fun BookItem(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            // On the phone, so it opens without the server: top left, as the finished mark is top right.
-            if (isDownloaded) {
-                CoverBadge(
-                    LibrifinIcons.Download,
-                    contentDescription = "Downloaded",
-                    modifier = Modifier.align(Alignment.TopStart),
-                )
-            }
-            if (progress?.isFinished == true) {
-                CoverBadge(
-                    LibrifinIcons.Check,
-                    contentDescription = "Finished",
-                    modifier = Modifier.align(Alignment.TopEnd),
-                )
+            // Side by side in the top right corner: on the phone (so it opens without the server), and finished.
+            Row(
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (isDownloaded) CoverBadge(LibrifinIcons.Download, contentDescription = "Downloaded")
+                if (progress?.isFinished == true) CoverBadge(LibrifinIcons.Check, contentDescription = "Finished")
             }
             // Along the bottom edge of the cover, like in Jellyfin. On every book: an empty track until
             // started, then filling up in blue. The dark, see-through track stays visible on any cover.
@@ -314,13 +308,15 @@ private fun BookItem(
     }
 }
 
-/** A round mark in the app's blue in a corner of a cover, like Jellyfin's mark for played items. */
+/**
+ * A round mark in the app's blue on a cover, like Jellyfin's mark for played items. Small, so it reads as a
+ * mark and not as a button.
+ */
 @Composable
 private fun CoverBadge(icon: ImageVector, contentDescription: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .padding(8.dp)
-            .size(28.dp)
+            .size(24.dp)
             .background(MaterialTheme.colorScheme.primary, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
@@ -328,7 +324,7 @@ private fun CoverBadge(icon: ImageVector, contentDescription: String, modifier: 
             icon,
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(16.dp),
         )
     }
 }
