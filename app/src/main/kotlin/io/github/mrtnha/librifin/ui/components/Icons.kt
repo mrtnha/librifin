@@ -88,7 +88,7 @@ object LibrifinIcons {
             "t96 36q11 5 16.5 15t5.5 21v482q0 23-19.5 35t-40.5 1q-37-20-77.5-31T700-240q-60 0-116 21t-104 59Z" +
             "M280-494Z"
 
-    /** "info". Help next to the server address field. */
+    /** "info". Help next to the server address field, and the settings row with the app's version. */
     val Info: ImageVector by lazy {
         symbol(
             "Info",

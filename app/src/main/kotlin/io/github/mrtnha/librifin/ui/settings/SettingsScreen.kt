@@ -25,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,8 +37,7 @@ import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 
 /**
  * Settings, from the gear in the library: the account (user and server) with a way to log out, the downloaded
- * books with a way to remove them, and about the app (the bundled open source licenses). The app's version is
- * at the bottom.
+ * books with a way to remove them, and about the app (its version and the bundled open source licenses).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,67 +64,63 @@ fun SettingsScreen(
             )
         },
     ) { innerPadding ->
-        Column(Modifier.fillMaxSize().padding(innerPadding)) {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                SectionTitle("Account")
-                ListItem(
-                    headlineContent = { Text(session.userName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    leadingContent = { Icon(LibrifinIcons.Profile, contentDescription = null) },
-                )
-                ListItem(
-                    headlineContent = {
-                        Text(session.server.baseUrl, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    },
-                    leadingContent = { Icon(LibrifinIcons.Server, contentDescription = null) },
-                )
-                ListItem(
-                    headlineContent = { Text("Log out", color = MaterialTheme.colorScheme.error) },
-                    leadingContent = {
-                        if (vm.isLoggingOut) {
-                            // In the icon's place and size, so the text doesn't move.
-                            CircularProgressIndicator(Modifier.size(24.dp).padding(2.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(
-                                LibrifinIcons.Logout,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    },
-                    modifier = Modifier.clickable(enabled = !vm.isLoggingOut) { isLogoutDialogOpen = true },
-                )
+        Column(Modifier.fillMaxSize().padding(innerPadding).verticalScroll(rememberScrollState())) {
+            SectionTitle("Account")
+            ListItem(
+                headlineContent = { Text(session.userName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                leadingContent = { Icon(LibrifinIcons.Profile, contentDescription = null) },
+            )
+            ListItem(
+                headlineContent = {
+                    Text(session.server.baseUrl, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                },
+                leadingContent = { Icon(LibrifinIcons.Server, contentDescription = null) },
+            )
+            ListItem(
+                headlineContent = { Text("Log out", color = MaterialTheme.colorScheme.error) },
+                leadingContent = {
+                    if (vm.isLoggingOut) {
+                        // In the icon's place and size, so the text doesn't move.
+                        CircularProgressIndicator(Modifier.size(24.dp).padding(2.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            LibrifinIcons.Logout,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                },
+                modifier = Modifier.clickable(enabled = !vm.isLoggingOut) { isLogoutDialogOpen = true },
+            )
 
-                SectionTitle("Downloads")
-                val downloads = vm.downloads
-                val hasDownloads = downloads != null && downloads.bookCount > 0
-                // Grayed out while there's nothing to remove.
-                val removeColor = if (hasDownloads) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
-                }
-                val context = LocalContext.current
-                ListItem(
-                    headlineContent = { Text("Remove downloads", color = removeColor) },
-                    // Empty while counting, so the row doesn't change its height when the count arrives.
-                    supportingContent = { Text(downloads?.let { downloadsSummary(it, context) }.orEmpty()) },
-                    leadingContent = { Icon(LibrifinIcons.Delete, contentDescription = null, tint = removeColor) },
-                    modifier = Modifier.clickable(enabled = hasDownloads) { isRemoveDownloadsDialogOpen = true },
-                )
-
-                SectionTitle("About")
-                ListItem(
-                    headlineContent = { Text("Open source licenses") },
-                    leadingContent = { Icon(LibrifinIcons.Licenses, contentDescription = null) },
-                    trailingContent = { Icon(LibrifinIcons.ChevronRight, contentDescription = null) },
-                    modifier = Modifier.clickable(onClick = onLicensesClick),
-                )
+            SectionTitle("Downloads")
+            val downloads = vm.downloads
+            val hasDownloads = downloads != null && downloads.bookCount > 0
+            // Grayed out while there's nothing to remove.
+            val removeColor = if (hasDownloads) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
             }
-            Text(
-                "Version ${appContainer.appVersion}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp),
+            val context = LocalContext.current
+            ListItem(
+                headlineContent = { Text("Remove downloads", color = removeColor) },
+                // Empty while counting, so the row doesn't change its height when the count arrives.
+                supportingContent = { Text(downloads?.let { downloadsSummary(it, context) }.orEmpty()) },
+                leadingContent = { Icon(LibrifinIcons.Delete, contentDescription = null, tint = removeColor) },
+                modifier = Modifier.clickable(enabled = hasDownloads) { isRemoveDownloadsDialogOpen = true },
+            )
+
+            SectionTitle("About")
+            ListItem(
+                headlineContent = { Text("Version ${appContainer.appVersion}") },
+                leadingContent = { Icon(LibrifinIcons.Info, contentDescription = null) },
+            )
+            ListItem(
+                headlineContent = { Text("Open source licenses") },
+                leadingContent = { Icon(LibrifinIcons.Licenses, contentDescription = null) },
+                trailingContent = { Icon(LibrifinIcons.ChevronRight, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onLicensesClick),
             )
         }
     }
