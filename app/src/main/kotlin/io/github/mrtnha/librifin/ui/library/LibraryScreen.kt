@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -66,6 +67,7 @@ import io.github.mrtnha.librifin.AppContainer
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.storage.Book
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
+import io.github.mrtnha.librifin.ui.components.Scrubber
 import io.github.mrtnha.librifin.ui.components.SearchBar
 import io.github.mrtnha.librifin.ui.reader.PrepareReader
 import io.github.mrtnha.librifin.ui.theme.LocalStatusColors
@@ -290,23 +292,36 @@ private fun BookGrid(
     isDownloaded: (Book) -> Boolean,
     onBookClick: (Book) -> Unit,
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        items(books, key = { it.id }) { book ->
-            BookItem(
-                book,
-                progress[book.id],
-                isDownloaded = isDownloaded(book),
-                onClick = { onBookClick(book) },
-            )
+    val gridState = rememberLazyGridState()
+    Box(Modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(GRID_COLUMNS),
+            state = gridState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(GRID_PADDING),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            items(books, key = { it.id }) { book ->
+                BookItem(
+                    book,
+                    progress[book.id],
+                    isDownloaded = isDownloaded(book),
+                    onClick = { onBookClick(book) },
+                )
+            }
         }
+        // Its track runs alongside the covers, from the first row to the last.
+        Scrubber(
+            gridState,
+            columns = GRID_COLUMNS,
+            modifier = Modifier.align(Alignment.TopEnd).padding(vertical = GRID_PADDING),
+        )
     }
 }
+
+private const val GRID_COLUMNS = 2
+private val GRID_PADDING = 16.dp
 
 @Composable
 private fun BookItem(
