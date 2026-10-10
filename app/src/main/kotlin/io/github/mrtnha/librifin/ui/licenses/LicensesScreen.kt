@@ -56,6 +56,7 @@ fun LicensesScreen(appContainer: AppContainer, onBack: () -> Unit, onLibraryClic
                     ListItem(
                         headlineContent = { Text(library.name) },
                         supportingContent = { Text(library.licenses.joinToString { it.name }) },
+                        trailingContent = { Icon(LibrifinIcons.ChevronRight, contentDescription = null) },
                         modifier = Modifier.clickable { onLibraryClick(library) },
                     )
                 }
