@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -34,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -42,11 +44,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -56,6 +55,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
@@ -67,6 +68,8 @@ import io.github.mrtnha.librifin.storage.Book
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import io.github.mrtnha.librifin.ui.components.SearchBar
 import io.github.mrtnha.librifin.ui.reader.PrepareReader
+import io.github.mrtnha.librifin.ui.theme.LocalStatusColors
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,9 +94,20 @@ fun LibraryScreen(
     val scope = rememberCoroutineScope()
     var isPullRefreshing by remember { mutableStateOf(false) }
 
-    // Back in the app (or back from a book): refresh quietly, e.g. to leave offline mode once the
-    // server is reachable again.
+    // Back in the app (or back from a book): refresh quietly, e.g. to show whether the server can be
+    // reached from here.
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.refresh() }
+
+    // While the library is on screen: ask the server regularly, so the cloud's color shows whether it's there.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                delay(SERVER_CHECK_INTERVAL_MILLIS)
+                vm.checkServer()
+            }
+        }
+    }
 
     // Books are opened from here: get the reader ready, so the first one opens faster.
     PrepareReader()
@@ -101,7 +115,7 @@ fun LibraryScreen(
     /** Loads again; says so if the server can't be reached, as nothing else would change. */
     suspend fun retry() {
         vm.load().join()
-        if ((vm.state as? LibraryState.Loaded)?.isOffline == true) {
+        if (vm.state is LibraryState.Loaded && vm.isServerReachable == false) {
             snackbarHostState.currentSnackbarData?.dismiss()
             snackbarHostState.showSnackbar("Unable to reach your Jellyfin server.")
         }
@@ -157,15 +171,21 @@ fun LibraryScreen(
                 TopAppBar(
                     title = { Text("Library", fontWeight = FontWeight.SemiBold) },
                     actions = {
-                        // All books or only the downloaded ones.
+                        // All books or only the downloaded ones. Green while the server can be reached, amber
+                        // while it can't, and in the plain icon color while that isn't known yet.
                         IconButton(onClick = ::toggleDownloadedOnly) {
+                            val statusColors = LocalStatusColors.current
+                            val action = if (vm.isDownloadedOnly) "Show all books" else "Show only downloaded books"
+                            val (tint, server) = when (vm.isServerReachable) {
+                                true -> statusColors.success to ". Server reachable."
+                                false -> statusColors.warning to ". Server unreachable."
+                                null -> LocalContentColor.current to ""
+                            }
                             Icon(
                                 if (vm.isDownloadedOnly) LibrifinIcons.CloudOff else LibrifinIcons.Cloud,
-                                contentDescription = if (vm.isDownloadedOnly) {
-                                    "Show all books"
-                                } else {
-                                    "Show only downloaded books"
-                                },
+                                // A screen reader can't see the color, so the description says it.
+                                contentDescription = action + server,
+                                tint = tint,
                             )
                         }
                         IconButton(onClick = { vm.isSortSheetOpen = true }) {
@@ -232,9 +252,8 @@ fun LibraryScreen(
                                     books = books,
                                     progress = state.progress,
                                     isDownloaded = state::isDownloaded,
-                                    canOpen = state::canOpen,
                                     onBookClick = { book ->
-                                        if (state.canOpen(book)) onBookClick(book) else explainNotDownloaded()
+                                        if (vm.canOpen(book)) onBookClick(book) else explainNotDownloaded()
                                     },
                                 )
                             }
@@ -255,7 +274,6 @@ private fun BookGrid(
     books: List<Book>,
     progress: Map<String, BookProgress>,
     isDownloaded: (Book) -> Boolean,
-    canOpen: (Book) -> Boolean,
     onBookClick: (Book) -> Unit,
 ) {
     LazyVerticalGrid(
@@ -270,7 +288,6 @@ private fun BookGrid(
                 book,
                 progress[book.id],
                 isDownloaded = isDownloaded(book),
-                isDimmed = !canOpen(book),
                 onClick = { onBookClick(book) },
             )
         }
@@ -282,11 +299,9 @@ private fun BookItem(
     book: Book,
     progress: BookProgress?,
     isDownloaded: Boolean,
-    isDimmed: Boolean,
     onClick: () -> Unit,
 ) {
-    // Books that can't be opened right now (offline, not downloaded) are shown faded and in grey.
-    Column(Modifier.clickable(onClick = onClick).alpha(if (isDimmed) DIMMED_ALPHA else 1f)) {
+    Column(Modifier.clickable(onClick = onClick)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -307,7 +322,6 @@ private fun BookItem(
                     model = book.coverUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    colorFilter = if (isDimmed) grayscale else null,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -371,6 +385,3 @@ private fun Message(text: String, actionLabel: String? = null, onAction: (() -> 
         }
     }
 }
-
-private const val DIMMED_ALPHA = 0.45f
-private val grayscale = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })

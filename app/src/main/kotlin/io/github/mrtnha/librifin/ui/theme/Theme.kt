@@ -6,6 +6,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /** Jellyfin's brand colors. The schemes below are Material 3 tonal palettes derived from them. */
@@ -63,9 +66,28 @@ private val DarkColors = darkColorScheme(
     inversePrimary = Color(0xFF00668A),
 )
 
+/**
+ * Colors for a state that's good ([success], e.g. the server can be reached) or worth noticing ([warning], e.g.
+ * it can't). Material's color schemes have no slots for them, so [LibrifinTheme] provides them.
+ *
+ * A calm green and an amber from Material tonal palettes like the schemes above, their hues turned a little
+ * toward Jellyfin's blue so they fit with it. The two differ in brightness as well as in hue, so they can be told
+ * apart without seeing red and green: the warning is the brighter one on the dark background and the darker one
+ * on the light background, standing out more on both.
+ */
+@Immutable
+data class StatusColors(val success: Color, val warning: Color)
+
+val LocalStatusColors = staticCompositionLocalOf { StatusColors(Color.Unspecified, Color.Unspecified) }
+
+private val LightStatusColors = StatusColors(success = Color(0xFF328659), warning = Color(0xFF865301))
+private val DarkStatusColors = StatusColors(success = Color(0xFF67AF84), warning = Color(0xFFFFB863))
+
 @Composable
 fun LibrifinTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (darkTheme) DarkColors else LightColors, content = content)
+    CompositionLocalProvider(LocalStatusColors provides if (darkTheme) DarkStatusColors else LightStatusColors) {
+        MaterialTheme(colorScheme = if (darkTheme) DarkColors else LightColors, content = content)
+    }
 }
 
 /** The app's colors on a reader page, in the page's [background] and [text] colors. */

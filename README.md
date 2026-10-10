@@ -22,7 +22,7 @@ I use Jellyfin as the one place for all of my media. For the books in my Jellyfi
 - Log in once and stay logged in.
 - Your book library as a grid of covers, sorted by recently read, author, title, progress or date added, with each book's reading progress and a mark for finished books.
 - Search the library by title or author.
-- Tap a book to download and open it. Downloaded books carry a mark and work offline; the others are grayed out until the server is back. Tap the cloud icon in the top bar to show only the downloaded books.
+- Tap a book to download and open it. Downloaded books carry a mark and work offline. Tap the cloud icon in the top bar to show only them. It's green while your Jellyfin server can be reached and amber while it can't.
 - Paginated reading: turn the page by tapping the edges or swiping. Tap the middle of the page to show or hide the bars.
 - A page slider to move through the whole book.
 - Search inside the book you're reading: every match is listed with its chapter and page. Navigate between them with arrows.
@@ -95,7 +95,7 @@ The reading fonts are built into the app as well, so choosing one downloads noth
 - [Jellyfin](https://github.com/jellyfin/jellyfin) for making the server this app is built for.
 - [Finamp](https://github.com/finamp-app/finamp) for showing me how to connect to a Jellyfin server.
 - [Findroid](https://github.com/jarnedemeulemeester/findroid) for the look of the badges on the covers and, together with the [Jellyfin Kotlin SDK](https://github.com/jellyfin/jellyfin-sdk-kotlin), for helping me understand Jellyfin's API.
-- [Mellow](https://github.com/Malinskiy/mellow) for the idea of the cloud icon in the top bar, which switches to the downloaded books.
+- [Mellow](https://github.com/Malinskiy/mellow) for the idea of the cloud icon in the top bar, which switches to the downloaded books and shows whether the server can be reached.
 - [Readium](https://github.com/readium/kotlin-toolkit) for doing the hard work of rendering the books.
 
 ## Disclaimer

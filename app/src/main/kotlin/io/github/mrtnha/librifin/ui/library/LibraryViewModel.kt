@@ -1,5 +1,6 @@
 package io.github.mrtnha.librifin.ui.library
 
+import android.os.SystemClock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -73,20 +74,15 @@ sealed interface LibraryState {
     data object NoBookLibrary : LibraryState
     /**
      * [books] in the chosen order. [progress]: only for books that were started. [downloadedIds]: the
-     * books on this device. [isOffline]: the server can't be reached, so this is the saved list and only
-     * the downloaded books can be opened. [lastReadMillis]: when each book that was read was last read,
-     * to sort them again.
+     * books on this device. [lastReadMillis]: when each book that was read was last read, to sort them again.
      */
     data class Loaded(
         val books: List<Book>,
         val progress: Map<String, BookProgress>,
-        val isOffline: Boolean = false,
         val downloadedIds: Set<String> = emptySet(),
         val lastReadMillis: Map<String, Long> = emptyMap(),
     ) : LibraryState {
         fun isDownloaded(book: Book) = book.id in downloadedIds
-
-        fun canOpen(book: Book) = !isOffline || isDownloaded(book)
 
         /** [books], or only the downloaded ones if [downloadedOnly], in the same order. */
         fun shownBooks(downloadedOnly: Boolean) = if (downloadedOnly) books.filter(::isDownloaded) else books
@@ -98,6 +94,20 @@ sealed interface LibraryState {
     /** [isSessionExpired]: the server no longer accepts the token, so retrying won't help. */
     data class Error(val message: String, val isSessionExpired: Boolean = false) : LibraryState
 }
+
+/** How often the server is asked whether it's there while the library is on screen, for the cloud's color. */
+const val SERVER_CHECK_INTERVAL_MILLIS = 30_000L
+
+/** How long the server's last answer still counts while it's asked again: a missed regular check is fine. */
+const val SERVER_ANSWER_MAX_AGE_MILLIS = 2 * SERVER_CHECK_INTERVAL_MILLIS
+
+/**
+ * Whether the server counts as reachable while it's asked again: its [lastAnswer] (given at [answeredAtMillis])
+ * as long as that's recent, so the regular checks don't make the cloud flicker. Else null, not known: e.g. back
+ * in the app after a while, the phone may have left the server's network meanwhile.
+ */
+fun reachabilityWhileChecking(lastAnswer: Boolean?, answeredAtMillis: Long, nowMillis: Long): Boolean? =
+    lastAnswer?.takeIf { nowMillis - answeredAtMillis <= SERVER_ANSWER_MAX_AGE_MILLIS }
 
 class LibraryViewModel(
     private val session: Session,
@@ -127,7 +137,16 @@ class LibraryViewModel(
     var isDownloadedOnly by mutableStateOf(settings.read(KEY_DOWNLOADED_ONLY) == true.toString())
         private set
 
+    /** Whether the server answered the last time it was asked; null while that isn't known, e.g. at app start. */
+    var isServerReachable by mutableStateOf<Boolean?>(null)
+        private set
+
+    /** When the server last answered or failed to, on a clock that doesn't jump when the phone's time is changed. */
+    private var serverAnsweredAtMillis = 0L
+
     private var loadJob: Job? = null
+
+    private var checkJob: Job? = null
 
     /**
      * How each book's file files its first author, by book id. Saved on the device, so each book is
@@ -168,12 +187,52 @@ class LibraryViewModel(
         return true
     }
 
+    /** While the server can't be reached, only the downloaded books can be opened. While not known, a book is tried. */
+    fun canOpen(book: Book) =
+        isServerReachable != false || (state as? LibraryState.Loaded)?.isDownloaded(book) == true
+
+    /**
+     * Asks the server whether it's there, for the cloud's color: a small request that needs no login. Not while
+     * the books are loading, as that finds out as well. When the server is back after it couldn't be reached,
+     * loads the books again, which also sends what was read meanwhile.
+     */
+    fun checkServer() {
+        if (loadJob?.isActive == true || checkJob?.isActive == true) return
+        checkJob = viewModelScope.launch {
+            val wasUnreachable = isServerReachable == false
+            startServerCheck()
+            val isReachable = try {
+                jellyfin.publicSystemInfo(session.server.baseUrl)
+                true
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                false
+            }
+            serverAnswered(isReachable)
+            if (wasUnreachable && isReachable) load()
+        }
+    }
+
+    /** The server is about to be asked: an old answer no longer counts, see [reachabilityWhileChecking]. */
+    private fun startServerCheck() {
+        isServerReachable =
+            reachabilityWhileChecking(isServerReachable, serverAnsweredAtMillis, SystemClock.elapsedRealtime())
+    }
+
+    private fun serverAnswered(isReachable: Boolean) {
+        isServerReachable = isReachable
+        serverAnsweredAtMillis = SystemClock.elapsedRealtime()
+    }
+
     /**
      * Loads the books from the server. The saved list is shown meanwhile, and stays when the server
      * can't be reached: then only the downloaded books can be opened.
      */
     fun load(): Job {
         loadJob?.cancel()
+        // This load asks the server as well, and its answer is the newer one.
+        checkJob?.cancel()
         return viewModelScope.launch {
             if (authorSortNames == null) {
                 authorSortNames = withContext(Dispatchers.IO) { bookStore.readAuthorSortNames(session) }
@@ -182,14 +241,16 @@ class LibraryViewModel(
             state = if (shown != null) {
                 // E.g. back from a book: its progress and place in the order are on this device already,
                 // so they show right away, not only once the server has answered below.
-                loaded(shown.books, shown.isOffline)
+                loaded(shown.books)
             } else {
                 withContext(Dispatchers.IO) { bookStore.readLibrary(session) }?.let { loaded(it) }
                     ?: LibraryState.Loading
             }
             val saved = (state as? LibraryState.Loaded)?.books
+            startServerCheck()
             state = try {
                 val libraries = jellyfin.userViews(session).filter { it.collectionType == "books" }
+                serverAnswered(isReachable = true)
                 if (libraries.isEmpty()) {
                     LibraryState.NoBookLibrary
                 } else {
@@ -219,10 +280,12 @@ class LibraryViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                val isSessionExpired = e.clientErrorStatus == HttpStatusCode.Unauthorized
+                // A refused login is an answer too: the server is there.
+                serverAnswered(isReachable = isSessionExpired)
                 when {
-                    e.clientErrorStatus == HttpStatusCode.Unauthorized ->
-                        LibraryState.Error(e.toUserMessage(), isSessionExpired = true)
-                    saved != null -> loaded(saved, isOffline = true)
+                    isSessionExpired -> LibraryState.Error(e.toUserMessage(), isSessionExpired = true)
+                    saved != null -> loaded(saved)
                     else -> LibraryState.Error(e.toUserMessage())
                 }
             }
@@ -234,12 +297,12 @@ class LibraryViewModel(
     /**
      * While sorting by author: reads from the books' files how they file their first author, for the books
      * where that isn't known yet or was read for another author. In the background, a few books at a time,
-     * on its own, so a new load doesn't stop it. Then saves what was read and sorts the books again. Not
-     * while offline, and not twice at once.
+     * on its own, so a new load doesn't stop it. Then saves what was read and sorts the books again. Only
+     * while the server can be reached, and not twice at once.
      */
     private fun readMissingAuthorSortNames() {
         val shown = state as? LibraryState.Loaded ?: return
-        if (sort != LibrarySort.AUTHOR || shown.isOffline || authorJob?.isActive == true) return
+        if (sort != LibrarySort.AUTHOR || isServerReachable != true || authorJob?.isActive == true) return
         val known = authorSortNames.orEmpty()
         val missing = shown.books.filter { book ->
             val author = book.authors.firstOrNull()
@@ -303,7 +366,7 @@ class LibraryViewModel(
      * Which books are downloaded is looked up each time, so books opened or removed meanwhile (e.g. in
      * the settings) show as they are now.
      */
-    private suspend fun loaded(books: List<Book>, isOffline: Boolean = false): LibraryState.Loaded {
+    private suspend fun loaded(books: List<Book>): LibraryState.Loaded {
         // After the saves still running: leaving a book right after a page turn may not have finished saving it.
         val positions = bookStore.currentPositions(session)
         val downloadedIds = withContext(Dispatchers.IO) { bookStore.downloadedBookIds() }
@@ -320,7 +383,7 @@ class LibraryViewModel(
         }.toMap()
         // The sort and author names are read only now, after the wait above, so changes meanwhile aren't lost.
         val ordered = sortBooks(books, sort, progress, lastRead, authorSortNames.orEmpty())
-        return LibraryState.Loaded(ordered, progress, isOffline, downloadedIds, lastRead)
+        return LibraryState.Loaded(ordered, progress, downloadedIds, lastRead)
     }
 
     private companion object {
