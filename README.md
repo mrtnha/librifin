@@ -107,6 +107,16 @@ Librifin is not an official Jellyfin app and I'm not affiliated with the Jellyfi
 
 Librifin is licensed under the [Mozilla Public License 2.0](LICENSE).
 
+## Finding free ebooks
+
+These sites offer public domain and freely licensed EPUBs. Please check the copyright laws in your country, as they vary:
+
+- [Standard Ebooks](https://standardebooks.org/ebooks?query=&sort=popularity&view=grid&per-page=48)
+- [Project Gutenberg](https://www.gutenberg.org/browse/scores/top)
+- [Projekt Gutenberg](https://projekt-gutenberg.org/bibliothek/meistgelesen/)
+- [ManyBooks](https://manybooks.net/)
+- [Unglue.it](https://unglue.it/)
+
 ## Alternatives
 
 If Librifin doesn't do what you need, one of these apps might:
