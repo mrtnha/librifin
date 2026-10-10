@@ -88,6 +88,9 @@ sealed interface LibraryState {
 
         fun canOpen(book: Book) = !isOffline || isDownloaded(book)
 
+        /** [books], or only the downloaded ones if [downloadedOnly], in the same order. */
+        fun shownBooks(downloadedOnly: Boolean) = if (downloadedOnly) books.filter(::isDownloaded) else books
+
         /** [books] in [sort]'s order. */
         fun sorted(sort: LibrarySort, authorSortNames: Map<String, AuthorSortName>) =
             sortBooks(books, sort, progress, lastReadMillis, authorSortNames)
@@ -120,6 +123,10 @@ class LibraryViewModel(
      */
     var searchQuery by mutableStateOf<String?>(null)
 
+    /** Only the books on this device are shown, chosen with the cloud. Kept between app starts. */
+    var isDownloadedOnly by mutableStateOf(settings.read(KEY_DOWNLOADED_ONLY) == true.toString())
+        private set
+
     private var loadJob: Job? = null
 
     /**
@@ -146,6 +153,19 @@ class LibraryViewModel(
         val shown = state as? LibraryState.Loaded ?: return
         state = shown.copy(books = shown.sorted(sort, authorSortNames.orEmpty()))
         readMissingAuthorSortNames()
+    }
+
+    /**
+     * Shows all books or only the downloaded ones, and keeps the choice for the next app start. True the first
+     * time it switches this way, so the screen says once what the switch does.
+     */
+    fun toggleDownloadedOnly(): Boolean {
+        isDownloadedOnly = !isDownloadedOnly
+        settings.write(KEY_DOWNLOADED_ONLY, isDownloadedOnly.toString())
+        val explainedKey = if (isDownloadedOnly) KEY_DOWNLOADED_ONLY_EXPLAINED else KEY_ALL_BOOKS_EXPLAINED
+        if (settings.read(explainedKey) != null) return false
+        settings.write(explainedKey, true.toString())
+        return true
     }
 
     /**
@@ -308,6 +328,12 @@ class LibraryViewModel(
         const val COVER_MAX_WIDTH = 600
 
         const val KEY_SORT = "library_sort"
+
+        const val KEY_DOWNLOADED_ONLY = "library_downloaded_only"
+
+        /** Set once the switch to the downloaded books, or back to all books, was explained. */
+        const val KEY_DOWNLOADED_ONLY_EXPLAINED = "library_downloaded_only_explained"
+        const val KEY_ALL_BOOKS_EXPLAINED = "library_all_books_explained"
 
         /** Books whose author is read at the same time, so a large library doesn't take long. */
         const val PARALLEL_AUTHOR_READS = 4

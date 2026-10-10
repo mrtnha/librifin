@@ -120,6 +120,20 @@ fun LibraryScreen(
         }
     }
 
+    /**
+     * Switches between all books and the downloaded ones. The first time each way, says which, as the covers in
+     * view may not change.
+     */
+    fun toggleDownloadedOnly() {
+        if (!vm.toggleDownloadedOnly()) return
+        scope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(
+                if (vm.isDownloadedOnly) "Showing downloaded books only" else "Showing all books",
+            )
+        }
+    }
+
     val searchQuery = vm.searchQuery
 
     // While searching, back closes the search instead of leaving the library.
@@ -143,6 +157,17 @@ fun LibraryScreen(
                 TopAppBar(
                     title = { Text("Library", fontWeight = FontWeight.SemiBold) },
                     actions = {
+                        // All books or only the downloaded ones.
+                        IconButton(onClick = ::toggleDownloadedOnly) {
+                            Icon(
+                                if (vm.isDownloadedOnly) LibrifinIcons.CloudOff else LibrifinIcons.Cloud,
+                                contentDescription = if (vm.isDownloadedOnly) {
+                                    "Show all books"
+                                } else {
+                                    "Show only downloaded books"
+                                },
+                            )
+                        }
                         IconButton(onClick = { vm.isSortSheetOpen = true }) {
                             Icon(LibrifinIcons.Sort, contentDescription = "Sort books")
                         }
@@ -169,16 +194,24 @@ fun LibraryScreen(
                         Message(state.message, actionLabel = "Try again", onAction = vm::load)
                     }
                 is LibraryState.Loaded -> {
+                    val shown = state.shownBooks(vm.isDownloadedOnly)
                     // Nothing typed yet: no books, as showing all would look like all of them matched.
                     val books = when {
-                        searchQuery == null -> state.books
+                        searchQuery == null -> shown
                         searchQuery.isBlank() -> emptyList()
-                        else -> state.books.filter { it.matches(searchQuery) }
+                        else -> shown.filter { it.matches(searchQuery) }
                     }
+                    val query = "\u201C${searchQuery.orEmpty().trim()}\u201D"
                     when {
                         state.books.isEmpty() -> Message("No books yet.")
+                        shown.isEmpty() -> Message(
+                            "No downloaded books yet.",
+                            actionLabel = "Show all books",
+                            onAction = ::toggleDownloadedOnly,
+                        )
                         searchQuery?.isBlank() == true -> Unit
-                        books.isEmpty() -> Message("No books match \u201C${searchQuery.orEmpty().trim()}\u201D.")
+                        books.isEmpty() && vm.isDownloadedOnly -> Message("No downloaded books match $query.")
+                        books.isEmpty() -> Message("No books match $query.")
                         else -> PullToRefreshBox(
                             isRefreshing = isPullRefreshing,
                             onRefresh = {
