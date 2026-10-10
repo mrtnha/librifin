@@ -33,7 +33,7 @@ fun LicensesScreen(appContainer: AppContainer, onBack: () -> Unit, onLibraryClic
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Open Source Licenses") },
+                title = { Text("Open source licenses") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(LibrifinIcons.ArrowBack, contentDescription = "Back")
