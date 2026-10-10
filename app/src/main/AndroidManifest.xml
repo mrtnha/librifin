@@ -6,9 +6,10 @@
     <!-- Server discovery via UDP broadcast on the local network -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- Whether the phone has a network at all, for the cloud in the library -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Added by media3 (Readium's audiobook support), which Librifin doesn't use -->
     <uses-permission android:name="android.permission.WAKE_LOCK" tools:node="remove" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
     <!-- usesCleartextTraffic: home Jellyfin servers usually run on plain http:// in the LAN. Fine at home, but over
          http:// anyone on the same network can read the traffic, including the login, so use https:// elsewhere. -->

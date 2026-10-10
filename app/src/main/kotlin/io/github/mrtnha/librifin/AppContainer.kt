@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.provider.Settings
 import io.github.mrtnha.librifin.api.JellyfinClient
+import io.github.mrtnha.librifin.api.NetworkMonitor
 import io.github.mrtnha.librifin.api.ServerDiscovery
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.decodeOrNull
@@ -51,6 +52,9 @@ class AppContainer(context: Context) {
     val bookStore = BookStore(appContext.filesDir.absolutePath)
 
     val serverDiscovery = ServerDiscovery(appContext)
+
+    /** Whether the phone has a network at all, for the cloud in the library. */
+    val network = NetworkMonitor(appContext)
 
     /** Small app settings kept between app starts, e.g. the reading theme. */
     val settingsStore = SettingsStore(prefs)

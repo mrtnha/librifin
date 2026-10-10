@@ -1,5 +1,6 @@
 package io.github.mrtnha.librifin.ui.library
 
+import android.net.Network
 import android.os.SystemClock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -8,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.mrtnha.librifin.api.BOOK_PROGRESS_TICKS
 import io.github.mrtnha.librifin.api.JellyfinClient
+import io.github.mrtnha.librifin.api.NetworkMonitor
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.api.clientErrorStatus
 import io.github.mrtnha.librifin.api.toUserMessage
@@ -109,12 +111,34 @@ const val SERVER_ANSWER_MAX_AGE_MILLIS = 2 * SERVER_CHECK_INTERVAL_MILLIS
 fun reachabilityWhileChecking(lastAnswer: Boolean?, answeredAtMillis: Long, nowMillis: Long): Boolean? =
     lastAnswer?.takeIf { nowMillis - answeredAtMillis <= SERVER_ANSWER_MAX_AGE_MILLIS }
 
+/** What the cloud in the library's top bar shows about the server. */
+enum class ServerStatus {
+    /** The server was asked and hasn't answered yet, or its last answer is old. */
+    UNKNOWN,
+    REACHABLE,
+
+    /** The phone has a network, but the server doesn't answer. */
+    UNREACHABLE,
+
+    /** The phone has no network at all, so the server can't be asked. */
+    NO_NETWORK,
+}
+
+/** The [ServerStatus] for whether the phone [hasNetwork] and whether the server answered ([isServerReachable]). */
+fun serverStatus(hasNetwork: Boolean, isServerReachable: Boolean?): ServerStatus = when {
+    !hasNetwork -> ServerStatus.NO_NETWORK
+    isServerReachable == true -> ServerStatus.REACHABLE
+    isServerReachable == false -> ServerStatus.UNREACHABLE
+    else -> ServerStatus.UNKNOWN
+}
+
 class LibraryViewModel(
     private val session: Session,
     private val jellyfin: JellyfinClient,
     private val bookStore: BookStore,
     private val progressSync: ProgressSync,
     private val settings: SettingsStore,
+    private val network: NetworkMonitor,
 ) : ViewModel() {
     var state by mutableStateOf<LibraryState>(LibraryState.Loading)
         private set
@@ -143,6 +167,16 @@ class LibraryViewModel(
 
     /** When the server last answered or failed to, on a clock that doesn't jump when the phone's time is changed. */
     private var serverAnsweredAtMillis = 0L
+
+    /** The phone has a network at all. */
+    var hasNetwork by mutableStateOf(network.current != null)
+        private set
+
+    /** The network the phone used when last looked at, to notice when it changes. */
+    private var lastNetwork: Network? = network.current
+
+    /** What the cloud shows about the server. */
+    val serverStatus: ServerStatus get() = serverStatus(hasNetwork, isServerReachable)
 
     private var loadJob: Job? = null
 
@@ -189,15 +223,33 @@ class LibraryViewModel(
 
     /** While the server can't be reached, only the downloaded books can be opened. While not known, a book is tried. */
     fun canOpen(book: Book) =
-        isServerReachable != false || (state as? LibraryState.Loaded)?.isDownloaded(book) == true
+        (hasNetwork && isServerReachable != false) || (state as? LibraryState.Loaded)?.isDownloaded(book) == true
 
     /**
-     * Asks the server whether it's there, for the cloud's color: a small request that needs no login. Not while
-     * the books are loading, as that finds out as well. When the server is back after it couldn't be reached,
-     * loads the books again, which also sends what was read meanwhile.
+     * Follows the phone's network while collected, i.e. while the library is on screen. On another network, what
+     * was known about the server no longer counts, so the books load again: that asks the server right away, and
+     * when it answers, also sends what was read meanwhile. Without a network, the cloud says so at once.
+     */
+    suspend fun followNetwork() {
+        network.defaultNetwork().collect { current ->
+            // The same network again, e.g. back in the library: nothing changed.
+            if (current == lastNetwork) return@collect
+            lastNetwork = current
+            hasNetwork = current != null
+            if (current != null) {
+                isServerReachable = null
+                load()
+            }
+        }
+    }
+
+    /**
+     * Asks the server whether it's there, for the cloud's color: a small request that needs no login. Not without
+     * a network, and not while the books are loading, as that finds out as well. When the server is back after it
+     * couldn't be reached, loads the books again, which also sends what was read meanwhile.
      */
     fun checkServer() {
-        if (loadJob?.isActive == true || checkJob?.isActive == true) return
+        if (!hasNetwork || loadJob?.isActive == true || checkJob?.isActive == true) return
         checkJob = viewModelScope.launch {
             val wasUnreachable = isServerReachable == false
             startServerCheck()

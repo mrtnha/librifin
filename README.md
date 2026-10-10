@@ -22,7 +22,7 @@ I use Jellyfin as the one place for all of my media. For the books in my Jellyfi
 - Log in once and stay logged in.
 - Your book library as a grid of covers, sorted by recently read, author, title, progress or date added, with each book's reading progress and a mark for finished books.
 - Search the library by title or author.
-- Tap a book to download and open it. Downloaded books carry a mark and work offline. Tap the cloud icon in the top bar to show only them. It's green while your Jellyfin server can be reached and amber while it can't.
+- Tap a book to download and open it. Downloaded books carry a mark and work offline. Tap the cloud icon in the top bar to show only them. It's green while your Jellyfin server can be reached, amber while it can't, and gray while your phone has no network.
 - Paginated reading: turn the page by tapping the edges or swiping. Tap the middle of the page to show or hide the bars.
 - A page slider to move through the whole book.
 - Search inside the book you're reading: every match is listed with its chapter and page. Navigate between them with arrows.

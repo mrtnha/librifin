@@ -88,6 +88,7 @@ fun LibraryScreen(
             appContainer.bookStore,
             appContainer.progressSync,
             appContainer.settingsStore,
+            appContainer.network,
         )
     }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -98,10 +99,12 @@ fun LibraryScreen(
     // reached from here.
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.refresh() }
 
-    // While the library is on screen: ask the server regularly, so the cloud's color shows whether it's there.
+    // While the library is on screen: follow the phone's network, and ask the server regularly, so the cloud's
+    // color shows whether it's there.
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            launch { vm.followNetwork() }
             while (true) {
                 delay(SERVER_CHECK_INTERVAL_MILLIS)
                 vm.checkServer()
@@ -112,13 +115,17 @@ fun LibraryScreen(
     // Books are opened from here: get the reader ready, so the first one opens faster.
     PrepareReader()
 
-    /** Loads again; says so if the server can't be reached, as nothing else would change. */
+    /** Loads again; says why if the server can't be reached, as nothing else would change. */
     suspend fun retry() {
         vm.load().join()
-        if (vm.state is LibraryState.Loaded && vm.isServerReachable == false) {
-            snackbarHostState.currentSnackbarData?.dismiss()
-            snackbarHostState.showSnackbar("Unable to reach your Jellyfin server.")
+        if (vm.state !is LibraryState.Loaded) return
+        val message = when (vm.serverStatus) {
+            ServerStatus.NO_NETWORK -> "Your phone has no network connection."
+            ServerStatus.UNREACHABLE -> "Unable to reach your Jellyfin server."
+            else -> return
         }
+        snackbarHostState.currentSnackbarData?.dismiss()
+        snackbarHostState.showSnackbar(message)
     }
 
     // Offline, a book that isn't downloaded can't be opened: say why, and offer to reconnect.
@@ -126,7 +133,11 @@ fun LibraryScreen(
         scope.launch {
             snackbarHostState.currentSnackbarData?.dismiss()
             val result = snackbarHostState.showSnackbar(
-                message = "This book isn't downloaded. Connect to your Jellyfin server to read it.",
+                message = if (vm.serverStatus == ServerStatus.NO_NETWORK) {
+                    "This book isn't downloaded, and your phone has no network connection."
+                } else {
+                    "This book isn't downloaded. Connect to your Jellyfin server to read it."
+                },
                 actionLabel = "Try again",
                 duration = SnackbarDuration.Long,
             )
@@ -172,14 +183,17 @@ fun LibraryScreen(
                     title = { Text("Library", fontWeight = FontWeight.SemiBold) },
                     actions = {
                         // All books or only the downloaded ones. Green while the server can be reached, amber
-                        // while it can't, and in the plain icon color while that isn't known yet.
+                        // while it can't, gray while the phone has no network, and in the plain icon color while
+                        // none of that is known yet.
                         IconButton(onClick = ::toggleDownloadedOnly) {
                             val statusColors = LocalStatusColors.current
                             val action = if (vm.isDownloadedOnly) "Show all books" else "Show only downloaded books"
-                            val (tint, server) = when (vm.isServerReachable) {
-                                true -> statusColors.success to ". Server reachable."
-                                false -> statusColors.warning to ". Server unreachable."
-                                null -> LocalContentColor.current to ""
+                            val (tint, server) = when (vm.serverStatus) {
+                                ServerStatus.REACHABLE -> statusColors.success to ". Server reachable."
+                                ServerStatus.UNREACHABLE -> statusColors.warning to ". Server unreachable."
+                                ServerStatus.NO_NETWORK ->
+                                    MaterialTheme.colorScheme.outline to ". No network connection."
+                                ServerStatus.UNKNOWN -> LocalContentColor.current to ""
                             }
                             Icon(
                                 if (vm.isDownloadedOnly) LibrifinIcons.CloudOff else LibrifinIcons.Cloud,
