@@ -207,7 +207,7 @@ object LibrifinIcons {
         symbol("Sort", "M120-240v-80h240v80H120Zm0-200v-80h480v80H120Zm0-200v-80h720v80H120Z")
     }
 
-    /** "match_case" ("Aa"). Reader app bar: opens the appearance sheet (theme, text size, font). */
+    /** "match_case" ("Aa"). Reader app bar: opens the appearance sheet (theme, text size, alignment, font). */
     val MatchCase: ImageVector by lazy {
         symbol(
             "MatchCase",
@@ -215,6 +215,24 @@ object LibrifinIcons {
                 "q-51 0-81-27.5T554-342q0-44 34.5-72.5T677-443q23 0 45 4t38 11v-12q0-29-20.5-47T685-505q-23 0-42 9.5" +
                 "T610-468l-47-35q24-29 54.5-43t68.5-14q69 0 103 32.5t34 97.5v178h-63v-37h-4q-14 23-38 35t-53 12Z" +
                 "m12-54q35 0 59.5-24t24.5-56q-14-8-33.5-12.5T689-393q-32 0-50 14t-18 37q0 20 16 33t40 13Z",
+        )
+    }
+
+    /** "format_align_left". Appearance sheet: left-aligned text. */
+    val FormatAlignLeft: ImageVector by lazy {
+        symbol(
+            "FormatAlignLeft",
+            "M120-120v-80h720v80H120Zm0-160v-80h480v80H120Zm0-160v-80h720v80H120Zm0-160v-80h480v80H120" +
+                "Zm0-160v-80h720v80H120Z",
+        )
+    }
+
+    /** "format_align_justify". Appearance sheet: justified text. */
+    val FormatAlignJustify: ImageVector by lazy {
+        symbol(
+            "FormatAlignJustify",
+            "M120-120v-80h720v80H120Zm0-160v-80h720v80H120Zm0-160v-80h720v80H120Zm0-160v-80h720v80H120" +
+                "Zm0-160v-80h720v80H120Z",
         )
     }
 

@@ -88,6 +88,12 @@ class ReaderViewModel(
     )
         private set
 
+    /** How the lines of the book's text are aligned, the same for all books and kept between app starts. */
+    override var alignment by mutableStateOf(
+        ReaderAlignment.entries.find { it.name == settings.read(KEY_ALIGNMENT) } ?: ReaderAlignment.JUSTIFIED,
+    )
+        private set
+
     /**
      * Set when the book was read further elsewhere (see [checkReadElsewhere]) or a page was picked with
      * the page slider: the renderer jumps there (0..1) and calls [onJumped].
@@ -103,7 +109,10 @@ class ReaderViewModel(
     var currentPage by mutableStateOf<Int?>(null)
         private set
 
-    /** The sheet at the bottom for theme, text size and font. The bars hide while it's open, so the page shows. */
+    /**
+     * The sheet at the bottom for theme, text size, alignment and font. The bars hide while it's open, so the
+     * page shows.
+     */
     var isAppearanceOpen by mutableStateOf(false)
         private set
 
@@ -335,6 +344,11 @@ class ReaderViewModel(
         settings.write(KEY_FONT, font.name)
     }
 
+    fun selectAlignment(selected: ReaderAlignment) {
+        alignment = selected
+        settings.write(KEY_ALIGNMENT, alignment.name)
+    }
+
     fun decreaseFontSize() = changeFontSize(fontSize - FONT_SIZE_STEP)
 
     fun increaseFontSize() = changeFontSize(fontSize + FONT_SIZE_STEP)
@@ -419,6 +433,7 @@ class ReaderViewModel(
         const val KEY_THEME = "reader_theme"
         const val KEY_FONT_SIZE = "reader_font_size"
         const val KEY_FONT = "reader_font"
+        const val KEY_ALIGNMENT = "reader_alignment"
 
         // Readium allows 10–500 %; beyond these limits text on a phone is too small to read,
         // or only a few words fit on a line.

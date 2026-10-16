@@ -30,7 +30,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -55,11 +60,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import kotlin.math.roundToInt
 
 /**
- * The sheet from the "Aa" button: theme, text size and font, one row each. It covers only the bottom of
- * the screen and doesn't dim the page, so every change shows on the page right away.
+ * The sheet from the "Aa" button: theme, text size, alignment and font, one row each. The rows of the same
+ * width come first; the fonts, which scroll sideways to the screen's edges, come last. It covers only the
+ * bottom of the screen and doesn't dim the page, so every change shows on the page right away.
  * Swiping it down closes it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +78,8 @@ fun AppearanceSheet(
     canIncreaseFontSize: Boolean,
     onDecreaseFontSize: () -> Unit,
     onIncreaseFontSize: () -> Unit,
+    alignment: ReaderAlignment,
+    onAlignmentSelected: (ReaderAlignment) -> Unit,
     font: ReaderFont,
     onFontSelected: (ReaderFont) -> Unit,
     onClose: () -> Unit,
@@ -117,6 +126,8 @@ fun AppearanceSheet(
                 onIncrease = onIncreaseFontSize,
                 modifier = Modifier.padding(horizontal = 24.dp),
             )
+            Spacer(Modifier.height(ROW_GAP))
+            AlignmentControl(alignment, onAlignmentSelected, Modifier.padding(horizontal = 24.dp))
             Spacer(Modifier.height(ROW_GAP))
             FontChips(font, onFontSelected)
         }
@@ -220,7 +231,10 @@ private fun RowScope.FontSizeHalf(letterSize: TextUnit, description: String, ena
 private val ROW_HEIGHT = 48.dp
 private val ROW_GAP = 24.dp
 
-/** The theme cards and the text size control share their corners and border, so they look like one family. */
+/**
+ * The theme cards, the text size control and the alignment control share their corners and border, so they
+ * look like one family.
+ */
 private val ROW_CORNER_RADIUS = 12.dp
 private val BORDER_WIDTH = 1.dp
 
@@ -246,6 +260,52 @@ private const val DIVIDER_ALPHA = 0.24f
 
 /** Material's opacity for disabled content: at the smallest or largest size, that half looks inactive. */
 private const val DISABLED_ALPHA = 0.38f
+
+/**
+ * Left-aligned or justified text, as one control split in two halves with an icon each. Like the font chips,
+ * the color alone shows the choice.
+ */
+@Composable
+private fun AlignmentControl(
+    selected: ReaderAlignment,
+    onSelect: (ReaderAlignment) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val borderColor = MaterialTheme.colorScheme.outlineVariant
+    SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
+        ReaderAlignment.entries.forEachIndexed { index, alignment ->
+            SegmentedButton(
+                selected = alignment == selected,
+                onClick = { onSelect(alignment) },
+                shape = SegmentedButtonDefaults.itemShape(
+                    index = index,
+                    count = ReaderAlignment.entries.size,
+                    baseShape = RoundedCornerShape(ROW_CORNER_RADIUS),
+                ),
+                modifier = Modifier.height(ROW_HEIGHT),
+                colors = SegmentedButtonDefaults.colors(
+                    activeBorderColor = borderColor,
+                    inactiveBorderColor = borderColor,
+                ),
+                // No checkmark, which Material shows here by default.
+                icon = {},
+                label = { Icon(alignment.icon, contentDescription = alignment.label) },
+            )
+        }
+    }
+}
+
+private val ReaderAlignment.icon: ImageVector
+    get() = when (this) {
+        ReaderAlignment.LEFT -> LibrifinIcons.FormatAlignLeft
+        ReaderAlignment.JUSTIFIED -> LibrifinIcons.FormatAlignJustify
+    }
+
+private val ReaderAlignment.label: String
+    get() = when (this) {
+        ReaderAlignment.LEFT -> "Left-aligned"
+        ReaderAlignment.JUSTIFIED -> "Justified"
+    }
 
 /**
  * The fonts, each name in its own font, in one row that scrolls sideways to the screen's edges.

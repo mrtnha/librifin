@@ -30,6 +30,7 @@ I use Jellyfin as the one place for all of my media. For the books in my Jellyfi
 - Four reading themes (dark, gray, sepia and light).
 - Adjustable text size.
 - Ten reading fonts to choose from in addition to the book's own.
+- Justified (with hyphenation) or left-aligned text.
 - Your reading position is saved on the device and your progress is sent to Jellyfin. Once you've read 95% of a book or reached its last page, it counts as finished and is marked as played in Jellyfin.
 
 ## Screenshots
@@ -40,7 +41,7 @@ I use Jellyfin as the one place for all of my media. For the books in my Jellyfi
 |:---:|:---:|:---:|
 | <img src="docs/screenshots/welcome.jpg" width="200" alt="Welcome screen"> | <img src="docs/screenshots/library.jpg" width="200" alt="Library screen"> | <img src="docs/screenshots/search-book.jpg" width="200" alt="Search results inside a book, each with its chapter and page"> |
 | **Reading** | **Reading with bars** | **Reader appearance** |
-| <img src="docs/screenshots/reader.jpg" width="200" alt="Reading full screen"> | <img src="docs/screenshots/reader-bars.jpg" width="200" alt="Reading with the app bar and page slider shown"> | <img src="docs/screenshots/reader-appearance.jpg" width="200" alt="Reading with the appearance sheet: theme, text size and font"> |
+| <img src="docs/screenshots/reader.jpg" width="200" alt="Reading full screen"> | <img src="docs/screenshots/reader-bars.jpg" width="200" alt="Reading with the app bar and page slider shown"> | <img src="docs/screenshots/reader-appearance.jpg" width="200" alt="Reading with the appearance sheet: theme, text size, alignment and font"> |
 
 </div>
 

@@ -209,6 +209,8 @@ fun ReaderScreen(
                             canIncreaseFontSize = vm.canIncreaseFontSize,
                             onDecreaseFontSize = vm::decreaseFontSize,
                             onIncreaseFontSize = vm::increaseFontSize,
+                            alignment = vm.alignment,
+                            onAlignmentSelected = vm::selectAlignment,
                             font = vm.font,
                             onFontSelected = vm::selectFont,
                             onClose = vm::closeAppearance,

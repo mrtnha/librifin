@@ -42,6 +42,7 @@ import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.navigator.preferences.Color
 import org.readium.r2.navigator.preferences.FontFamily
+import org.readium.r2.navigator.preferences.TextAlign
 import org.readium.r2.navigator.preferences.Theme
 import org.readium.r2.navigator.util.DirectionalNavigationAdapter
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -77,8 +78,9 @@ fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: 
             LaunchedEffect(vm) { host.onPagesLoaded(vm.pages) }
             var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
 
-            // The first theme, size and font are set when the book opens; later ones change the page in place.
-            LaunchedEffect(host.theme, host.fontSize, host.font, navigatorNow) {
+            // The first theme, size, font and alignment are set when the book opens; later ones change the page
+            // in place.
+            LaunchedEffect(host.theme, host.fontSize, host.font, host.alignment, navigatorNow) {
                 navigatorNow?.submitPreferences(host.epubPreferences())
             }
 
@@ -144,7 +146,7 @@ fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: 
 
 /**
  * What [EpubView] shows and reports. The book is in the colors of [theme], with text at [fontSize] percent of
- * the book's own size, in [font].
+ * the book's own size, in [font], aligned as [alignment].
  * When [jumpToProgress] is set, it goes there and calls [onJumped]. [onReachedEnd] is called when
  * the last page of the book is shown. [onPagesLoaded] gets the book's pages once it's open.
  * Taps on the left and right edges and swipes turn pages; other taps on the page call [onCenterTap].
@@ -160,6 +162,7 @@ interface EpubViewHost {
     val theme: ReaderTheme
     val fontSize: Int
     val font: ReaderFont
+    val alignment: ReaderAlignment
     val jumpToProgress: Double?
     val searchedQuery: String?
     val showSearchResult: SearchResult?
@@ -219,6 +222,16 @@ private fun EpubViewHost.epubPreferences() = EpubPreferences(
     fontSize = fontSize / 100.0,
     // No font family: the book's own.
     fontFamily = font.takeIf { it != ReaderFont.ORIGINAL }?.let { FontFamily(it.label) },
+    // Readium aligns the text only with the book's own styles off. Then it also sizes paragraphs and
+    // headings itself, and aligns the paragraphs a book centers or right-aligns like all others.
+    publisherStyles = false,
+    textAlign = when (alignment) {
+        ReaderAlignment.LEFT -> TextAlign.START // Right-aligned in right-to-left books.
+        ReaderAlignment.JUSTIFIED -> TextAlign.JUSTIFY
+    },
+    // Justified lines on a phone's narrow page need hyphens, or the gaps between words grow wide.
+    // Left-aligned text keeps the book's own hyphenation.
+    hyphens = if (alignment == ReaderAlignment.JUSTIFIED) true else null,
 )
 
 /** Lets the book's pages use the fonts bundled with the app, under their [ReaderFont.label]s. */
