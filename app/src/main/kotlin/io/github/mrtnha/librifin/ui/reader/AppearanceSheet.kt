@@ -184,6 +184,16 @@ private val ReaderTheme.label: String
         ReaderTheme.GRAY -> "Gray"
         ReaderTheme.SEPIA -> "Sepia"
         ReaderTheme.LIGHT -> "Light"
+        ReaderTheme.SAGE -> "Sage"
+        ReaderTheme.FOREST -> "Forest"
+        ReaderTheme.ROSE -> "Rose"
+        ReaderTheme.WINE -> "Wine"
+        ReaderTheme.SKY -> "Sky"
+        ReaderTheme.MIDNIGHT -> "Midnight"
+        ReaderTheme.KRAFT -> "Kraft"
+        ReaderTheme.COFFEE -> "Coffee"
+        ReaderTheme.LAVENDER -> "Lavender"
+        ReaderTheme.PLUM -> "Plum"
     }
 
 /**
