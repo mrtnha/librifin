@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -64,9 +65,9 @@ import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import kotlin.math.roundToInt
 
 /**
- * The sheet from the "Aa" button: theme, text size, alignment and font, one row each. The rows of the same
- * width come first; the fonts, which scroll sideways to the screen's edges, come last. It covers only the
- * bottom of the screen and doesn't dim the page, so every change shows on the page right away.
+ * The sheet from the "Aa" button: text size, alignment, font and theme, one row each. The rows of the same
+ * width come first; the fonts and the themes, which scroll sideways to the screen's edges, come last. It covers
+ * only the bottom of the screen and doesn't dim the page, so every change shows on the page right away.
  * Swiping it down closes it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,8 +118,6 @@ fun AppearanceSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             BottomSheetDefaults.DragHandle()
-            ThemeCards(theme, onThemeSelected, Modifier.padding(horizontal = 24.dp))
-            Spacer(Modifier.height(ROW_GAP))
             FontSizeControl(
                 canDecrease = canDecreaseFontSize,
                 canIncrease = canIncreaseFontSize,
@@ -130,21 +129,31 @@ fun AppearanceSheet(
             AlignmentControl(alignment, onAlignmentSelected, Modifier.padding(horizontal = 24.dp))
             Spacer(Modifier.height(ROW_GAP))
             FontChips(font, onFontSelected)
+            Spacer(Modifier.height(ROW_GAP))
+            ThemeCards(theme, onThemeSelected)
         }
     }
 }
 
-/** One card per theme, in its own page and text colors, so the choice looks like the page it gives. */
+/**
+ * One card per theme, in its own page and text colors, so the choice looks like the page it gives. Like the
+ * fonts, in one row that scrolls sideways to the screen's edges, opened at the selected theme.
+ */
 @Composable
-private fun ThemeCards(selected: ReaderTheme, onSelect: (ReaderTheme) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ReaderTheme.entries.forEach { theme ->
+private fun ThemeCards(selected: ReaderTheme, onSelect: (ReaderTheme) -> Unit) {
+    LazyRow(
+        modifier = Modifier.selectableGroup(),
+        state = rememberLazyListState(initialFirstVisibleItemIndex = selected.ordinal),
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(ReaderTheme.entries) { theme ->
             val isSelected = theme == selected
             val colors = MaterialTheme.colorScheme
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .weight(1f)
+                    .width(THEME_CARD_WIDTH)
                     .height(ROW_HEIGHT)
                     // Also around the others: the dark card would vanish on the dark sheet without it.
                     .framed(
@@ -165,6 +174,9 @@ private fun ThemeCards(selected: ReaderTheme, onSelect: (ReaderTheme) -> Unit, m
         }
     }
 }
+
+/** About four and a half cards fit across a small phone (360 dp), so the cut-off one shows that the row goes on. */
+private val THEME_CARD_WIDTH = 64.dp
 
 private val ReaderTheme.label: String
     get() = when (this) {
