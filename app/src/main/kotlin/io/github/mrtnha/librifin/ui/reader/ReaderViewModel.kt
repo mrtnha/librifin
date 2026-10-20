@@ -73,6 +73,14 @@ class ReaderViewModel(
     )
         private set
 
+    /**
+     * The theme the book's page shows. A new [theme] reaches the page a few frames after it's picked
+     * ([onThemeShown]); the app bar, page slider and appearance sheet take their colors from this one, so they
+     * change in the same frame as the page.
+     */
+    var shownTheme by mutableStateOf(theme)
+        private set
+
     /** The text size in percent of the book's own, the same for all books and kept between app starts. */
     override var fontSize by mutableStateOf(
         settings.read(KEY_FONT_SIZE)?.toIntOrNull()?.coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE) ?: DEFAULT_FONT_SIZE,
@@ -337,6 +345,12 @@ class ReaderViewModel(
     fun selectTheme(selected: ReaderTheme) {
         theme = selected
         settings.write(KEY_THEME, theme.name)
+        // Without a book on screen, there's no page to wait for.
+        if (state !is ReaderState.Ready) shownTheme = selected
+    }
+
+    override fun onThemeShown(theme: ReaderTheme) {
+        shownTheme = theme
     }
 
     fun selectFont(selected: ReaderFont) {

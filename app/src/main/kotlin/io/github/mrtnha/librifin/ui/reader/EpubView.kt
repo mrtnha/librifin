@@ -3,6 +3,14 @@
 package io.github.mrtnha.librifin.ui.reader
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.Rect
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
+import android.view.View
+import android.view.Window
+import android.webkit.WebView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -14,8 +22,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.allViews
 import androidx.fragment.app.FragmentFactory
 import androidx.fragment.compose.AndroidFragment
 import androidx.lifecycle.Lifecycle
@@ -26,10 +38,13 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mrtnha.librifin.ui.theme.JellyfinBlue
 import java.io.File
+import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.io.files.Path
 import org.json.JSONException
 import org.json.JSONObject
@@ -68,6 +83,33 @@ import org.readium.r2.streamer.parser.DefaultPublicationParser
 fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: Modifier = Modifier) {
     val application = LocalContext.current.applicationContext as Application
     val vm = viewModel { EpubViewModel(application, File(file.toString()), initialLocator, host) }
+    var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
+    var pageCover by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    // The first theme, size, font and alignment are set when the book opens; later ones change the page in place.
+    // A new theme reaches the page's margins at once (Readium paints them as a view) and its text once the WebView
+    // has restyled and redrawn the page, before Librifin hears that it's ready. So a picture of the page as it was
+    // covers it until then, and goes in the same frame as the bars around the page change (onThemeShown). Also
+    // while the book is still opening: then there's no page yet, and the bars change at once.
+    LaunchedEffect(host.theme, host.fontSize, host.font, host.alignment, navigatorNow) {
+        val navigator = navigatorNow
+        val theme = host.theme
+        val preferences = host.epubPreferences()
+        val page = navigator?.view?.shownWebView()
+        val newColors = navigator?.settings?.value?.backgroundColor != preferences.backgroundColor
+        if (navigator != null && page != null && newColors) {
+            // Taken before submitting, and shown in the same frame as Readium's first change.
+            pageCover = navigator.requireActivity().window.copyPixels(navigator.requireView())?.asImageBitmap()
+            navigator.submitPreferences(preferences)
+            withTimeoutOrNull(MAX_RECOLOR_WAIT_MS) { page.awaitReadyToDraw() }
+            // Its next draw shows the new colors: this makes that the next frame, the one without the cover.
+            page.invalidate()
+        } else {
+            navigator?.submitPreferences(preferences)
+        }
+        pageCover = null
+        host.onThemeShown(theme)
+    }
 
     when (val state = vm.state) {
         EpubState.Opening -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -76,13 +118,6 @@ fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: 
         is EpubState.Failed -> LaunchedEffect(state) { host.onOpenFailed(state.message) }
         EpubState.Opened -> {
             LaunchedEffect(vm) { host.onPagesLoaded(vm.pages) }
-            var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
-
-            // The first theme, size, font and alignment are set when the book opens; later ones change the page
-            // in place.
-            LaunchedEffect(host.theme, host.fontSize, host.font, host.alignment, navigatorNow) {
-                navigatorNow?.submitPreferences(host.epubPreferences())
-            }
 
             LaunchedEffect(host.jumpToProgress, navigatorNow) {
                 val progress = host.jumpToProgress ?: return@LaunchedEffect
@@ -117,7 +152,13 @@ fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: 
 
             // Created by ReaderFragmentFactory, from the book the view model opened.
             // Called once per fragment instance (also the new one after rotation), so listeners are added once.
-            AndroidFragment<EpubNavigatorFragment>(modifier) { navigator ->
+            AndroidFragment<EpubNavigatorFragment>(
+                // While the page takes on a new theme: the picture of it from before, over it.
+                modifier.drawWithContent {
+                    drawContent()
+                    pageCover?.let { drawImage(it) }
+                },
+            ) { navigator ->
                 navigatorNow = navigator
                 // Taps near the left and right edges turn the page with a slide, like a swipe.
                 // Taps elsewhere reach the next listener.
@@ -146,7 +187,8 @@ fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: 
 
 /**
  * What [EpubView] shows and reports. The book is in the colors of [theme], with text at [fontSize] percent of
- * the book's own size, in [font], aligned as [alignment].
+ * the book's own size, in [font], aligned as [alignment]. A new [theme] takes a few frames to reach the page:
+ * [onThemeShown] gets it once the page shows it, so what's around the page can change in the same frame.
  * When [jumpToProgress] is set, it goes there and calls [onJumped]. [onReachedEnd] is called when
  * the last page of the book is shown. [onPagesLoaded] gets the book's pages once it's open.
  * Taps on the left and right edges and swipes turn pages; other taps on the page call [onCenterTap].
@@ -168,6 +210,7 @@ interface EpubViewHost {
     val showSearchResult: SearchResult?
     val highlightedResult: SearchResult?
 
+    fun onThemeShown(theme: ReaderTheme)
     fun onJumped()
     fun onReachedEnd()
     fun onPagesLoaded(pages: List<BookPage>)
@@ -209,6 +252,53 @@ private fun parseLocator(json: String): Locator? =
     } catch (_: JSONException) {
         null
     }
+
+/**
+ * How long the cover and the bars wait at most for the page to take on a new theme, so a WebView that never
+ * answers (e.g. one that was destroyed) can't keep the old colors. Generous, since on a slow phone the shown
+ * chapter may wait for the chapters before and after it, which Readium restyles too.
+ */
+private const val MAX_RECOLOR_WAIT_MS = 1_000L
+
+/**
+ * The book's WebView on the screen, if there is one. Readium keeps a chapter's WebView hidden until it's loaded,
+ * and those of the chapters before and after it ready outside the screen.
+ */
+private fun View.shownWebView(): WebView? =
+    allViews.filterIsInstance<WebView>().firstOrNull { it.isShown && it.getGlobalVisibleRect(Rect()) }
+
+/**
+ * A picture of what [view] shows on the screen now, or null if Android can't take one. Copied from the window,
+ * so it's exactly what's on the screen, the WebView's part included.
+ */
+private suspend fun Window.copyPixels(view: View): Bitmap? {
+    val position = IntArray(2).also { view.getLocationInWindow(it) }
+    val bounds = Rect(position[0], position[1], position[0] + view.width, position[1] + view.height)
+    val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+    return suspendCancellableCoroutine { continuation ->
+        val listener = PixelCopy.OnPixelCopyFinishedListener { result ->
+            continuation.resume(bitmap.takeIf { result == PixelCopy.SUCCESS })
+        }
+        PixelCopy.request(this, bounds, bitmap, listener, Handler(Looper.getMainLooper()))
+    }
+}
+
+/**
+ * Waits until this WebView is ready to draw everything sent to it so far. An empty script runs after the ones
+ * sent before it, among them the CSS of the last submitted preferences (Readium sends it before submitPreferences
+ * returns); the visual state callback then comes once the WebView's next draw shows their changes.
+ */
+private suspend fun WebView.awaitReadyToDraw() {
+    suspendCancellableCoroutine { continuation -> evaluateJavascript("0") { continuation.resume(Unit) } }
+    suspendCancellableCoroutine { continuation ->
+        postVisualStateCallback(
+            0,
+            object : WebView.VisualStateCallback() {
+                override fun onComplete(requestId: Long) = continuation.resume(Unit)
+            },
+        )
+    }
+}
 
 /**
  * All of the reader's settings at once, so changing one never resets another.

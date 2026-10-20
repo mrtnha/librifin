@@ -103,7 +103,8 @@ fun ReaderScreen(
     // So does the search bar while a result is marked: it's the way out of the search.
     val isResultMarked = vm.highlightedResult != null
     val showBars = vm.state !is ReaderState.Ready || vm.areBarsVisible || vm.isSearchOpen || isResultMarked
-    val theme = vm.theme
+    // The colors the page shows: a new theme reaches it a few frames after it's picked, and the rest changes with it.
+    val theme = vm.shownTheme
     SystemBarsVisible(showBars, darkBackground = theme.bars.luminance() < 0.5f)
     val barsColors = readerBarsColorScheme(theme.bars)
 
@@ -203,7 +204,8 @@ fun ReaderScreen(
                 ) {
                     MaterialTheme(colorScheme = barsColors) {
                         AppearanceSheet(
-                            theme = theme,
+                            // The theme just picked, so the tap shows at once, also while the page still takes it on.
+                            theme = vm.theme,
                             onThemeSelected = vm::selectTheme,
                             canDecreaseFontSize = vm.canDecreaseFontSize,
                             canIncreaseFontSize = vm.canIncreaseFontSize,
