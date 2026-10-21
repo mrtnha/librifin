@@ -85,6 +85,14 @@ sealed interface LibraryState {
         /** [books], or only the downloaded ones if [downloadedOnly], in the same order. */
         fun shownBooks(downloadedOnly: Boolean) = if (downloadedOnly) books.filter(::isDownloaded) else books
 
+        /**
+         * Whether [book] can be opened while the server is [serverStatus]: a downloaded one always, the others only
+         * while the server can be reached. While that isn't known yet, opening one is tried, so at app start, before
+         * the server has answered, no book looks unavailable.
+         */
+        fun canOpen(book: Book, serverStatus: ServerStatus) =
+            isDownloaded(book) || serverStatus == ServerStatus.REACHABLE || serverStatus == ServerStatus.UNKNOWN
+
         /** [books] in [sort]'s order. */
         fun sorted(sort: LibrarySort) = sortBooks(books, sort, progress, lastReadMillis)
     }
@@ -207,9 +215,8 @@ class LibraryViewModel(
         return true
     }
 
-    /** While the server can't be reached, only the downloaded books can be opened. While not known, a book is tried. */
-    fun canOpen(book: Book) =
-        (hasNetwork && isServerReachable != false) || (state as? LibraryState.Loaded)?.isDownloaded(book) == true
+    /** Whether [book] can be opened now, see [LibraryState.Loaded.canOpen]. The library grays out the others. */
+    fun canOpen(book: Book) = (state as? LibraryState.Loaded)?.canOpen(book, serverStatus) == true
 
     /**
      * Follows the phone's network while collected, i.e. while the library is on screen. On another network, what

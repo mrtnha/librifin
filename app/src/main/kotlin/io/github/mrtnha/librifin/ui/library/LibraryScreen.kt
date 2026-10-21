@@ -1,12 +1,12 @@
 package io.github.mrtnha.librifin.ui.library
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,9 +47,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -267,7 +273,7 @@ fun LibraryScreen(
                                 BookGrid(
                                     books = books,
                                     progress = state.progress,
-                                    isDownloaded = state::isDownloaded,
+                                    canOpen = vm::canOpen,
                                     onBookClick = { book ->
                                         if (vm.canOpen(book)) onBookClick(book) else explainNotDownloaded()
                                     },
@@ -289,7 +295,7 @@ fun LibraryScreen(
 private fun BookGrid(
     books: List<Book>,
     progress: Map<String, BookProgress>,
-    isDownloaded: (Book) -> Boolean,
+    canOpen: (Book) -> Boolean,
     onBookClick: (Book) -> Unit,
 ) {
     val gridState = rememberLazyGridState()
@@ -306,7 +312,7 @@ private fun BookGrid(
                 BookItem(
                     book,
                     progress[book.id],
-                    isDownloaded = isDownloaded(book),
+                    canOpen = canOpen(book),
                     onClick = { onBookClick(book) },
                 )
             }
@@ -327,15 +333,32 @@ private val GRID_PADDING = 16.dp
 private fun BookItem(
     book: Book,
     progress: BookProgress?,
-    isDownloaded: Boolean,
+    canOpen: Boolean,
     onClick: () -> Unit,
 ) {
-    Column(Modifier.clickable(onClick = onClick)) {
+    // 0 while the book can be opened, 1 while it can't, in between while that changes: the covers fade instead of
+    // jumping as the server comes and goes.
+    val unavailable by animateFloatAsState(
+        targetValue = if (canOpen) 0f else 1f,
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "unavailable",
+    )
+    Column(
+        Modifier
+            .clickable(onClick = onClick)
+            // A screen reader can't see the gray, so it says why the book won't open.
+            .semantics { if (!canOpen) stateDescription = "Not downloaded" },
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(8.dp))
+                // Can't be opened: the whole cover in gray and faded, its check and progress bar too.
+                .graphicsLayer {
+                    alpha = 1f - unavailable * (1f - UNAVAILABLE_ALPHA)
+                    colorFilter = if (unavailable > 0f) saturation(1f - unavailable) else null
+                }
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
         ) {
@@ -354,13 +377,13 @@ private fun BookItem(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
-            // Side by side in the top right corner: on the phone (so it opens without the server), and finished.
-            Row(
-                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (isDownloaded) CoverBadge(LibrifinIcons.Download, contentDescription = "Downloaded")
-                if (progress?.isFinished == true) CoverBadge(LibrifinIcons.Check, contentDescription = "Finished")
+            // Finished: in the top right corner, where Jellyfin marks played items.
+            if (progress?.isFinished == true) {
+                CoverBadge(
+                    LibrifinIcons.Check,
+                    contentDescription = "Finished",
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                )
             }
             // Along the bottom edge of the cover, like in Jellyfin. On every book: an empty track until
             // started, then filling up in blue. The dark, see-through track stays visible on any cover.
@@ -377,6 +400,8 @@ private fun BookItem(
         Text(
             book.title,
             style = MaterialTheme.typography.titleSmall,
+            // Muted along with the cover, but still easy to read.
+            color = lerp(LocalContentColor.current, MaterialTheme.colorScheme.onSurfaceVariant, unavailable),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 8.dp),
@@ -385,14 +410,25 @@ private fun BookItem(
 }
 
 /**
- * A round mark in the app's blue on a cover, like Jellyfin's mark for played items. Small, so it reads as a
- * mark and not as a button.
+ * How visible a book that can't be opened is: clearly set back, still recognizable. A bit more than Material's 38 %
+ * for disabled content, as the book still reacts to a tap: it says why it can't be opened.
+ */
+private const val UNAVAILABLE_ALPHA = 0.45f
+
+/** A filter that leaves [saturation] of the colors: 0 turns them gray, 1 leaves them as they are. */
+private fun saturation(saturation: Float) =
+    ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(saturation) })
+
+/**
+ * A round mark in the app's blue on a cover, like Jellyfin's mark for played items, with the icon at the same
+ * share of the circle. Smaller than Material's smallest icon button and flat, so it reads as a mark and not as a
+ * button.
  */
 @Composable
 private fun CoverBadge(icon: ImageVector, contentDescription: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(24.dp)
+            .size(28.dp)
             .background(MaterialTheme.colorScheme.primary, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
@@ -400,7 +436,7 @@ private fun CoverBadge(icon: ImageVector, contentDescription: String, modifier: 
             icon,
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(22.dp),
         )
     }
 }
