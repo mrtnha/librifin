@@ -1,6 +1,5 @@
 package io.github.mrtnha.librifin.ui.library
 
-import io.github.mrtnha.librifin.storage.AuthorSortName
 import io.github.mrtnha.librifin.storage.Book
 import java.util.Locale
 import kotlin.test.Test
@@ -62,45 +61,19 @@ class LibrarySortTest {
     }
 
     @Test
-    fun authorBySurnameAsTheFileSaysElseGuessedOneAuthorsBooksByTitleWithoutAuthorLast() {
+    fun authorBySurnameOneAuthorsBooksByTitleWithoutAuthorLast() {
         val books = listOf(
             book("Walden", authors = listOf("Henry David Thoreau")),
             book("Notes"),
             book("Great Expectations", authors = listOf("Charles Dickens")),
-            book("One Hundred Years of Solitude", authors = listOf("Gabriel García Márquez")),
             book("The Left Hand of Darkness", authors = listOf("Ursula K. Le Guin")),
             book("A Tale of Two Cities", authors = listOf("Charles Dickens")),
         )
-        // The guess would file him under M.
-        val names = mapOf(
-            "One Hundred Years of Solitude" to AuthorSortName("Gabriel García Márquez", "García Márquez, Gabriel"),
-        )
-
-        val titles = inLocale(Locale.ENGLISH) { sorted(books, LibrarySort.AUTHOR, authorSortNames = names) }
 
         assertEquals(
-            listOf(
-                "A Tale of Two Cities",
-                "Great Expectations",
-                "One Hundred Years of Solitude",
-                "The Left Hand of Darkness",
-                "Walden",
-                "Notes",
-            ),
-            titles,
+            listOf("A Tale of Two Cities", "Great Expectations", "The Left Hand of Darkness", "Walden", "Notes"),
+            sorted(books, LibrarySort.AUTHOR),
         )
-    }
-
-    @Test
-    fun authorNameReadForAnotherAuthorIsIgnored() {
-        val books = listOf(
-            book("Walden", authors = listOf("Henry David Thoreau")),
-            book("Buddenbrooks", authors = listOf("Thomas Mann")),
-        )
-        // Read when Jellyfin still had another author for the book.
-        val names = mapOf("Walden" to AuthorSortName("Someone Else", "Aaron, Someone"))
-
-        assertEquals(listOf("Buddenbrooks", "Walden"), sorted(books, LibrarySort.AUTHOR, authorSortNames = names))
     }
 
     @Test
@@ -177,6 +150,15 @@ class LibrarySortTest {
         ).forEach { (name, expected) -> assertEquals(expected, surnameFirst(name), name) }
     }
 
+    @Test
+    fun someSurnamesCantBeToldFromTheName() {
+        // Libraries file them as "García Márquez, Gabriel" and "du Maurier, Daphne": accepted, see surnameFirst.
+        mapOf(
+            "Gabriel García Márquez" to "Márquez, Gabriel García",
+            "Daphne du Maurier" to "Maurier, Daphne du",
+        ).forEach { (name, expected) -> assertEquals(expected, surnameFirst(name), name) }
+    }
+
     /** The book's id is its title, so tests can refer to books by title. */
     private fun book(
         title: String,
@@ -196,9 +178,8 @@ class LibrarySortTest {
         books: List<Book>,
         sort: LibrarySort,
         lastRead: Map<String, Long> = emptyMap(),
-        authorSortNames: Map<String, AuthorSortName> = emptyMap(),
         progress: Map<String, BookProgress> = emptyMap(),
-    ) = sortBooks(books, sort, progress, lastRead, authorSortNames).map { it.title }
+    ) = sortBooks(books, sort, progress, lastRead).map { it.title }
 
     private fun reading(fraction: Float) = BookProgress(fraction, isFinished = false)
 
