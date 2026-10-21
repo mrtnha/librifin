@@ -72,8 +72,8 @@ private val LibrarySort.label: String
         LibrarySort.RECENTLY_READ -> "Recently read"
         LibrarySort.AUTHOR -> "Author"
         LibrarySort.TITLE -> "Title"
-        LibrarySort.PROGRESS -> "Progress"
         LibrarySort.DATE_ADDED -> "Date added"
+        LibrarySort.PROGRESS -> "Reading progress"
     }
 
 /** One order: its name, and a check mark if it's the current one, both in the accent color then. */

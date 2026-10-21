@@ -20,7 +20,7 @@ I use Jellyfin as the one place for all of my media. For the books in my Jellyfi
 
 - Finds Jellyfin servers on your local network automatically, with manual address entry as a fallback.
 - Log in once and stay logged in.
-- Your book library as a grid of covers, sorted by recently read, author, title, progress or date added, with each book's reading progress and a mark for finished books.
+- Your book library as a grid of covers, sorted by recently read, author, title, date added or reading progress, with each book's reading progress and a mark for finished books.
 - Search the library by title or author.
 - A scrollbar on the right edge to move quickly through a big library.
 - Tap a book to download and open it. Downloaded books carry a mark and work offline. Tap the cloud icon in the top bar to show only them. It's green while your Jellyfin server can be reached, amber while it can't, and gray while your phone has no network.

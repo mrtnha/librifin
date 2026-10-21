@@ -29,7 +29,7 @@ import kotlinx.coroutines.withContext
 
 /** How far a book was read: [fraction] 0..1, [isFinished] once the book was read to the end (or nearly). */
 data class BookProgress(val fraction: Float, val isFinished: Boolean) {
-    /** How full the cover's bar is: all the way once finished. Also what the Progress sort goes by. */
+    /** How full the cover's bar is: all the way once finished. Also what the Reading progress sort goes by. */
     val shown: Float get() = if (isFinished) 1f else fraction
 }
 
@@ -57,14 +57,14 @@ enum class LibrarySort {
     /** A to Z. */
     TITLE,
 
+    /** Most recently added to Jellyfin first. */
+    DATE_ADDED,
+
     /**
      * Furthest read first: finished books, then the ones in progress, then the unread ones. Equal progress,
      * e.g. all the finished books, most recently read first.
      */
     PROGRESS,
-
-    /** Most recently added to Jellyfin first. */
-    DATE_ADDED,
 }
 
 sealed interface LibraryState {
