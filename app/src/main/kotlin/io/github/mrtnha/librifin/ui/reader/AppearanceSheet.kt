@@ -182,6 +182,7 @@ private val ReaderTheme.label: String
     get() = when (this) {
         ReaderTheme.BLACK -> "Black"
         ReaderTheme.DARK -> "Dark"
+        ReaderTheme.CHARCOAL -> "Charcoal"
         ReaderTheme.GRAY -> "Gray"
         ReaderTheme.SEPIA -> "Sepia"
         ReaderTheme.LIGHT -> "Light"
