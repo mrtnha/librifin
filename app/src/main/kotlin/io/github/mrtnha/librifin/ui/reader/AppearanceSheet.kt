@@ -184,6 +184,7 @@ private val ReaderTheme.label: String
         ReaderTheme.DARK -> "Dark"
         ReaderTheme.CHARCOAL -> "Charcoal"
         ReaderTheme.GRAY -> "Gray"
+        ReaderTheme.PEWTER -> "Pewter"
         ReaderTheme.SEPIA -> "Sepia"
         ReaderTheme.LIGHT -> "Light"
         ReaderTheme.SAGE -> "Sage"

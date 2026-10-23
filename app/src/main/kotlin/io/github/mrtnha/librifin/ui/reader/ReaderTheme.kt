@@ -3,7 +3,7 @@ package io.github.mrtnha.librifin.ui.reader
 import androidx.compose.ui.graphics.Color
 
 /**
- * The page colors of the reader, in the order the appearance sheet shows them: the six neutral ones from
+ * The page colors of the reader, in the order the appearance sheet shows them: the seven neutral ones from
  * darkest to brightest, then five colors, each as a light page and a dark one.
  * No pure white: white text glows and blurs on a dark page, and white paper glares.
  * The app bar, page slider and appearance sheet are always dark, in a [bars] color that stands apart from the page.
@@ -29,6 +29,12 @@ enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, 
      * without turning near white. Contrast about 7.2:1. Bars near black.
      */
     GRAY(background = Color(0xFF4B4B4D), text = Color(0xFFEAEAEA), bars = Color(0xFF1A1A1A), isDark = true),
+
+    /**
+     * Light dimmed to a light gray, like an e-ink screen: light's tint and ink without its glare.
+     * Contrast about 10.9:1. Bars near black.
+     */
+    PEWTER(background = Color(0xFFD3D1CD), text = Color(0xFF1E1E1E), bars = Color(0xFF1A1A1A), isDark = false),
 
     /**
      * Warm like the paper of a printed book: less bright than light, for long reading. Text and page share
