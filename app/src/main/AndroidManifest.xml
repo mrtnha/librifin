@@ -24,15 +24,38 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Librifin">
+        <!-- Opened through the launcher entries below. Still exported: a task in Recents that was opened before they
+             existed points to it directly. -->
         <activity
             android:exported="true"
-            android:name=".MainActivity">
+            android:name=".MainActivity" />
+        <!-- One launcher entry per app icon (AppIcon.kt), declared after the activity they open, as Android requires.
+             The app switches exactly one of them on. Android remembers which by these names, so they must never
+             change. android:icon is enough: Android takes it on devices with round icons too, as the entries have no
+             android:roundIcon. -->
+        <activity-alias
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:name=".DarkIcon"
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+        <activity-alias
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_light"
+            android:name=".LightIcon"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
         <activity
             android:name="androidx.media3.session.BluetoothValidationActivity"
             tools:node="remove" />

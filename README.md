@@ -32,6 +32,7 @@ I use Jellyfin as the one place for all of my media. For the books in my Jellyfi
 - Ten reading fonts to choose from in addition to the book's own.
 - Justified (with hyphenation) or left-aligned text.
 - Your reading position is saved on the device and your progress is sent to Jellyfin. Once you've read 95% of a book or reached its last page, it counts as finished and is marked as played in Jellyfin.
+- Choose between a light and a dark app icon in the settings.
 
 ## Screenshots
 

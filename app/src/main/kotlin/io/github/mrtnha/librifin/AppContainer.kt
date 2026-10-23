@@ -56,6 +56,9 @@ class AppContainer(context: Context) {
     /** Whether the phone has a network at all, for the cloud in the library. */
     val network = NetworkMonitor(appContext)
 
+    /** The app's icon on the home screen, chosen in the settings. */
+    val appIcons = AppIcons(appContext)
+
     /** Small app settings kept between app starts, e.g. the reading theme. */
     val settingsStore = SettingsStore(prefs)
 

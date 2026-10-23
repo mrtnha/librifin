@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The light app icon, chosen in the settings (AppIcon.kt): the book of ic_launcher.xml on white. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@android:color/white" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>
