@@ -11,7 +11,11 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/** Jellyfin's brand colors. The schemes below are Material 3 tonal palettes derived from them. */
+/**
+ * Jellyfin's brand colors. The schemes below are Material 3 tonal palettes derived from them. Their neutral colors
+ * (backgrounds, surfaces, containers, outlines) are all of Material's tonal spot scheme for [JellyfinBlue], so
+ * nothing falls back to Material's purple-gray defaults.
+ */
 val JellyfinBlue = Color(0xFF00A4DC)
 val JellyfinPurple = Color(0xFFAA5CC3)
 
@@ -28,13 +32,22 @@ private val LightColors = lightColorScheme(
     onTertiary = Color.White,
     tertiaryContainer = Color(0xFFFAD7FF),
     onTertiaryContainer = Color(0xFF330044),
-    background = Color(0xFFFCFDFE),
-    onBackground = Color(0xFF191C1E),
-    surface = Color(0xFFFCFDFE),
-    onSurface = Color(0xFF191C1E),
-    surfaceVariant = Color(0xFFDDE4E8),
+    background = Color(0xFFF6FAFE),
+    onBackground = Color(0xFF181C1F),
+    surface = Color(0xFFF6FAFE),
+    onSurface = Color(0xFF181C1F),
+    surfaceVariant = Color(0xFFDCE3E9),
     onSurfaceVariant = Color(0xFF41484D),
-    outline = Color(0xFF727A7F),
+    surfaceDim = Color(0xFFD6DADF),
+    surfaceBright = Color(0xFFF6FAFE),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF0F4F8),
+    surfaceContainer = Color(0xFFEAEEF2),
+    surfaceContainerHigh = Color(0xFFE5E8ED),
+    surfaceContainerHighest = Color(0xFFDFE3E7),
+    inverseSurface = Color(0xFF2C3134),
+    inverseOnSurface = Color(0xFFEDF1F5),
+    outline = Color(0xFF71787D),
     outlineVariant = Color(0xFFC0C7CD),
     inversePrimary = Color(0xFF7BD0FF),
 )
@@ -52,16 +65,22 @@ private val DarkColors = darkColorScheme(
     onTertiary = Color(0xFF3D0050),
     tertiaryContainer = Color(0xFF762A90),
     onTertiaryContainer = Color(0xFFFAD7FF),
-    background = Color(0xFF101315),
-    onBackground = Color(0xFFE1E2E5),
-    surface = Color(0xFF101315),
-    onSurface = Color(0xFFE1E2E5),
-    surfaceVariant = Color(0xFF333A3E),
+    background = Color(0xFF0F1417),
+    onBackground = Color(0xFFDFE3E7),
+    surface = Color(0xFF0F1417),
+    onSurface = Color(0xFFDFE3E7),
+    surfaceVariant = Color(0xFF41484D),
     onSurfaceVariant = Color(0xFFC0C7CD),
-    surfaceContainerHighest = Color(0xFF263033),
-    surfaceContainerHigh = Color(0xFF1C2427),
-    surfaceContainer = Color(0xFF171D20),
-    outline = Color(0xFF80878C),
+    surfaceDim = Color(0xFF0F1417),
+    surfaceBright = Color(0xFF353A3D),
+    surfaceContainerLowest = Color(0xFF0A0F12),
+    surfaceContainerLow = Color(0xFF181C1F),
+    surfaceContainer = Color(0xFF1C2023),
+    surfaceContainerHigh = Color(0xFF262B2E),
+    surfaceContainerHighest = Color(0xFF313539),
+    inverseSurface = Color(0xFFDFE3E7),
+    inverseOnSurface = Color(0xFF2C3134),
+    outline = Color(0xFF8B9297),
     outlineVariant = Color(0xFF41484D),
     inversePrimary = Color(0xFF00668A),
 )
