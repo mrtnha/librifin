@@ -31,6 +31,12 @@ import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 
 sealed interface ReaderState {
+    /**
+     * Looking on the device for the book and where it was left off, which takes a moment. Then it's [Ready],
+     * or [Downloading] if the book isn't on the device yet.
+     */
+    data object Opening : ReaderState
+
     /** [progress] is 0..1, or null while the size is unknown. */
     data class Downloading(val progress: Float?) : ReaderState
 
@@ -60,7 +66,7 @@ class ReaderViewModel(
     /** Outlives this screen, so the last position is still saved when the reader is left right away. */
     private val appScope: CoroutineScope,
 ) : ViewModel(), EpubViewHost {
-    var state by mutableStateOf<ReaderState>(ReaderState.Downloading(progress = null))
+    var state by mutableStateOf<ReaderState>(ReaderState.Opening)
         private set
 
     /** App bar and system bars over the book. The book opens full screen; a tap in the middle toggles them. */
@@ -171,7 +177,9 @@ class ReaderViewModel(
     }
 
     fun load() {
-        state = ReaderState.Downloading(progress = null)
+        // "Try again" after an error shows the download at once: the bars stay instead of going and coming back,
+        // and the button goes, so it can't start a second download.
+        if (state is ReaderState.Error) state = ReaderState.Downloading(progress = null)
         viewModelScope.launch {
             val local = try {
                 withContext(Dispatchers.IO) {
@@ -397,6 +405,7 @@ class ReaderViewModel(
     /** Downloads to a temporary file first, so an interrupted download is never mistaken for the book. */
     private suspend fun downloadIfMissing() {
         if (bookStore.isDownloaded(bookId)) return
+        state = ReaderState.Downloading(progress = null)
         val partial = bookStore.partialBookFile(bookId)
         try {
             var lastPercent = -1

@@ -99,13 +99,17 @@ fun ReaderScreen(
     // Back in the app: the book may have been read further elsewhere meanwhile.
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onAppResumed() }
 
-    // Full screen only while the book is shown; while loading or on errors the bars stay, so the way back is visible.
-    // So does the search bar while a result is marked: it's the way out of the search.
+    // Full screen while the book is shown, and already while it opens from the device, a moment: bars would only flash.
+    // While it downloads or on errors the bars stay, so the way back is visible. So does the search bar while a result
+    // is marked: it's the way out of the search.
     val isResultMarked = vm.highlightedResult != null
-    val showBars = vm.state !is ReaderState.Ready || vm.areBarsVisible || vm.isSearchOpen || isResultMarked
+    val showBars = vm.state is ReaderState.Downloading || vm.state is ReaderState.Error ||
+        vm.areBarsVisible || vm.isSearchOpen || isResultMarked
     // The colors the page shows: a new theme reaches it a few frames after it's picked, and the rest changes with it.
     val theme = vm.shownTheme
-    SystemBarsVisible(showBars, darkBackground = theme.bars.luminance() < 0.5f)
+    // The status and navigation bars only go once it's clear the book needn't be downloaded first. Until then they stay
+    // as the library left them, so they don't go and come back.
+    SystemBarsVisible(showBars || vm.state is ReaderState.Opening, darkBackground = theme.bars.luminance() < 0.5f)
     val barsColors = readerBarsColorScheme(theme.bars)
 
     // While searching or a result is marked, back ends the search instead of leaving the book.
@@ -141,6 +145,8 @@ fun ReaderScreen(
                                     TextButton(onClick = vm::load, modifier = Modifier.padding(top = 8.dp)) { Text("Try again") }
                                 }
                             }
+                            // Only a moment: the page without a progress circle, which would just flash.
+                            ReaderState.Opening -> Unit
                             is ReaderState.Ready -> Unit
                         }
                     }

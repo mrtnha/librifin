@@ -11,16 +11,12 @@ import android.view.PixelCopy
 import android.view.View
 import android.view.Window
 import android.webkit.WebView
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.ImageBitmap
@@ -112,9 +108,8 @@ fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: 
     }
 
     when (val state = vm.state) {
-        EpubState.Opening -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        // A fraction of a second, so no progress circle that would only flash: what's behind shows meanwhile.
+        EpubState.Opening -> Unit
         is EpubState.Failed -> LaunchedEffect(state) { host.onOpenFailed(state.message) }
         EpubState.Opened -> {
             LaunchedEffect(vm) { host.onPagesLoaded(vm.pages) }
