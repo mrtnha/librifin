@@ -155,7 +155,7 @@ private fun ThemeCards(selected: ReaderTheme, onSelect: (ReaderTheme) -> Unit) {
                 modifier = Modifier
                     .width(THEME_CARD_WIDTH)
                     .height(ROW_HEIGHT)
-                    // Also around the others: the dark card would vanish on the dark sheet without it.
+                    // Also around the others: the black and dark cards would vanish on the dark sheet without it.
                     .framed(
                         fill = theme.background,
                         borderColor = if (isSelected) colors.primary else colors.outlineVariant,
@@ -180,6 +180,7 @@ private val THEME_CARD_WIDTH = 64.dp
 
 private val ReaderTheme.label: String
     get() = when (this) {
+        ReaderTheme.BLACK -> "Black"
         ReaderTheme.DARK -> "Dark"
         ReaderTheme.GRAY -> "Gray"
         ReaderTheme.SEPIA -> "Sepia"

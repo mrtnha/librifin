@@ -3,17 +3,23 @@ package io.github.mrtnha.librifin.ui.reader
 import androidx.compose.ui.graphics.Color
 
 /**
- * The page colors of the reader, in the order the appearance sheet shows them: the four neutral ones from
+ * The page colors of the reader, in the order the appearance sheet shows them: the five neutral ones from
  * darkest to brightest, then five colors, each as a light page and a dark one.
  * No pure white: white text glows and blurs on a dark page, and white paper glares.
  * The app bar, page slider and appearance sheet are always dark, in a [bars] color that stands apart from the page.
  */
 enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, val isDark: Boolean) {
     /**
-     * The default, dark like the rest of the app, in pure black: an OLED screen switches those pixels off.
-     * Contrast about 15:1. Bars a lighter gray than the page.
+     * The default, in pure black: an OLED screen switches those pixels off. Contrast about 15:1. Bars a lighter
+     * gray than the page.
      */
-    DARK(background = Color(0xFF000000), text = Color(0xFFDADADA), bars = Color(0xFF2C2C2E), isDark = true),
+    BLACK(background = Color(0xFF000000), text = Color(0xFFDADADA), bars = Color(0xFF2C2C2E), isDark = true),
+
+    /**
+     * The app's dark colors (ui/theme/Theme.kt): its background, text, and dialogs and sheets as the bars.
+     * Contrast about 14.4:1.
+     */
+    DARK(background = Color(0xFF0F1417), text = Color(0xFFDFE3E7), bars = Color(0xFF262B2E), isDark = true),
 
     /** Softer than dark for a dim room. Contrast about 7.4:1. Bars near black. */
     GRAY(background = Color(0xFF3C3C3E), text = Color(0xFFD4D4D4), bars = Color(0xFF1A1A1A), isDark = true),
@@ -60,3 +66,15 @@ enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, 
     /** Dark plum with pale lilac text. Contrast about 11.5:1. Bars a lighter purple than the page. */
     PLUM(background = Color(0xFF261C2D), text = Color(0xFFDED5E6), bars = Color(0xFF3A3141), isDark = true),
 }
+
+/**
+ * The theme saved as [saved] (its name), or [ReaderTheme.BLACK] if none is saved. While nothing is saved yet, the
+ * theme saved by versions before the dark one ([savedBefore]) counts: they called the black one "DARK".
+ */
+fun readerThemeOf(saved: String?, savedBefore: String?): ReaderTheme =
+    ReaderTheme.entries.find { it.name == saved }
+        ?: if (savedBefore == "DARK") {
+            ReaderTheme.BLACK
+        } else {
+            ReaderTheme.entries.find { it.name == savedBefore } ?: ReaderTheme.BLACK
+        }
