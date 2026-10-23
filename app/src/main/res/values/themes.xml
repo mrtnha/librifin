@@ -5,4 +5,10 @@
     <style name="Theme.Librifin" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/window_background</item>
     </style>
+
+    <!-- The launch screen in the black app themes (MainActivity): light like the above while the phone is light,
+         black instead of dark. Android keeps it by this name, so the name must never change. -->
+    <style name="Theme.Librifin.Black">
+        <item name="android:windowBackground">@color/window_background_black</item>
+    </style>
 </resources>

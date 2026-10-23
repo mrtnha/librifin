@@ -102,10 +102,36 @@ val LocalStatusColors = staticCompositionLocalOf { StatusColors(Color.Unspecifie
 private val LightStatusColors = StatusColors(success = Color(0xFF328659), warning = Color(0xFF865301))
 private val DarkStatusColors = StatusColors(success = Color(0xFF67AF84), warning = Color(0xFFFFB863))
 
+/**
+ * Dark with pure black where the app's background shows, for OLED screens. Everything that sits on it (dialogs,
+ * sheets, cards, the top bar once scrolled) keeps its dark color, so it stands out from the black even more
+ * clearly than from the dark background.
+ */
+private val BlackColors = DarkColors.copy(
+    background = Color.Black,
+    surface = Color.Black,
+    surfaceDim = Color.Black,
+    surfaceContainerLowest = Color.Black,
+)
+
+/** The app's colors in [mode], given whether the phone is in dark mode ([phoneIsDark]). */
+fun appColorScheme(mode: ThemeMode, phoneIsDark: Boolean): ColorScheme = when {
+    mode.isBlack(phoneIsDark) -> BlackColors
+    mode.isDark(phoneIsDark) -> DarkColors
+    else -> LightColors
+}
+
+/**
+ * The app's colors in [mode]. Whether the phone is in dark mode comes from the configuration: from Android 12 on
+ * that's the app's own night mode (AppTheme), which follows the phone whenever it matters here, in the modes that
+ * follow the phone.
+ */
 @Composable
-fun LibrifinTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalStatusColors provides if (darkTheme) DarkStatusColors else LightStatusColors) {
-        MaterialTheme(colorScheme = if (darkTheme) DarkColors else LightColors, content = content)
+fun LibrifinTheme(mode: ThemeMode, content: @Composable () -> Unit) {
+    val phoneIsDark = isSystemInDarkTheme()
+    val statusColors = if (mode.isDark(phoneIsDark)) DarkStatusColors else LightStatusColors
+    CompositionLocalProvider(LocalStatusColors provides statusColors) {
+        MaterialTheme(colorScheme = appColorScheme(mode, phoneIsDark), content = content)
     }
 }
 

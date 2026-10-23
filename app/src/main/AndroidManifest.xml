@@ -25,8 +25,11 @@
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Librifin">
         <!-- Opened through the launcher entries below. Still exported: a task in Recents that was opened before they
-             existed points to it directly. -->
+             existed points to it directly.
+             configChanges: a change of the app theme or of the phone's dark mode shows without recreating the
+             activity (MainActivity follows it), so an open book isn't reloaded. -->
         <activity
+            android:configChanges="uiMode"
             android:exported="true"
             android:name=".MainActivity" />
         <!-- One launcher entry per app icon (AppIcon.kt), declared after the activity they open, as Android requires.

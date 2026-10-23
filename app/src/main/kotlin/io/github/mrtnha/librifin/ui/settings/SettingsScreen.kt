@@ -48,10 +48,11 @@ import io.github.mrtnha.librifin.AppIcon
 import io.github.mrtnha.librifin.api.Session
 import io.github.mrtnha.librifin.storage.Downloads
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
+import io.github.mrtnha.librifin.ui.theme.ThemeMode
 
 /**
  * Settings, from the gear in the library: the account (user and server) with a way to log out, the app's
- * appearance (its icon), the downloaded books with a way to remove them, and about the app (its version and the
+ * appearance (its theme and icon), the downloaded books with a way to remove them, and about the app (its version and the
  * bundled open source licenses).
  *
  * The rows that do something are red (an action that asks first) or end in a chevron (they open a page or a
@@ -71,6 +72,7 @@ fun SettingsScreen(
     // Read once: choosing another icon closes the app.
     val appIcon = remember { appContainer.appIcons.current }
     var isLogoutDialogOpen by rememberSaveable { mutableStateOf(false) }
+    var isAppThemeDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isAppIconDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isRemoveDownloadsDialogOpen by rememberSaveable { mutableStateOf(false) }
 
@@ -116,6 +118,13 @@ fun SettingsScreen(
             )
 
             SectionTitle("Appearance")
+            ListItem(
+                headlineContent = { Text("App theme") },
+                supportingContent = { Text(appContainer.appTheme.mode.label) },
+                leadingContent = { Icon(LibrifinIcons.Contrast, contentDescription = null) },
+                trailingContent = { Icon(LibrifinIcons.ChevronRight, contentDescription = null) },
+                modifier = Modifier.clickable { isAppThemeDialogOpen = true },
+            )
             ListItem(
                 headlineContent = { Text("App icon") },
                 supportingContent = { Text(appIcon.label) },
@@ -176,9 +185,25 @@ fun SettingsScreen(
             onDismiss = { isRemoveDownloadsDialogOpen = false },
         )
     }
+    if (isAppThemeDialogOpen) {
+        ChoiceDialog(
+            title = "App theme",
+            options = ThemeMode.entries,
+            current = appContainer.appTheme.mode,
+            label = { it.label },
+            onSelect = { mode ->
+                appContainer.appTheme.select(mode)
+                isAppThemeDialogOpen = false
+            },
+            onDismiss = { isAppThemeDialogOpen = false },
+        )
+    }
     if (isAppIconDialogOpen) {
-        AppIconDialog(
+        ChoiceDialog(
+            title = "App icon",
+            options = AppIcon.entries,
             current = appIcon,
+            label = { it.label },
             onSelect = { icon ->
                 appContainer.appIcons.switchTo(icon)
                 // Android would close the app a second later anyway. Closing it now looks like a normal exit and
@@ -233,16 +258,23 @@ private fun ConfirmDialog(
 }
 
 /**
- * The app icons, the current one selected. Choosing another one calls [onSelect] right away. Choosing the current
- * one, Cancel, back or tapping beside the dialog only close it.
+ * A setting's [options] with their [label]s, the [current] one selected. Choosing another one calls [onSelect] right
+ * away. Choosing the current one, Cancel, back or tapping beside the dialog only close it.
  *
  * Built like Material's AlertDialog, with its 16 dp below the title. Its 24 dp above the buttons is 12 dp here, as
  * each option's 48 dp row already has 12 dp below its name. The options then sit evenly between the title and
- * Cancel: the title is 28 dp above "Light" and the Cancel button 28 dp below "Dark".
+ * Cancel: the title is 28 dp above the first option's name and the Cancel button 28 dp below the last one's.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppIconDialog(current: AppIcon, onSelect: (AppIcon) -> Unit, onDismiss: () -> Unit) {
+private fun <T> ChoiceDialog(
+    title: String,
+    options: List<T>,
+    current: T,
+    label: (T) -> String,
+    onSelect: (T) -> Unit,
+    onDismiss: () -> Unit,
+) {
     BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
             shape = AlertDialogDefaults.shape,
@@ -252,21 +284,21 @@ private fun AppIconDialog(current: AppIcon, onSelect: (AppIcon) -> Unit, onDismi
             // AlertDialog's padding.
             Column(Modifier.padding(24.dp)) {
                 Text(
-                    "App icon",
+                    title,
                     style = MaterialTheme.typography.headlineSmall,
                     color = AlertDialogDefaults.titleContentColor,
                 )
                 // AlertDialog's 16 dp below the title; its 24 dp above the buttons minus the last row's own 12 dp.
                 Column(Modifier.padding(top = 16.dp, bottom = 12.dp).selectableGroup()) {
-                    AppIcon.entries.forEach { icon ->
-                        AppIconOption(
-                            label = icon.label,
-                            isSelected = icon == current,
-                            onClick = { if (icon == current) onDismiss() else onSelect(icon) },
+                    options.forEach { option ->
+                        ChoiceOption(
+                            label = label(option),
+                            isSelected = option == current,
+                            onClick = { if (option == current) onDismiss() else onSelect(option) },
                         )
                     }
                 }
-                // The only button: choosing an icon needs no confirming.
+                // The only button: choosing needs no confirming.
                 TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
                 }
@@ -275,9 +307,9 @@ private fun AppIconDialog(current: AppIcon, onSelect: (AppIcon) -> Unit, onDismi
     }
 }
 
-/** One icon to choose: a radio button and its name, as high as the rows of the sort sheet. */
+/** One option to choose: a radio button and its name, as high as the rows of the sort sheet. */
 @Composable
-private fun AppIconOption(label: String, isSelected: Boolean, onClick: () -> Unit) {
+private fun ChoiceOption(label: String, isSelected: Boolean, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -294,6 +326,15 @@ private fun AppIconOption(label: String, isSelected: Boolean, onClick: () -> Uni
         )
     }
 }
+
+private val ThemeMode.label: String
+    get() = when (this) {
+        ThemeMode.LIGHT -> "Light"
+        ThemeMode.DARK -> "Dark"
+        ThemeMode.BLACK -> "Black"
+        ThemeMode.SYSTEM -> "System (light/dark)"
+        ThemeMode.SYSTEM_BLACK -> "System (light/black)"
+    }
 
 private val AppIcon.label: String
     get() = when (this) {

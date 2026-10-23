@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsAnimationControlListenerCompat
@@ -42,7 +43,10 @@ fun SystemBarsVisible(visible: Boolean, darkBackground: Boolean) {
     LaunchedEffect(bars, visible) {
         bars.forEach { it.setVisible(visible) }
     }
-    DisposableEffect(controller, darkBackground) {
+    // Also after a change of the phone's dark mode: enableEdgeToEdge then sets the app's icons again (MainActivity),
+    // and the reader's go back on top. The app's new ones are then the ones to restore.
+    val uiMode = LocalConfiguration.current.uiMode
+    DisposableEffect(controller, darkBackground, uiMode) {
         val lightStatusBars = controller.isAppearanceLightStatusBars
         val lightNavigationBars = controller.isAppearanceLightNavigationBars
         controller.isAppearanceLightStatusBars = !darkBackground

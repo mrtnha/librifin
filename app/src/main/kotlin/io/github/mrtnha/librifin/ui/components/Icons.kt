@@ -152,6 +152,16 @@ object LibrifinIcons {
         )
     }
 
+    /** "contrast" (a half-filled circle). Settings row that chooses the app theme. */
+    val Contrast: ImageVector by lazy {
+        symbol(
+            "Contrast",
+            "M324-111.5Q251-143 197-197t-85.5-127Q80-397 80-480t31.5-156Q143-709 197-763t127-85.5Q397-880 480-880" +
+                "t156 31.5Q709-817 763-763t85.5 127Q880-563 880-480t-31.5 156Q817-251 763-197t-127 85.5" +
+                "Q563-80 480-80t-156-31.5ZM520-163q119-15 199.5-104.5T800-480q0-123-80.5-212.5T520-797v634Z",
+        )
+    }
+
     /** "chevron_right". End of a settings row that opens something: another screen or a choice. */
     val ChevronRight: ImageVector by lazy {
         symbol("ChevronRight", "M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z")

@@ -12,6 +12,7 @@ import io.github.mrtnha.librifin.storage.BookStore
 import io.github.mrtnha.librifin.storage.SessionStore
 import io.github.mrtnha.librifin.storage.SettingsStore
 import io.github.mrtnha.librifin.sync.ProgressSync
+import io.github.mrtnha.librifin.ui.theme.AppTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -61,6 +62,9 @@ class AppContainer(context: Context) {
 
     /** Small app settings kept between app starts, e.g. the reading theme. */
     val settingsStore = SettingsStore(prefs)
+
+    /** The app's colors (light, dark, black or like the phone), chosen in the settings. */
+    val appTheme = AppTheme(appContext, settingsStore)
 
     /** Where the logged-in session (including the access token) is kept between app starts. */
     private val sessionStore = SessionStore(prefs)

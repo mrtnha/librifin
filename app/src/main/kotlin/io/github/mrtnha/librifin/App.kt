@@ -36,7 +36,7 @@ fun App(appContainer: AppContainer) {
         ImageLoader.Builder(context).crossfade(true).build()
     }
 
-    LibrifinTheme {
+    LibrifinTheme(appContainer.appTheme.mode) {
         // Logged in before? Go straight to the library.
         val navigator = viewModel {
             Navigator(appContainer.loadSession()?.let { Screen.Library(it) } ?: Screen.Welcome)
