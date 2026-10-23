@@ -3,8 +3,9 @@ package io.github.mrtnha.librifin.ui.reader
 import androidx.compose.ui.graphics.Color
 
 /**
- * The page colors of the reader, in the order the appearance sheet shows them: the seven neutral ones from
- * darkest to brightest, then five colors, each as a light page and a dark one.
+ * The page colors of the reader, in the order the appearance sheet shows them: the six neutral ones from
+ * darkest to brightest, two of each kind (black and dark, charcoal and gray, pewter and light), then five colors,
+ * each as a light page and a dark one.
  * No pure white: white text glows and blurs on a dark page, and white paper glares.
  * The app bar, page slider and appearance sheet are always dark, in a [bars] color that stands apart from the page.
  */
@@ -36,12 +37,6 @@ enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, 
      */
     PEWTER(background = Color(0xFFD3D1CD), text = Color(0xFF1E1E1E), bars = Color(0xFF1A1A1A), isDark = false),
 
-    /**
-     * Warm like the paper of a printed book: less bright than light, for long reading. Text and page share
-     * the same hue, dark brown ink on beige. Contrast about 10.3:1. Bars near black.
-     */
-    SEPIA(background = Color(0xFFF3E7D3), text = Color(0xFF3D3122), bars = Color(0xFF1A1A1A), isDark = false),
-
     /** A barely warm paper white. Contrast about 15:1. Bars near black. */
     LIGHT(background = Color(0xFFF8F6F1), text = Color(0xFF1E1E1E), bars = Color(0xFF1A1A1A), isDark = false),
 
@@ -66,7 +61,7 @@ enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, 
     /** Dark navy with pale blue-gray text. Contrast about 11.6:1. Bars a lighter blue than the page. */
     MIDNIGHT(background = Color(0xFF15202D), text = Color(0xFFD0DAE6), bars = Color(0xFF2A3543), isDark = true),
 
-    /** Brown paper, darker than sepia, with dark brown ink. Contrast about 9.6:1. Bars near black. */
+    /** Brown paper with dark brown ink, warm like a printed book. Contrast about 9.6:1. Bars near black. */
     KRAFT(background = Color(0xFFE0CAAE), text = Color(0xFF332214), bars = Color(0xFF1A1A1A), isDark = false),
 
     /** Dark brown with cream text. Contrast about 11.3:1. Bars a lighter brown than the page. */
@@ -84,9 +79,8 @@ enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, 
  * theme saved by versions before the dark one ([savedBefore]) counts: they called the black one "DARK".
  */
 fun readerThemeOf(saved: String?, savedBefore: String?): ReaderTheme =
-    ReaderTheme.entries.find { it.name == saved }
-        ?: if (savedBefore == "DARK") {
-            ReaderTheme.BLACK
-        } else {
-            ReaderTheme.entries.find { it.name == savedBefore } ?: ReaderTheme.BLACK
-        }
+    themeNamed(saved) ?: if (savedBefore == "DARK") ReaderTheme.BLACK else themeNamed(savedBefore) ?: ReaderTheme.BLACK
+
+/** The theme saved as [name]. The sepia page, saved as "SEPIA", is gone: Kraft, the other warm paper, takes over. */
+private fun themeNamed(name: String?): ReaderTheme? =
+    if (name == "SEPIA") ReaderTheme.KRAFT else ReaderTheme.entries.find { it.name == name }

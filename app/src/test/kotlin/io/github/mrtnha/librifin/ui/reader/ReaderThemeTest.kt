@@ -22,13 +22,19 @@ class ReaderThemeTest {
 
     @Test
     fun otherThemesSavedBeforeCarryOver() {
-        assertEquals(ReaderTheme.SEPIA, readerThemeOf(saved = null, savedBefore = "SEPIA"))
+        assertEquals(ReaderTheme.SAGE, readerThemeOf(saved = null, savedBefore = "SAGE"))
         assertEquals(ReaderTheme.PLUM, readerThemeOf(saved = null, savedBefore = "PLUM"))
     }
 
     @Test
     fun aThemeSavedNowWinsOverTheOneSavedBefore() {
         assertEquals(ReaderTheme.DARK, readerThemeOf(saved = "DARK", savedBefore = "DARK"))
-        assertEquals(ReaderTheme.LIGHT, readerThemeOf(saved = "LIGHT", savedBefore = "SEPIA"))
+        assertEquals(ReaderTheme.LIGHT, readerThemeOf(saved = "LIGHT", savedBefore = "SAGE"))
+    }
+
+    @Test
+    fun sepiaContinuesAsKraft() {
+        assertEquals(ReaderTheme.KRAFT, readerThemeOf(saved = "SEPIA", savedBefore = null))
+        assertEquals(ReaderTheme.KRAFT, readerThemeOf(saved = null, savedBefore = "SEPIA"))
     }
 }
