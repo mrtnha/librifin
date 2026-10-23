@@ -11,8 +11,8 @@ class ReaderThemeTest {
     }
 
     @Test
-    fun nothingSavedIsBlack() {
-        assertEquals(ReaderTheme.BLACK, readerThemeOf(saved = null, savedBefore = null))
+    fun nothingSavedIsDark() {
+        assertEquals(ReaderTheme.DARK, readerThemeOf(saved = null, savedBefore = null))
     }
 
     @Test

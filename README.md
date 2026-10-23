@@ -27,7 +27,7 @@ I use Jellyfin as the one place for all of my media. For the books in my Jellyfi
 - Paginated reading: turn the page by tapping the edges or swiping. Tap the middle of the page to show or hide the bars.
 - A page slider to move through the whole book.
 - Search inside the book you're reading: every match is listed with its chapter and page. Navigate between them with arrows.
-- Sixteen reading themes (black, dark, charcoal, gray, pewter, light, sage, forest, rose, wine, sky, midnight, kraft, coffee, lavender and plum).
+- Sixteen reading themes (dark, black, gray, charcoal, light, pewter, sage, forest, rose, wine, sky, midnight, kraft, coffee, lavender and plum).
 - Adjustable text size.
 - Ten reading fonts to choose from in addition to the book's own.
 - Justified (with hyphenation) or left-aligned text.

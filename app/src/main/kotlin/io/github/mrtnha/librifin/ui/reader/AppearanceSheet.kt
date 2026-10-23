@@ -180,12 +180,12 @@ private val THEME_CARD_WIDTH = 64.dp
 
 private val ReaderTheme.label: String
     get() = when (this) {
-        ReaderTheme.BLACK -> "Black"
         ReaderTheme.DARK -> "Dark"
-        ReaderTheme.CHARCOAL -> "Charcoal"
+        ReaderTheme.BLACK -> "Black"
         ReaderTheme.GRAY -> "Gray"
-        ReaderTheme.PEWTER -> "Pewter"
+        ReaderTheme.CHARCOAL -> "Charcoal"
         ReaderTheme.LIGHT -> "Light"
+        ReaderTheme.PEWTER -> "Pewter"
         ReaderTheme.SAGE -> "Sage"
         ReaderTheme.FOREST -> "Forest"
         ReaderTheme.ROSE -> "Rose"
