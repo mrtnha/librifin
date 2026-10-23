@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- "import_contacts" (open book) from Material Symbols Outlined (Google, Apache-2.0), centered in the 66dp
-     safe zone: the 24dp icon scaled by 2 and moved by 30. Filled with Jellyfin's gradient, purple at the top left
+     safe zone: the 24dp icon scaled by 2.2 and moved by 27.6. Filled with Jellyfin's gradient, purple at the top left
      to blue at the bottom right, along the same line as in the Jellyfin app's launcher icon: its coordinates scaled
      from that icon's 1024 viewport to this 108 one. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -9,7 +9,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M43 62q2.36 0 4.58 0.52T52 64.1V44.4Q49.96 43.2 47.66 42.6T43 42Q41.2 42 39.42 42.36T36 43.4v19.8Q37.76 62.6 39.48 62.3T43 62ZM56 64.1q2.2 -1.06 4.42 -1.58T65 62q1.8 0 3.52 0.3T72 63.2V43.4Q70.36 42.7 68.58 42.36T65 42Q62.66 42 60.36 42.6T56 44.4v19.7ZM54 70Q51.6 68.1 48.8 67.04T43 66Q40.9 66 38.88 66.54T35 68.1Q33.96 68.66 32.98 68.04Q32 67.46 32 66.3V42.2Q32 41.64 32.28 41.14Q32.56 40.64 33.1 40.4Q35.4 39.2 37.9 38.6T43 38Q45.9 38 48.68 38.76T54 41Q56.56 39.5 59.32 38.76T65 38q2.6 0 5.1 0.6t4.8 1.8q0.54 0.26 0.82 0.76T76 42.2V66.3q0 1.16 -0.98 1.76q-0.98 0.6 -2.02 0.06q-1.84 -1 -3.88 -1.56T65 66Q62 66 59.2 67.04T54 70ZM44 53.3Z">
+    <path android:pathData="M41.9 62.8q2.596 0 5.038 0.572T51.8 65.11V43.44Q49.556 42.12 47.026 41.46T41.9 40.8Q39.92 40.8 37.962 41.196T34.2 42.34v21.78Q36.136 63.46 38.028 63.13T41.9 62.8ZM56.2 65.11q2.42-1.166 4.862-1.738T66.1 62.8q1.98 0 3.872 0.33T73.8 64.12V42.34Q71.996 41.57 70.038 41.196T66.1 40.8Q63.526 40.8 60.996 41.46T56.2 43.44v21.67ZM54 71.6Q51.36 69.51 48.28 68.344T41.9 67.2Q39.59 67.2 37.368 67.794T33.1 69.51Q31.956 70.126 30.878 69.444Q29.8 68.806 29.8 67.53V41.02Q29.8 40.404 30.108 39.854Q30.416 39.304 31.01 39.04Q33.54 37.72 36.29 37.06T41.9 36.4Q45.09 36.4 48.148 37.236T54 39.7Q56.816 38.05 59.852 37.236T66.1 36.4q2.86 0 5.61 0.66t5.28 1.98q0.594 0.286 0.902 0.836T78.2 41.02V67.53q0 1.276-1.078 1.936q-1.078 0.66-2.222 0.066q-2.024-1.1-4.268-1.716T66.1 67.2Q62.8 67.2 59.72 68.344T54 71.6ZM43 53.23Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
