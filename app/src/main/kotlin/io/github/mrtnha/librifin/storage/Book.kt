@@ -5,11 +5,9 @@ import kotlinx.serialization.Serializable
 /**
  * One book of the library, as the grid shows it and as [BookStore] saves it on the device.
  * [serverProgress] (0..1) and [isPlayed] are Jellyfin's view of how far it was read, [lastPlayedMillis]
- * when Jellyfin last saw it read (on any device; null if never, or in lists saved before it was loaded).
- * [authors] is empty in lists saved before authors were loaded.
+ * when Jellyfin last saw it read (on any device; null if never). [authors] is empty if Jellyfin lists none.
  * [sortTitle] is the title as Jellyfin sorts it, without a leading "The" or "A"; only for ordering, never
- * shown. [dateAddedMillis] is when the book was added to Jellyfin. Both are null in lists saved before
- * they were loaded.
+ * shown. [dateAddedMillis] is when the book was added to Jellyfin. Both are null if Jellyfin doesn't have them.
  */
 @Serializable
 data class Book(
