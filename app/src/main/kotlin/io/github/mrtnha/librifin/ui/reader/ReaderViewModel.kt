@@ -92,6 +92,13 @@ class ReaderViewModel(
         private set
 
     /**
+     * The line spacing in tenths of the text size, null for the book's own; the same for all books and kept between
+     * app starts.
+     */
+    override var lineHeight by mutableStateOf(readerLineHeightOf(settings.read(KEY_LINE_HEIGHT)))
+        private set
+
+    /**
      * The left and right margins in percent of Readium's usual ones, the same for all books and kept between
      * app starts.
      */
@@ -379,6 +386,12 @@ class ReaderViewModel(
         settings.write(KEY_FONT_SIZE, fontSize.toString())
     }
 
+    /** One of [READER_LINE_HEIGHTS]. */
+    fun selectLineHeight(selected: Int?) {
+        lineHeight = selected
+        settings.write(KEY_LINE_HEIGHT, lineHeightForSaving(lineHeight))
+    }
+
     /** One of [READER_PAGE_MARGINS]. */
     fun selectPageMargins(selected: Int) {
         pageMargins = selected
@@ -463,6 +476,7 @@ class ReaderViewModel(
         /** Where versions before the dark theme saved it, with another name for the black one (readerThemeOf). */
         const val KEY_THEME_BEFORE = "reader_theme"
         const val KEY_FONT_SIZE = "reader_font_size"
+        const val KEY_LINE_HEIGHT = "reader_line_height"
         const val KEY_PAGE_MARGINS = "reader_page_margins"
         const val KEY_FONT = "reader_font"
         const val KEY_ALIGNMENT = "reader_alignment"

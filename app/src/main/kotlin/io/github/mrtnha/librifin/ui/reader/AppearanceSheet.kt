@@ -68,11 +68,12 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 /**
- * The sheet from the "Aa" button: text size, page margins, alignment, font and theme, one row each. The rows of the same
- * width come first; the fonts and the themes, which scroll sideways to the screen's edges, come last. It covers
- * only the bottom of the screen and doesn't dim the page, so every change shows on the page right away.
- * Swiping it down closes it. Where it doesn't fit, as on a phone held sideways, its rows scroll, and a swipe down
- * from their top closes it. Its selections and outlines are in the reading theme's own color (readerSheetColorScheme).
+ * The sheet from the "Aa" button: text size, line spacing, page margins, alignment, font and theme, one row each.
+ * The rows of the same width come first; the fonts and the themes, which scroll sideways to the screen's edges, come
+ * last. It covers only the bottom of the screen and doesn't dim the page, so every change shows on the page right
+ * away. Swiping it down closes it. Where it doesn't fit, as on a phone held sideways, its rows scroll, and a swipe
+ * down from their top closes it. Its selections and outlines are in the reading theme's own color
+ * (readerSheetColorScheme).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +82,8 @@ fun AppearanceSheet(
     onThemeSelected: (ReaderTheme) -> Unit,
     fontSize: Int,
     onFontSizeSelected: (Int) -> Unit,
+    lineHeight: Int?,
+    onLineHeightSelected: (Int?) -> Unit,
     pageMargins: Int,
     onPageMarginsSelected: (Int) -> Unit,
     alignment: ReaderAlignment,
@@ -157,6 +160,19 @@ fun AppearanceSheet(
                 decreaseDescription = "Smaller text",
                 increaseIcon = LibrifinIcons.TextIncrease,
                 increaseDescription = "Larger text",
+                modifier = sliderPadding,
+            )
+            Spacer(Modifier.height(ROW_GAP))
+            StepSlider(
+                steps = READER_LINE_HEIGHTS,
+                selected = lineHeight,
+                onSelected = onLineHeightSelected,
+                label = ::lineHeightLabel,
+                description = "Line spacing",
+                decreaseIcon = LibrifinIcons.DensitySmall,
+                decreaseDescription = "Less line spacing",
+                increaseIcon = LibrifinIcons.DensityMedium,
+                increaseDescription = "More line spacing",
                 modifier = sliderPadding,
             )
             Spacer(Modifier.height(ROW_GAP))

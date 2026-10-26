@@ -216,6 +216,8 @@ fun ReaderScreen(
                             onThemeSelected = vm::selectTheme,
                             fontSize = vm.fontSize,
                             onFontSizeSelected = vm::selectFontSize,
+                            lineHeight = vm.lineHeight,
+                            onLineHeightSelected = vm::selectLineHeight,
                             pageMargins = vm.pageMargins,
                             onPageMarginsSelected = vm::selectPageMargins,
                             alignment = vm.alignment,

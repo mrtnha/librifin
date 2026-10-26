@@ -294,6 +294,19 @@ object LibrifinIcons {
         )
     }
 
+    /** "density_small". Appearance sheet: less line spacing. */
+    val DensitySmall: ImageVector by lazy {
+        symbol(
+            "DensitySmall",
+            "M120-80v-80h720v80H120Zm0-240v-80h720v80H120Zm0-240v-80h720v80H120Zm0-240v-80h720v80H120Z",
+        )
+    }
+
+    /** "density_medium". Appearance sheet: more line spacing. */
+    val DensityMedium: ImageVector by lazy {
+        symbol("DensityMedium", "M120-120v-80h720v80H120Zm0-320v-80h720v80H120Zm0-320v-80h720v80H120Z")
+    }
+
     /** "keyboard_arrow_up". Reader search bar: previous match. */
     val KeyboardArrowUp: ImageVector by lazy {
         symbol("KeyboardArrowUp", "M480-528 296-344l-56-56 240-240 240 240-56 56-184-184Z")
