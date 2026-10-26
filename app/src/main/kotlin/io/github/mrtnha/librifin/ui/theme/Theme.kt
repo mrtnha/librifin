@@ -10,6 +10,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 
 /**
  * Jellyfin's brand colors. The schemes below are Material 3 tonal palettes derived from them. Their neutral colors
@@ -147,3 +148,16 @@ fun readerColorScheme(dark: Boolean, background: Color, text: Color): ColorSchem
 /** The app's dark colors on the reader's bars, in their [background] color. */
 fun readerBarsColorScheme(background: Color): ColorScheme =
     DarkColors.copy(background = background, surface = background)
+
+/**
+ * The bars' colors for the reader's appearance sheet, with the reading theme's own [accent] in Material's accent
+ * roles, so its selections and outlines match the page instead of Jellyfin blue. A selected chip or segment is the
+ * accent laid 30 % over the [background], with a pale tint of the accent as its label; the outlines are laid 20 %.
+ * At 30 % every reading theme keeps at least 4.5:1 for the selected label; at 40 % the dark one would fall below.
+ */
+fun readerSheetColorScheme(background: Color, accent: Color): ColorScheme = readerBarsColorScheme(background).copy(
+    primary = accent,
+    secondaryContainer = accent.copy(alpha = 0.3f).compositeOver(background),
+    onSecondaryContainer = Color.White.copy(alpha = 0.75f).compositeOver(accent),
+    outlineVariant = accent.copy(alpha = 0.2f).compositeOver(background),
+)

@@ -65,6 +65,7 @@ import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import io.github.mrtnha.librifin.ui.components.SearchBar
 import io.github.mrtnha.librifin.ui.theme.readerBarsColorScheme
 import io.github.mrtnha.librifin.ui.theme.readerColorScheme
+import io.github.mrtnha.librifin.ui.theme.readerSheetColorScheme
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
@@ -207,7 +208,8 @@ fun ReaderScreen(
                     exit = slideOutVertically { it },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 ) {
-                    MaterialTheme(colorScheme = barsColors) {
+                    // In the reading theme's own colors, which change in the same frame as the page, like the bars.
+                    MaterialTheme(colorScheme = readerSheetColorScheme(theme.bars, theme.slider)) {
                         AppearanceSheet(
                             // The theme just picked, so the tap shows at once, also while the page still takes it on.
                             theme = vm.theme,

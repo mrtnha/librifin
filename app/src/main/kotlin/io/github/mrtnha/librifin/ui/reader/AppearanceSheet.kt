@@ -66,7 +66,7 @@ import kotlinx.coroutines.delay
  * The sheet from the "Aa" button: text size, alignment, font and theme, one row each. The rows of the same
  * width come first; the fonts and the themes, which scroll sideways to the screen's edges, come last. It covers
  * only the bottom of the screen and doesn't dim the page, so every change shows on the page right away.
- * Swiping it down closes it.
+ * Swiping it down closes it. Its selections and outlines are in the reading theme's own color (readerSheetColorScheme).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,7 +121,8 @@ fun AppearanceSheet(
             FontSizeControl(
                 size = fontSize,
                 onSizeSelected = onFontSizeSelected,
-                color = theme.slider,
+                // The theme's slider color, from the sheet's colors, so it changes in the same frame as the page.
+                color = MaterialTheme.colorScheme.primary,
                 canDecrease = canDecreaseFontSize,
                 canIncrease = canIncreaseFontSize,
                 onDecrease = onDecreaseFontSize,
@@ -153,7 +154,6 @@ private fun ThemeCards(selected: ReaderTheme, onSelect: (ReaderTheme) -> Unit) {
     ) {
         items(ReaderTheme.entries) { theme ->
             val isSelected = theme == selected
-            val colors = MaterialTheme.colorScheme
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -162,7 +162,9 @@ private fun ThemeCards(selected: ReaderTheme, onSelect: (ReaderTheme) -> Unit) {
                     // Also around the others: the black and dark cards would vanish on the dark sheet without it.
                     .framed(
                         fill = theme.background,
-                        borderColor = if (isSelected) colors.primary else colors.outlineVariant,
+                        // The selected card in its own theme's color, not the sheet's: the sheet changes color only
+                        // once the page shows the new theme, while a tapped card shows as selected at once.
+                        borderColor = if (isSelected) theme.slider else MaterialTheme.colorScheme.outlineVariant,
                         borderWidth = if (isSelected) 2.dp else BORDER_WIDTH,
                     )
                     .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(theme) })
