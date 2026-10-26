@@ -2,9 +2,6 @@ package io.github.mrtnha.librifin.ui.reader
 
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,9 +19,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -43,12 +42,17 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -57,6 +61,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import kotlin.math.roundToInt
@@ -66,7 +71,8 @@ import kotlinx.coroutines.delay
  * The sheet from the "Aa" button: text size, alignment, font and theme, one row each. The rows of the same
  * width come first; the fonts and the themes, which scroll sideways to the screen's edges, come last. It covers
  * only the bottom of the screen and doesn't dim the page, so every change shows on the page right away.
- * Swiping it down closes it. Its selections and outlines are in the reading theme's own color (readerSheetColorScheme).
+ * Swiping it down closes it. Where it doesn't fit, as on a phone held sideways, its rows scroll, and a swipe down
+ * from their top closes it. Its selections and outlines are in the reading theme's own color (readerSheetColorScheme).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,28 +94,51 @@ fun AppearanceSheet(
 ) {
     var height by remember { mutableIntStateOf(0) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
+    val currentOnClose by rememberUpdatedState(onClose)
+    // The rows scroll, and pass on what they don't use of a drag: so a drag anywhere on the sheet moves it too.
+    // Also where they have nothing to scroll, as a drag always goes through them first.
+    val dragToClose = remember {
+        object : NestedScrollConnection {
+            // Moved down, the sheet goes back up first when the finger moves up.
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y >= 0f || dragOffset == 0f) return Offset.Zero
+                val moved = available.y.coerceAtLeast(-dragOffset)
+                dragOffset += moved
+                return Offset(0f, moved)
+            }
+
+            // What's left of a downward drag once the rows are at their top. Not a fling of the rows that reaches
+            // their top: that stops there.
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (available.y <= 0f || source != NestedScrollSource.UserInput) return Offset.Zero
+                dragOffset += available.y
+                return Offset(0f, available.y)
+            }
+
+            // Once the finger lifts, the moved sheet closes or goes back, and the rows don't fling.
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                if (dragOffset == 0f) return Velocity.Zero
+                if (dragOffset > height * CLOSE_DRAG_FRACTION || available.y > CLOSE_VELOCITY) {
+                    currentOnClose()
+                } else {
+                    animate(dragOffset, 0f) { value, _ -> dragOffset = value }
+                }
+                return available
+            }
+        }
+    }
 
     Surface(
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         modifier = modifier
             .fillMaxWidth()
             .onSizeChanged { height = it.height }
-            // Before the offset, so the finger's movement is measured where the sheet rests, not where it's dragged to.
-            .draggable(
-                orientation = Orientation.Vertical,
-                state = rememberDraggableState { delta -> dragOffset = (dragOffset + delta).coerceAtLeast(0f) },
-                onDragStopped = { velocity ->
-                    if (dragOffset > height * CLOSE_DRAG_FRACTION || velocity > CLOSE_VELOCITY) {
-                        onClose()
-                    } else {
-                        animate(dragOffset, 0f) { value, _ -> dragOffset = value }
-                    }
-                },
-            )
+            .nestedScroll(dragToClose)
             .offset { IntOffset(0, dragOffset.roundToInt()) },
     ) {
         Column(
             Modifier
+                .verticalScroll(rememberScrollState())
                 // Like the page slider: room for the navigation bar even while it's hidden, so nothing jumps.
                 .windowInsetsPadding(
                     systemBarsIgnoringVisibility().only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
