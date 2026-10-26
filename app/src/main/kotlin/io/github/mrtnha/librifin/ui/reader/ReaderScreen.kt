@@ -5,8 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,13 +21,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -58,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -434,6 +433,14 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, color: Color, o
         onPageSelected(target)
     }
 
+    val colors = SliderDefaults.colors(
+        thumbColor = color,
+        activeTrackColor = color,
+        inactiveTrackColor = color.copy(alpha = 0.35f),
+    )
+    // Shared with the handle, which narrows while the slider is held.
+    val interactionSource = remember { MutableInteractionSource() }
+
     Surface(color = MaterialTheme.colorScheme.surface) {
         Column(
             Modifier
@@ -442,10 +449,10 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, color: Color, o
                 .windowInsetsPadding(
                     systemBarsIgnoringVisibility().only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
                 )
-                // The text sits 24 dp from the edges and the slider's line ends right below it.
-                .padding(start = 24.dp - THUMB_SIZE / 2, end = 24.dp - THUMB_SIZE / 2, top = 12.dp),
+                // The text sits 24 dp from the edges and the slider's track ends right below it.
+                .padding(start = 24.dp - HANDLE_SIZE.width / 2, end = 24.dp - HANDLE_SIZE.width / 2, top = 12.dp),
         ) {
-            Row(Modifier.padding(horizontal = THUMB_SIZE / 2), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(horizontal = HANDLE_SIZE.width / 2), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     pages[page - 1].chapter.orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
@@ -470,19 +477,17 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, color: Color, o
                 valueRange = 1f..pages.size.toFloat(),
                 // A bit closer to the text, with that room added below; the touch area keeps its full height.
                 modifier = Modifier.offset(y = (-4).dp),
-                // A thin line with a round dot instead of Material's thick track, tall handle, gaps and end dot.
+                colors = colors,
+                interactionSource = interactionSource,
+                // Material 3's upright handle, gaps and end dot, slimmer than its smallest size.
                 // In the theme's slider color, with the part still to read in the same color dimmed rather than gray.
-                thumb = { Box(Modifier.size(THUMB_SIZE).background(color, CircleShape)) },
+                thumb = { SliderDefaults.Thumb(interactionSource, colors = colors, thumbSize = HANDLE_SIZE) },
                 track = { sliderState ->
                     SliderDefaults.Track(
                         sliderState = sliderState,
-                        modifier = Modifier.height(6.dp),
-                        colors = SliderDefaults.colors(
-                            activeTrackColor = color,
-                            inactiveTrackColor = color.copy(alpha = 0.35f),
-                        ),
-                        drawStopIndicator = null,
-                        thumbTrackGapSize = 0.dp,
+                        modifier = Modifier.height(10.dp),
+                        colors = colors,
+                        thumbTrackGapSize = 5.dp,
                     )
                 },
             )
@@ -490,8 +495,8 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, color: Color, o
     }
 }
 
-/** The page slider's dot. Material shortens the slider's line by half of it on each side. */
-private val THUMB_SIZE = 16.dp
+/** The page slider's handle. Material shortens the slider's track by half its width on each side. */
+private val HANDLE_SIZE = DpSize(4.dp, 20.dp)
 
 /** How long the finger has to rest on the page slider before the book shows that page. */
 private const val PREVIEW_DELAY_MS = 50L
