@@ -18,9 +18,9 @@ class ReaderLineHeightTest {
     }
 
     @Test
-    fun lineHeightsBeyondTheEndsBecomeTheEnds() {
-        assertEquals(10, readerLineHeightOf("8"))
-        assertEquals(20, readerLineHeightOf("25"))
+    fun lineHeightsNotOfferedAreTheBooksOwn() {
+        assertNull(readerLineHeightOf("8"))
+        assertNull(readerLineHeightOf("25"))
     }
 
     @Test

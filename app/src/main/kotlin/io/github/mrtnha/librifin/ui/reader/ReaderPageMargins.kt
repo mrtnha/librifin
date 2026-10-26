@@ -1,7 +1,5 @@
 package io.github.mrtnha.librifin.ui.reader
 
-import kotlin.math.abs
-
 /**
  * The page margins the reader offers, in percent of Readium's usual ones, smallest first. Readium's usual margin is
  * 20 dp on each side of a phone's page (30 to 50 dp on screens from 560 dp wide), so on a phone each step adds 4 dp
@@ -13,11 +11,6 @@ val READER_PAGE_MARGINS = listOf(0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200
 /** Readium's usual margins. */
 const val DEFAULT_PAGE_MARGINS = 100
 
-/**
- * The margins saved as [saved], the nearest ones offered if those aren't, or [DEFAULT_PAGE_MARGINS] if none are
- * saved.
- */
-fun readerPageMarginsOf(saved: String?): Int {
-    val margins = saved?.toIntOrNull() ?: return DEFAULT_PAGE_MARGINS
-    return READER_PAGE_MARGINS.minBy { abs(it - margins) }
-}
+/** The margins saved as [saved], or [DEFAULT_PAGE_MARGINS] if none or ones that aren't offered are saved. */
+fun readerPageMarginsOf(saved: String?): Int =
+    saved?.toIntOrNull()?.takeIf { it in READER_PAGE_MARGINS } ?: DEFAULT_PAGE_MARGINS

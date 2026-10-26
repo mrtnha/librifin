@@ -74,9 +74,7 @@ class ReaderViewModel(
         private set
 
     /** The page colors, the same for all books and kept between app starts. */
-    override var theme by mutableStateOf(
-        readerThemeOf(saved = settings.read(KEY_THEME), savedBefore = settings.read(KEY_THEME_BEFORE)),
-    )
+    override var theme by mutableStateOf(readerThemeOf(settings.read(KEY_THEME)))
         private set
 
     /**
@@ -460,10 +458,7 @@ class ReaderViewModel(
         /** Searching starts once typing pauses this long, not on every key. */
         const val SEARCH_DELAY_MS = 300L
 
-        const val KEY_THEME = "reading_theme"
-
-        /** Where versions before the dark theme saved it, with another name for the black one (readerThemeOf). */
-        const val KEY_THEME_BEFORE = "reader_theme"
+        const val KEY_THEME = "reader_theme"
         const val KEY_FONT_SIZE = "reader_font_size"
         const val KEY_LINE_HEIGHT = "reader_line_height"
         const val KEY_PAGE_MARGINS = "reader_page_margins"

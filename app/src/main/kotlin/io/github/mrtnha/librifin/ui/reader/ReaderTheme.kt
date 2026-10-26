@@ -89,13 +89,5 @@ enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, 
         }
 }
 
-/**
- * The theme saved as [saved] (its name), or [ReaderTheme.DARK] if none is saved. While nothing is saved yet, the
- * theme saved by versions before the dark one ([savedBefore]) counts: they called the black one "DARK".
- */
-fun readerThemeOf(saved: String?, savedBefore: String?): ReaderTheme =
-    themeNamed(saved) ?: if (savedBefore == "DARK") ReaderTheme.BLACK else themeNamed(savedBefore) ?: ReaderTheme.DARK
-
-/** The theme saved as [name]. The sepia page, saved as "SEPIA", is gone: Kraft, the other warm paper, takes over. */
-private fun themeNamed(name: String?): ReaderTheme? =
-    if (name == "SEPIA") ReaderTheme.KRAFT else ReaderTheme.entries.find { it.name == name }
+/** The theme saved as [saved] (its name), or [ReaderTheme.DARK] if none or an unknown one is saved. */
+fun readerThemeOf(saved: String?): ReaderTheme = ReaderTheme.entries.find { it.name == saved } ?: ReaderTheme.DARK

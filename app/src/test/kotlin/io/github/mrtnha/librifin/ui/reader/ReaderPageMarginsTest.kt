@@ -17,14 +17,9 @@ class ReaderPageMarginsTest {
     }
 
     @Test
-    fun marginsNotOfferedBecomeTheNearest() {
-        assertEquals(60, readerPageMarginsOf("55"))
-        assertEquals(120, readerPageMarginsOf("125"))
-    }
-
-    @Test
-    fun marginsBeyondTheEndsBecomeTheEnds() {
-        assertEquals(0, readerPageMarginsOf("-20"))
-        assertEquals(200, readerPageMarginsOf("400"))
+    fun marginsNotOfferedAreReadiumsUsualOnes() {
+        assertEquals(100, readerPageMarginsOf("55"))
+        assertEquals(100, readerPageMarginsOf("-20"))
+        assertEquals(100, readerPageMarginsOf("400"))
     }
 }

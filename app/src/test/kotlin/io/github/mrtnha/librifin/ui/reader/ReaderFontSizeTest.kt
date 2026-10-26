@@ -17,15 +17,9 @@ class ReaderFontSizeTest {
     }
 
     @Test
-    fun sizesOfEarlierVersionsBecomeTheLargerNeighbor() {
-        assertEquals(220, readerFontSizeOf("210"))
-        assertEquals(240, readerFontSizeOf("230"))
-        assertEquals(260, readerFontSizeOf("250"))
-    }
-
-    @Test
-    fun sizesBeyondTheEndsBecomeTheEnds() {
-        assertEquals(70, readerFontSizeOf("50"))
-        assertEquals(260, readerFontSizeOf("300"))
+    fun sizesNotOfferedAreTheBooksOwnSize() {
+        assertEquals(100, readerFontSizeOf("105"))
+        assertEquals(100, readerFontSizeOf("50"))
+        assertEquals(100, readerFontSizeOf("300"))
     }
 }
