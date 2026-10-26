@@ -28,7 +28,7 @@ I use Jellyfin as the one place for all of my media. For the books in my Jellyfi
 - A page slider to move through the whole book.
 - Search inside the book you're reading: every match is listed with its chapter and page. Navigate between them with arrows.
 - Sixteen reading themes (dark, black, gray, charcoal, light, pewter, sage, forest, rose, wine, sky, midnight, kraft, coffee, lavender and plum).
-- Adjustable text size, line spacing and page margins.
+- Adjustable text size, font weight, line spacing and page margins.
 - Ten reading fonts to choose from in addition to the book's own.
 - Justified text with hyphenation, like in a printed book.
 - Your reading position is saved on the device and your progress is sent to Jellyfin. Once you've read 95% of a book or reached its last page, it counts as finished and is marked as played in Jellyfin.

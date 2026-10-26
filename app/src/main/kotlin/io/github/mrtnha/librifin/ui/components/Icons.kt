@@ -11,7 +11,7 @@ import io.github.mrtnha.librifin.ui.theme.JellyfinBlue
 import io.github.mrtnha.librifin.ui.theme.JellyfinPurple
 
 /**
- * The app's icons: Material Symbols Outlined (weight 400) by Google, Apache-2.0, see README.
+ * The app's icons: Material Symbols Outlined (weight 400 unless noted) by Google, Apache-2.0, see README.
  * Their vector paths are embedded here, so there's no icon library and no network access.
  * New ones: download the SVG from https://fonts.google.com/icons and copy its path (the `d` attribute).
  * Tint them via `Icon(tint = …)`.
@@ -253,6 +253,28 @@ object LibrifinIcons {
             "TextIncrease",
             "m40-200 210-560h100l210 560h-96l-51-143H187l-51 143H40Zm176-224h168l-82-232h-4l-82 232Zm504 104v-120H600" +
                 "v-80h120v-120h80v120h120v80H800v120h-80Z",
+        )
+    }
+
+    /** "format_bold" at weight 200, a thin B. Appearance sheet: lighter text. */
+    val FormatBoldLight: ImageVector by lazy {
+        symbol(
+            "FormatBoldLight",
+            "M315.08-230v-500H483q57.31 0 101.15 36.15Q628-657.69 628-599.77q0 38.69-20.31 67.73-20.31 29.04" +
+                "-50.31 42.58 36.54 10.23 62.04 42.92t25.5 78.85q0 64.38-48.07 101.04Q548.77-230 491-230H315.08Z" +
+                "m51-47.38h122.46q46.46 0 75.04-27.97 28.57-27.96 28.57-65.11 0-37.16-28.57-65.12" +
+                "-28.58-27.96-75.73-27.96H366.08v186.16Zm0-232.62h114.54" +
+                "q39.92 0 67.61-24.69 27.69-24.69 27.69-61.85 0-37.84-28.15-62.08-28.15-24.23-66.69-24.23h-115V-510Z",
+        )
+    }
+
+    /** "format_bold" at weight 700, a heavy B. Appearance sheet: bolder text. */
+    val FormatBoldHeavy: ImageVector by lazy {
+        symbol(
+            "FormatBoldHeavy",
+            "M222-167v-627h303q78 0 135.5 48.5T718-622q0 39-18 74t-53 52v3q44 18 67.5 58t23.5 88q0 79-62 129.5" +
+                "T531-167H222Zm155-130h129q28 0 48.5-18t20.5-45q0-27-20.5-45.5T506-424H377v127Z" +
+                "m0-254h120q25 0 43.5-16.5T559-608q0-24-18.5-40.5T497-665H377v114Z",
         )
     }
 

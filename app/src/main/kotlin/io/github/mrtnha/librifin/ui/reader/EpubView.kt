@@ -82,13 +82,15 @@ fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: 
     var navigatorNow by remember { mutableStateOf<EpubNavigatorFragment?>(null) }
     var pageCover by remember { mutableStateOf<ImageBitmap?>(null) }
 
-    // The first theme, size, line spacing, margins and font are set when the book opens; later ones change the page in
-    // place.
+    // The first theme, size, weight, line spacing, margins and font are set when the book opens; later ones change the
+    // page in place.
     // A new theme reaches the page's margins at once (Readium paints them as a view) and its text once the WebView
     // has restyled and redrawn the page, before Librifin hears that it's ready. So a picture of the page as it was
     // covers it until then, and goes in the same frame as the bars around the page change (onThemeShown). Also
     // while the book is still opening: then there's no page yet, and the bars change at once.
-    LaunchedEffect(host.theme, host.fontSize, host.lineHeight, host.pageMargins, host.font, navigatorNow) {
+    LaunchedEffect(
+        host.theme, host.fontSize, host.fontWeight, host.lineHeight, host.pageMargins, host.font, navigatorNow,
+    ) {
         val navigator = navigatorNow
         val theme = host.theme
         val preferences = host.epubPreferences()
@@ -183,9 +185,9 @@ fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: 
 
 /**
  * What [EpubView] shows and reports. The book is in the colors of [theme], with text at [fontSize] percent of
- * the book's own size, in [font], justified, with lines [lineHeight] tenths of the text size apart (null: as the book
- * spaces them) and left and right margins at [pageMargins] percent of Readium's usual ones. A new [theme] takes a few
- * frames to reach the page:
+ * the book's own size, in [font] at [fontWeight] (null: the book's own), justified, with lines [lineHeight] tenths of
+ * the text size apart (null: as the book spaces them) and left and right margins at [pageMargins] percent of Readium's
+ * usual ones. A new [theme] takes a few frames to reach the page:
  * [onThemeShown] gets it once the page shows it, so what's around the page can change in the same frame.
  * When [jumpToProgress] is set, it goes there and calls [onJumped]. [onReachedEnd] is called when
  * the last page of the book is shown. [onPagesLoaded] gets the book's pages once it's open.
@@ -201,6 +203,7 @@ fun EpubView(file: Path, initialLocator: String?, host: EpubViewHost, modifier: 
 interface EpubViewHost {
     val theme: ReaderTheme
     val fontSize: Int
+    val fontWeight: Int?
     val lineHeight: Int?
     val pageMargins: Int
     val font: ReaderFont
@@ -310,6 +313,8 @@ private fun EpubViewHost.epubPreferences() = EpubPreferences(
     textColor = Color(theme.text.toArgb()),
     fontSize = fontSize / 100.0,
     pageMargins = pageMargins / 100.0,
+    // No font weight: the book's own. Readium's is a factor of the normal weight, 400.
+    fontWeight = fontWeight?.let { it / 400.0 },
     // No line height: the book's own. Like justifying, it works only with the book's own styles off (below).
     lineHeight = lineHeight?.let { it / 10.0 },
     // No font family: the book's own.

@@ -89,6 +89,10 @@ class ReaderViewModel(
     override var fontSize by mutableStateOf(readerFontSizeOf(settings.read(KEY_FONT_SIZE)))
         private set
 
+    /** The font weight, null for the book's own; the same for all books and kept between app starts. */
+    override var fontWeight by mutableStateOf(readerFontWeightOf(settings.read(KEY_FONT_WEIGHT)))
+        private set
+
     /**
      * The line spacing in tenths of the text size, null for the book's own; the same for all books and kept between
      * app starts.
@@ -373,6 +377,12 @@ class ReaderViewModel(
         settings.write(KEY_FONT_SIZE, fontSize.toString())
     }
 
+    /** One of [READER_FONT_WEIGHTS]. */
+    fun selectFontWeight(selected: Int?) {
+        fontWeight = selected
+        settings.write(KEY_FONT_WEIGHT, fontWeightForSaving(fontWeight))
+    }
+
     /** One of [READER_LINE_HEIGHTS]. */
     fun selectLineHeight(selected: Int?) {
         lineHeight = selected
@@ -460,6 +470,7 @@ class ReaderViewModel(
 
         const val KEY_THEME = "reader_theme"
         const val KEY_FONT_SIZE = "reader_font_size"
+        const val KEY_FONT_WEIGHT = "reader_font_weight"
         const val KEY_LINE_HEIGHT = "reader_line_height"
         const val KEY_PAGE_MARGINS = "reader_page_margins"
         const val KEY_FONT = "reader_font"
