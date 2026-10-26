@@ -161,7 +161,7 @@ fun AppearanceSheet(
             )
             Spacer(Modifier.height(ROW_GAP))
             StepSlider(
-                steps = READER_FONT_WEIGHTS,
+                steps = font.fontWeights,
                 selected = fontWeight,
                 onSelected = onFontWeightSelected,
                 label = ::fontWeightLabel,

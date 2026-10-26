@@ -89,9 +89,12 @@ class ReaderViewModel(
     override var fontSize by mutableStateOf(readerFontSizeOf(settings.read(KEY_FONT_SIZE)))
         private set
 
-    /** The font weight, null for the book's own; the same for all books and kept between app starts. */
-    override var fontWeight by mutableStateOf(readerFontWeightOf(settings.read(KEY_FONT_WEIGHT)))
-        private set
+    /** The font weight picked last, null for the book's own; the same for all books and kept between app starts. */
+    private var pickedFontWeight by mutableStateOf(readerFontWeightOf(settings.read(KEY_FONT_WEIGHT)))
+
+    /** [pickedFontWeight] as [font] has it: the nearest of its weights, which the page shows anyway. */
+    override val fontWeight: Int?
+        get() = font.shownFontWeight(pickedFontWeight)
 
     /**
      * The line spacing in tenths of the text size, null for the book's own; the same for all books and kept between
@@ -377,10 +380,10 @@ class ReaderViewModel(
         settings.write(KEY_FONT_SIZE, fontSize.toString())
     }
 
-    /** One of [READER_FONT_WEIGHTS]. */
+    /** One of the [font]'s [fontWeights]. */
     fun selectFontWeight(selected: Int?) {
-        fontWeight = selected
-        settings.write(KEY_FONT_WEIGHT, fontWeightForSaving(fontWeight))
+        pickedFontWeight = selected
+        settings.write(KEY_FONT_WEIGHT, fontWeightForSaving(pickedFontWeight))
     }
 
     /** One of [READER_LINE_HEIGHTS]. */

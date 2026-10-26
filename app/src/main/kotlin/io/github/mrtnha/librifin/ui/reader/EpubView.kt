@@ -313,8 +313,8 @@ private fun EpubViewHost.epubPreferences() = EpubPreferences(
     textColor = Color(theme.text.toArgb()),
     fontSize = fontSize / 100.0,
     pageMargins = pageMargins / 100.0,
-    // No font weight: the book's own. Readium's is a factor of the normal weight, 400.
-    fontWeight = fontWeight?.let { it / 400.0 },
+    // No font weight: the book's own. Readium's is a factor of the normal weight.
+    fontWeight = fontWeight?.let { it.toDouble() / NORMAL_FONT_WEIGHT },
     // No line height: the book's own. Like justifying, it works only with the book's own styles off (below).
     lineHeight = lineHeight?.let { it / 10.0 },
     // No font family: the book's own.
