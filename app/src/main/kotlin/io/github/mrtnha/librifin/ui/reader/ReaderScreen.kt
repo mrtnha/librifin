@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
@@ -32,8 +30,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,7 +52,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -217,6 +212,8 @@ fun ReaderScreen(
                             // The theme just picked, so the tap shows at once, also while the page still takes it on.
                             theme = vm.theme,
                             onThemeSelected = vm::selectTheme,
+                            fontSize = vm.fontSize,
+                            onFontSizeSelected = vm::selectFontSize,
                             canDecreaseFontSize = vm.canDecreaseFontSize,
                             canIncreaseFontSize = vm.canIncreaseFontSize,
                             onDecreaseFontSize = vm::decreaseFontSize,
@@ -433,14 +430,6 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, color: Color, o
         onPageSelected(target)
     }
 
-    val colors = SliderDefaults.colors(
-        thumbColor = color,
-        activeTrackColor = color,
-        inactiveTrackColor = color.copy(alpha = 0.35f),
-    )
-    // Shared with the handle, which narrows while the slider is held.
-    val interactionSource = remember { MutableInteractionSource() }
-
     Surface(color = MaterialTheme.colorScheme.surface) {
         Column(
             Modifier
@@ -467,7 +456,7 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, color: Color, o
                     modifier = Modifier.padding(start = 16.dp),
                 )
             }
-            Slider(
+            ReaderSlider(
                 value = page.toFloat(),
                 onValueChange = { draggedPage = it.roundToInt() },
                 onValueChangeFinished = {
@@ -475,28 +464,11 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, color: Color, o
                     draggedPage = null
                 },
                 valueRange = 1f..pages.size.toFloat(),
+                // In the theme's slider color.
+                color = color,
                 // A bit closer to the text, with that room added below; the touch area keeps its full height.
                 modifier = Modifier.offset(y = (-4).dp),
-                colors = colors,
-                interactionSource = interactionSource,
-                // Material 3's upright handle, gaps and end dot, slimmer than its smallest size.
-                // In the theme's slider color, with the part still to read in the same color dimmed rather than gray.
-                thumb = { SliderDefaults.Thumb(interactionSource, colors = colors, thumbSize = HANDLE_SIZE) },
-                track = { sliderState ->
-                    SliderDefaults.Track(
-                        sliderState = sliderState,
-                        modifier = Modifier.height(10.dp),
-                        colors = colors,
-                        thumbTrackGapSize = 5.dp,
-                    )
-                },
             )
         }
     }
 }
-
-/** The page slider's handle. Material shortens the slider's track by half its width on each side. */
-private val HANDLE_SIZE = DpSize(4.dp, 20.dp)
-
-/** How long the finger has to rest on the page slider before the book shows that page. */
-private const val PREVIEW_DELAY_MS = 50L

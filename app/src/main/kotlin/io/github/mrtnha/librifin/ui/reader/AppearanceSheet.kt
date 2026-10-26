@@ -2,7 +2,6 @@ package io.github.mrtnha.librifin.ui.reader
 
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -11,10 +10,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -32,37 +29,38 @@ import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.mrtnha.librifin.ui.components.LibrifinIcons
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 /**
  * The sheet from the "Aa" button: text size, alignment, font and theme, one row each. The rows of the same
@@ -75,6 +73,8 @@ import kotlin.math.roundToInt
 fun AppearanceSheet(
     theme: ReaderTheme,
     onThemeSelected: (ReaderTheme) -> Unit,
+    fontSize: Int,
+    onFontSizeSelected: (Int) -> Unit,
     canDecreaseFontSize: Boolean,
     canIncreaseFontSize: Boolean,
     onDecreaseFontSize: () -> Unit,
@@ -119,11 +119,15 @@ fun AppearanceSheet(
         ) {
             BottomSheetDefaults.DragHandle()
             FontSizeControl(
+                size = fontSize,
+                onSizeSelected = onFontSizeSelected,
+                color = theme.slider,
                 canDecrease = canDecreaseFontSize,
                 canIncrease = canIncreaseFontSize,
                 onDecrease = onDecreaseFontSize,
                 onIncrease = onIncreaseFontSize,
-                modifier = Modifier.padding(horizontal = 24.dp),
+                // With the buttons' own 12 dp around their icons, the icons line up with the rows below.
+                modifier = Modifier.padding(horizontal = 12.dp),
             )
             Spacer(Modifier.height(ROW_GAP))
             AlignmentControl(alignment, onAlignmentSelected, Modifier.padding(horizontal = 24.dp))
@@ -199,55 +203,61 @@ private val ReaderTheme.label: String
     }
 
 /**
- * Smaller and larger text as one control split in two halves: a small and a large "A" show what each
- * half does, no symbols to decode. Tinted with the text color, so it stands out on the sheet in every theme.
+ * The text [size]: a slider with a stop for each size, between buttons for one size smaller and larger. While
+ * dragging, the handle and the size shown above it follow the finger, and the page takes that size whenever the
+ * finger rests for a moment, like the page slider; letting go takes it right away. In [color], the theme's slider
+ * color, also like the page slider.
  */
 @Composable
 private fun FontSizeControl(
+    size: Int,
+    onSizeSelected: (Int) -> Unit,
+    color: Color,
     canDecrease: Boolean,
     canIncrease: Boolean,
     onDecrease: () -> Unit,
     onIncrease: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = MaterialTheme.colorScheme
-    val onSurface = colors.onSurface
-    Row(
-        modifier
-            .fillMaxWidth()
-            .height(ROW_HEIGHT)
-            .framed(
-                // Made opaque over the sheet, so the border color doesn't show through the tint.
-                fill = onSurface.copy(alpha = CONTROL_TINT_ALPHA).compositeOver(colors.surface),
-                borderColor = colors.outlineVariant,
-                borderWidth = BORDER_WIDTH,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        FontSizeHalf(SMALL_LETTER_SIZE, "Smaller text", canDecrease, onDecrease)
-        VerticalDivider(Modifier.height(24.dp), color = onSurface.copy(alpha = DIVIDER_ALPHA))
-        FontSizeHalf(LARGE_LETTER_SIZE, "Larger text", canIncrease, onIncrease)
-    }
-}
+    // The slider goes through the sizes' places in the list, as their steps aren't all the same.
+    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    val index = draggedIndex ?: READER_FONT_SIZES.indexOf(size)
+    val shownSize = "${READER_FONT_SIZES[index]}%"
 
-/** One half of the text size control. Screen readers read [description] instead of the letter. */
-@Composable
-private fun RowScope.FontSizeHalf(letterSize: TextUnit, description: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxHeight()
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = description },
-    ) {
-        Text(
-            "A",
-            fontSize = letterSize,
-            lineHeight = letterSize,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else DISABLED_ALPHA),
-            modifier = Modifier.clearAndSetSemantics {},
+    LaunchedEffect(draggedIndex) {
+        val target = draggedIndex ?: return@LaunchedEffect
+        delay(PREVIEW_DELAY_MS)
+        onSizeSelected(READER_FONT_SIZES[target])
+    }
+
+    Row(modifier.fillMaxWidth().height(ROW_HEIGHT), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onDecrease, enabled = canDecrease) {
+            Icon(LibrifinIcons.TextDecrease, contentDescription = "Smaller text")
+        }
+        ReaderSlider(
+            value = index.toFloat(),
+            onValueChange = { draggedIndex = it.roundToInt() },
+            onValueChangeFinished = {
+                draggedIndex?.let { onSizeSelected(READER_FONT_SIZES[it]) }
+                draggedIndex = null
+            },
+            valueRange = 0f..READER_FONT_SIZES.lastIndex.toFloat(),
+            // The stops between the two ends.
+            steps = READER_FONT_SIZES.size - 2,
+            color = color,
+            valueLabel = shownSize,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 4.dp)
+                // Screen readers read the size, not how far along the slider it is.
+                .semantics {
+                    contentDescription = "Text size"
+                    stateDescription = shownSize
+                },
         )
+        IconButton(onClick = onIncrease, enabled = canIncrease) {
+            Icon(LibrifinIcons.TextIncrease, contentDescription = "Larger text")
+        }
     }
 }
 
@@ -255,10 +265,7 @@ private fun RowScope.FontSizeHalf(letterSize: TextUnit, description: String, ena
 private val ROW_HEIGHT = 48.dp
 private val ROW_GAP = 24.dp
 
-/**
- * The theme cards, the text size control and the alignment control share their corners and border, so they
- * look like one family.
- */
+/** The theme cards and the alignment control share their corners and border, so they look like one family. */
 private val ROW_CORNER_RADIUS = 12.dp
 private val BORDER_WIDTH = 1.dp
 
@@ -274,16 +281,6 @@ private fun Modifier.framed(fill: Color, borderColor: Color, borderWidth: Dp): M
     .padding(borderWidth)
     .clip(RoundedCornerShape(ROW_CORNER_RADIUS - borderWidth))
     .background(fill)
-
-private val SMALL_LETTER_SIZE = 14.sp
-private val LARGE_LETTER_SIZE = 24.sp
-
-/** How strongly the text color tints the text size control, and its divider. */
-private const val CONTROL_TINT_ALPHA = 0.12f
-private const val DIVIDER_ALPHA = 0.24f
-
-/** Material's opacity for disabled content: at the smallest or largest size, that half looks inactive. */
-private const val DISABLED_ALPHA = 0.38f
 
 /**
  * Left-aligned or justified text, as one control split in two halves with an icon each. Like the font chips,

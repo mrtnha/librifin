@@ -256,6 +256,24 @@ object LibrifinIcons {
         )
     }
 
+    /** "text_decrease". Appearance sheet: one text size smaller. */
+    val TextDecrease: ImageVector by lazy {
+        symbol(
+            "TextDecrease",
+            "m40-200 210-560h100l210 560h-96l-51-143H187l-51 143H40Zm176-224h168l-82-232h-4l-82 232Zm384-16v-80h320" +
+                "v80H600Z",
+        )
+    }
+
+    /** "text_increase". Appearance sheet: one text size larger. */
+    val TextIncrease: ImageVector by lazy {
+        symbol(
+            "TextIncrease",
+            "m40-200 210-560h100l210 560h-96l-51-143H187l-51 143H40Zm176-224h168l-82-232h-4l-82 232Zm504 104v-120H600" +
+                "v-80h120v-120h80v120h120v80H800v120h-80Z",
+        )
+    }
+
     /** "keyboard_arrow_up". Reader search bar: previous match. */
     val KeyboardArrowUp: ImageVector by lazy {
         symbol("KeyboardArrowUp", "M480-528 296-344l-56-56 240-240 240 240-56 56-184-184Z")
