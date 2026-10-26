@@ -274,6 +274,26 @@ object LibrifinIcons {
         )
     }
 
+    /** "width_full". Appearance sheet: smaller page margins. */
+    val WidthFull: ImageVector by lazy {
+        symbol(
+            "WidthFull",
+            "M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480" +
+                "q0 33-23.5 56.5T800-160H160Zm0-80h40v-480h-40v480Zm120 0h400v-480H280v480Zm480 0h40v-480h-40v480Z" +
+                "M280-720v480-480Z",
+        )
+    }
+
+    /** "width_normal". Appearance sheet: larger page margins. */
+    val WidthNormal: ImageVector by lazy {
+        symbol(
+            "WidthNormal",
+            "M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480" +
+                "q0 33-23.5 56.5T800-160H160Zm0-80h160v-480H160v480Zm240 0h160v-480H400v480Zm240 0h160v-480H640v480Z" +
+                "m-240 0v-480 480Z",
+        )
+    }
+
     /** "keyboard_arrow_up". Reader search bar: previous match. */
     val KeyboardArrowUp: ImageVector by lazy {
         symbol("KeyboardArrowUp", "M480-528 296-344l-56-56 240-240 240 240-56 56-184-184Z")

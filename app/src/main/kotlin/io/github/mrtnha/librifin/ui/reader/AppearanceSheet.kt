@@ -68,7 +68,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 /**
- * The sheet from the "Aa" button: text size, alignment, font and theme, one row each. The rows of the same
+ * The sheet from the "Aa" button: text size, page margins, alignment, font and theme, one row each. The rows of the same
  * width come first; the fonts and the themes, which scroll sideways to the screen's edges, come last. It covers
  * only the bottom of the screen and doesn't dim the page, so every change shows on the page right away.
  * Swiping it down closes it. Where it doesn't fit, as on a phone held sideways, its rows scroll, and a swipe down
@@ -81,10 +81,8 @@ fun AppearanceSheet(
     onThemeSelected: (ReaderTheme) -> Unit,
     fontSize: Int,
     onFontSizeSelected: (Int) -> Unit,
-    canDecreaseFontSize: Boolean,
-    canIncreaseFontSize: Boolean,
-    onDecreaseFontSize: () -> Unit,
-    onIncreaseFontSize: () -> Unit,
+    pageMargins: Int,
+    onPageMarginsSelected: (Int) -> Unit,
     alignment: ReaderAlignment,
     onAlignmentSelected: (ReaderAlignment) -> Unit,
     font: ReaderFont,
@@ -147,17 +145,32 @@ fun AppearanceSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             BottomSheetDefaults.DragHandle()
-            FontSizeControl(
-                size = fontSize,
-                onSizeSelected = onFontSizeSelected,
-                // The theme's slider color, from the sheet's colors, so it changes in the same frame as the page.
-                color = MaterialTheme.colorScheme.primary,
-                canDecrease = canDecreaseFontSize,
-                canIncrease = canIncreaseFontSize,
-                onDecrease = onDecreaseFontSize,
-                onIncrease = onIncreaseFontSize,
-                // With the buttons' own 12 dp around their icons, the icons line up with the rows below.
-                modifier = Modifier.padding(horizontal = 12.dp),
+            // With the buttons' own 12 dp around their icons, the icons line up with the rows below.
+            val sliderPadding = Modifier.padding(horizontal = 12.dp)
+            StepSlider(
+                steps = READER_FONT_SIZES,
+                selected = fontSize,
+                onSelected = onFontSizeSelected,
+                label = { "$it%" },
+                description = "Text size",
+                decreaseIcon = LibrifinIcons.TextDecrease,
+                decreaseDescription = "Smaller text",
+                increaseIcon = LibrifinIcons.TextIncrease,
+                increaseDescription = "Larger text",
+                modifier = sliderPadding,
+            )
+            Spacer(Modifier.height(ROW_GAP))
+            StepSlider(
+                steps = READER_PAGE_MARGINS,
+                selected = pageMargins,
+                onSelected = onPageMarginsSelected,
+                label = { "$it%" },
+                description = "Page margins",
+                decreaseIcon = LibrifinIcons.WidthFull,
+                decreaseDescription = "Smaller margins",
+                increaseIcon = LibrifinIcons.WidthNormal,
+                increaseDescription = "Larger margins",
+                modifier = sliderPadding,
             )
             Spacer(Modifier.height(ROW_GAP))
             AlignmentControl(alignment, onAlignmentSelected, Modifier.padding(horizontal = 24.dp))
@@ -234,60 +247,65 @@ private val ReaderTheme.label: String
     }
 
 /**
- * The text [size]: a slider with a stop for each size, between buttons for one size smaller and larger. While
- * dragging, the handle and the size shown above it follow the finger, and the page takes that size whenever the
- * finger rests for a moment, like the page slider; letting go takes it right away. In [color], the theme's slider
- * color, also like the page slider.
+ * One of [steps], as a slider with a stop for each, between buttons with [decreaseIcon] and [increaseIcon] for the
+ * step before and after. While dragging, the handle and the [label] of its step above it follow the finger, and
+ * [onSelected] gets that step whenever the finger rests for a moment, so the page shows it, like the page slider;
+ * letting go takes it right away. In the theme's slider color, also like the page slider. Screen readers read it as
+ * [description] with the label of the selected step.
  */
 @Composable
-private fun FontSizeControl(
-    size: Int,
-    onSizeSelected: (Int) -> Unit,
-    color: Color,
-    canDecrease: Boolean,
-    canIncrease: Boolean,
-    onDecrease: () -> Unit,
-    onIncrease: () -> Unit,
+private fun <T> StepSlider(
+    steps: List<T>,
+    selected: T,
+    onSelected: (T) -> Unit,
+    label: (T) -> String,
+    description: String,
+    decreaseIcon: ImageVector,
+    decreaseDescription: String,
+    increaseIcon: ImageVector,
+    increaseDescription: String,
     modifier: Modifier = Modifier,
 ) {
-    // The slider goes through the sizes' places in the list, as their steps aren't all the same.
+    // The slider goes through the steps' places in the list, as the steps needn't all be the same size.
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
-    val index = draggedIndex ?: READER_FONT_SIZES.indexOf(size)
-    val shownSize = "${READER_FONT_SIZES[index]}%"
+    val selectedIndex = steps.indexOf(selected)
+    val index = draggedIndex ?: selectedIndex
+    val shownLabel = label(steps[index])
 
     LaunchedEffect(draggedIndex) {
         val target = draggedIndex ?: return@LaunchedEffect
         delay(PREVIEW_DELAY_MS)
-        onSizeSelected(READER_FONT_SIZES[target])
+        onSelected(steps[target])
     }
 
     Row(modifier.fillMaxWidth().height(ROW_HEIGHT), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onDecrease, enabled = canDecrease) {
-            Icon(LibrifinIcons.TextDecrease, contentDescription = "Smaller text")
+        IconButton(onClick = { onSelected(steps[selectedIndex - 1]) }, enabled = selectedIndex > 0) {
+            Icon(decreaseIcon, contentDescription = decreaseDescription)
         }
         ReaderSlider(
             value = index.toFloat(),
             onValueChange = { draggedIndex = it.roundToInt() },
             onValueChangeFinished = {
-                draggedIndex?.let { onSizeSelected(READER_FONT_SIZES[it]) }
+                draggedIndex?.let { onSelected(steps[it]) }
                 draggedIndex = null
             },
-            valueRange = 0f..READER_FONT_SIZES.lastIndex.toFloat(),
+            valueRange = 0f..steps.lastIndex.toFloat(),
             // The stops between the two ends.
-            steps = READER_FONT_SIZES.size - 2,
-            color = color,
-            valueLabel = shownSize,
+            steps = steps.size - 2,
+            // The theme's slider color, from the sheet's colors, so it changes in the same frame as the page.
+            color = MaterialTheme.colorScheme.primary,
+            valueLabel = shownLabel,
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 4.dp)
-                // Screen readers read the size, not how far along the slider it is.
+                // Screen readers read the step, not how far along the slider it is.
                 .semantics {
-                    contentDescription = "Text size"
-                    stateDescription = shownSize
+                    contentDescription = description
+                    stateDescription = shownLabel
                 },
         )
-        IconButton(onClick = onIncrease, enabled = canIncrease) {
-            Icon(LibrifinIcons.TextIncrease, contentDescription = "Larger text")
+        IconButton(onClick = { onSelected(steps[selectedIndex + 1]) }, enabled = selectedIndex < steps.lastIndex) {
+            Icon(increaseIcon, contentDescription = increaseDescription)
         }
     }
 }

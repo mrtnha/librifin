@@ -91,8 +91,12 @@ class ReaderViewModel(
     override var fontSize by mutableStateOf(readerFontSizeOf(settings.read(KEY_FONT_SIZE)))
         private set
 
-    val canDecreaseFontSize get() = fontSize > READER_FONT_SIZES.first()
-    val canIncreaseFontSize get() = fontSize < READER_FONT_SIZES.last()
+    /**
+     * The left and right margins in percent of Readium's usual ones, the same for all books and kept between
+     * app starts.
+     */
+    override var pageMargins by mutableStateOf(readerPageMarginsOf(settings.read(KEY_PAGE_MARGINS)))
+        private set
 
     /** The font of the book's text, the same for all books and kept between app starts. */
     override var font by mutableStateOf(
@@ -369,18 +373,16 @@ class ReaderViewModel(
         settings.write(KEY_ALIGNMENT, alignment.name)
     }
 
-    fun decreaseFontSize() {
-        smallerFontSize(fontSize)?.let(::selectFontSize)
-    }
-
-    fun increaseFontSize() {
-        largerFontSize(fontSize)?.let(::selectFontSize)
-    }
-
     /** One of [READER_FONT_SIZES]. */
     fun selectFontSize(selected: Int) {
         fontSize = selected
         settings.write(KEY_FONT_SIZE, fontSize.toString())
+    }
+
+    /** One of [READER_PAGE_MARGINS]. */
+    fun selectPageMargins(selected: Int) {
+        pageMargins = selected
+        settings.write(KEY_PAGE_MARGINS, pageMargins.toString())
     }
 
     /** The downloaded file isn't a book we can show. Deleted, so the next attempt gets a fresh copy. */
@@ -461,6 +463,7 @@ class ReaderViewModel(
         /** Where versions before the dark theme saved it, with another name for the black one (readerThemeOf). */
         const val KEY_THEME_BEFORE = "reader_theme"
         const val KEY_FONT_SIZE = "reader_font_size"
+        const val KEY_PAGE_MARGINS = "reader_page_margins"
         const val KEY_FONT = "reader_font"
         const val KEY_ALIGNMENT = "reader_alignment"
     }

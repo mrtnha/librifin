@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
  * The reader's sliders: Material 3's upright handle, gaps and end dot, slimmer than its smallest size. In [color],
  * with the rest of the track in the same color dimmed rather than gray. With [steps], a dot marks each stop: in the
  * bars' color on the colored part, in [color] on the dimmed rest. With a [valueLabel], it shows above the handle while
- * the slider is held. The page slider and the text size slider share it, so they look alike.
+ * the slider is held. The page slider and the appearance sheet's sliders share it, so they look alike.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

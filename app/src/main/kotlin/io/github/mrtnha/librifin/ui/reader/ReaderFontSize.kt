@@ -24,9 +24,3 @@ fun readerFontSizeOf(saved: String?): Int {
     // The first of the nearest: searched from the largest down, that's the larger of two.
     return READER_FONT_SIZES.asReversed().minBy { abs(it - size) }
 }
-
-/** The size one step smaller than [size], or null at the smallest. */
-fun smallerFontSize(size: Int): Int? = READER_FONT_SIZES.lastOrNull { it < size }
-
-/** The size one step larger than [size], or null at the largest. */
-fun largerFontSize(size: Int): Int? = READER_FONT_SIZES.firstOrNull { it > size }
