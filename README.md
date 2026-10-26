@@ -14,7 +14,7 @@ I use Jellyfin as the one place for all of my media. For the books in my Jellyfi
 - **Made for Jellyfin:** Talks to Jellyfin's own API, so there's no need for the OPDS plugin. Your reading progress is saved in Jellyfin too.
 - **Free:** No subscription and no paid features.
 - **Open source:** All of the code is here under the MPL-2.0.
-- **Private:** No ads, no analytics, no crash reporting. The app talks to your Jellyfin server and nothing else.
+- **Privacy-respecting:** No ads, no analytics, no crash reporting. The app talks to your Jellyfin server and nothing else.
 
 ## Features
 
