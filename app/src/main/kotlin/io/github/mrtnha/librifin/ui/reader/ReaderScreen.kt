@@ -220,8 +220,6 @@ fun ReaderScreen(
                             onLineHeightSelected = vm::selectLineHeight,
                             pageMargins = vm.pageMargins,
                             onPageMarginsSelected = vm::selectPageMargins,
-                            alignment = vm.alignment,
-                            onAlignmentSelected = vm::selectAlignment,
                             font = vm.font,
                             onFontSelected = vm::selectFont,
                             onClose = vm::closeAppearance,

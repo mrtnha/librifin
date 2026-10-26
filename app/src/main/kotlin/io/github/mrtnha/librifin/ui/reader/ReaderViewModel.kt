@@ -111,12 +111,6 @@ class ReaderViewModel(
     )
         private set
 
-    /** How the lines of the book's text are aligned, the same for all books and kept between app starts. */
-    override var alignment by mutableStateOf(
-        ReaderAlignment.entries.find { it.name == settings.read(KEY_ALIGNMENT) } ?: ReaderAlignment.JUSTIFIED,
-    )
-        private set
-
     /**
      * Set when the book was read further elsewhere (see [checkReadElsewhere]) or a page was picked with
      * the page slider: the renderer jumps there (0..1) and calls [onJumped].
@@ -133,8 +127,8 @@ class ReaderViewModel(
         private set
 
     /**
-     * The sheet at the bottom for theme, text size, alignment and font. The bars hide while it's open, so the
-     * page shows.
+     * The sheet at the bottom for theme, text size, line spacing, margins and font. The bars hide while it's open,
+     * so the page shows.
      */
     var isAppearanceOpen by mutableStateOf(false)
         private set
@@ -375,11 +369,6 @@ class ReaderViewModel(
         settings.write(KEY_FONT, font.name)
     }
 
-    fun selectAlignment(selected: ReaderAlignment) {
-        alignment = selected
-        settings.write(KEY_ALIGNMENT, alignment.name)
-    }
-
     /** One of [READER_FONT_SIZES]. */
     fun selectFontSize(selected: Int) {
         fontSize = selected
@@ -479,6 +468,5 @@ class ReaderViewModel(
         const val KEY_LINE_HEIGHT = "reader_line_height"
         const val KEY_PAGE_MARGINS = "reader_page_margins"
         const val KEY_FONT = "reader_font"
-        const val KEY_ALIGNMENT = "reader_alignment"
     }
 }

@@ -30,9 +30,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,7 +65,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 /**
- * The sheet from the "Aa" button: text size, line spacing, page margins, alignment, font and theme, one row each.
+ * The sheet from the "Aa" button: text size, line spacing, page margins, font and theme, one row each.
  * The rows of the same width come first; the fonts and the themes, which scroll sideways to the screen's edges, come
  * last. It covers only the bottom of the screen and doesn't dim the page, so every change shows on the page right
  * away. Swiping it down closes it. Where it doesn't fit, as on a phone held sideways, its rows scroll, and a swipe
@@ -86,8 +83,6 @@ fun AppearanceSheet(
     onLineHeightSelected: (Int?) -> Unit,
     pageMargins: Int,
     onPageMarginsSelected: (Int) -> Unit,
-    alignment: ReaderAlignment,
-    onAlignmentSelected: (ReaderAlignment) -> Unit,
     font: ReaderFont,
     onFontSelected: (ReaderFont) -> Unit,
     onClose: () -> Unit,
@@ -188,8 +183,6 @@ fun AppearanceSheet(
                 increaseDescription = "Larger margins",
                 modifier = sliderPadding,
             )
-            Spacer(Modifier.height(ROW_GAP))
-            AlignmentControl(alignment, onAlignmentSelected, Modifier.padding(horizontal = 24.dp))
             Spacer(Modifier.height(ROW_GAP))
             FontChips(font, onFontSelected)
             Spacer(Modifier.height(ROW_GAP))
@@ -330,7 +323,7 @@ private fun <T> StepSlider(
 private val ROW_HEIGHT = 48.dp
 private val ROW_GAP = 24.dp
 
-/** The theme cards and the alignment control share their corners and border, so they look like one family. */
+/** The theme cards' corners and border. */
 private val ROW_CORNER_RADIUS = 12.dp
 private val BORDER_WIDTH = 1.dp
 
@@ -346,52 +339,6 @@ private fun Modifier.framed(fill: Color, borderColor: Color, borderWidth: Dp): M
     .padding(borderWidth)
     .clip(RoundedCornerShape(ROW_CORNER_RADIUS - borderWidth))
     .background(fill)
-
-/**
- * Left-aligned or justified text, as one control split in two halves with an icon each. Like the font chips,
- * the color alone shows the choice.
- */
-@Composable
-private fun AlignmentControl(
-    selected: ReaderAlignment,
-    onSelect: (ReaderAlignment) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val borderColor = MaterialTheme.colorScheme.outlineVariant
-    SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
-        ReaderAlignment.entries.forEachIndexed { index, alignment ->
-            SegmentedButton(
-                selected = alignment == selected,
-                onClick = { onSelect(alignment) },
-                shape = SegmentedButtonDefaults.itemShape(
-                    index = index,
-                    count = ReaderAlignment.entries.size,
-                    baseShape = RoundedCornerShape(ROW_CORNER_RADIUS),
-                ),
-                modifier = Modifier.height(ROW_HEIGHT),
-                colors = SegmentedButtonDefaults.colors(
-                    activeBorderColor = borderColor,
-                    inactiveBorderColor = borderColor,
-                ),
-                // No checkmark, which Material shows here by default.
-                icon = {},
-                label = { Icon(alignment.icon, contentDescription = alignment.label) },
-            )
-        }
-    }
-}
-
-private val ReaderAlignment.icon: ImageVector
-    get() = when (this) {
-        ReaderAlignment.LEFT -> LibrifinIcons.FormatAlignLeft
-        ReaderAlignment.JUSTIFIED -> LibrifinIcons.FormatAlignJustify
-    }
-
-private val ReaderAlignment.label: String
-    get() = when (this) {
-        ReaderAlignment.LEFT -> "Left-aligned"
-        ReaderAlignment.JUSTIFIED -> "Justified"
-    }
 
 /**
  * The fonts, each name in its own font, in one row that scrolls sideways to the screen's edges.
