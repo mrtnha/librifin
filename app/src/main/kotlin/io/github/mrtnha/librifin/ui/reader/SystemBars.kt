@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
 import android.os.CancellationSignal
+import android.view.View
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBarsIgnoringVisibility
@@ -37,7 +38,7 @@ fun SystemBarsVisible(visible: Boolean, darkBackground: Boolean) {
     }
     val bars = remember(controller) {
         listOf(WindowInsetsCompat.Type.statusBars(), WindowInsetsCompat.Type.navigationBars())
-            .map { InstantSystemBar(controller, it) }
+            .map { InstantSystemBar(controller, view, it) }
     }
 
     LaunchedEffect(bars, visible) {
@@ -65,9 +66,13 @@ fun SystemBarsVisible(visible: Boolean, darkBackground: Boolean) {
  * Shows and hides one system bar ([type]) without Android's slide: it takes over the bar's animation and
  * ends it right away. Before Android 11, or when Android doesn't hand the bar over, it slides as usual.
  * One bar per request: asked for several, Android 16 waits until it has all of them, even ones the
- * device doesn't have, and never answers.
+ * device doesn't have, and never answers. [view] is in the window whose bars these are.
  */
-private class InstantSystemBar(private val controller: WindowInsetsControllerCompat, private val type: Int) {
+private class InstantSystemBar(
+    private val controller: WindowInsetsControllerCompat,
+    private val view: View,
+    private val type: Int,
+) {
     /**
      * What was asked for last; Android doesn't tell. Asked for the state the bar is already in, Android
      * would flip it first, so only changes are asked for. Shown until hidden here.
@@ -99,8 +104,12 @@ private class InstantSystemBar(private val controller: WindowInsetsControllerCom
                 override fun onFinished(controller: WindowInsetsAnimationControllerCompat) = Unit
 
                 override fun onCancelled(controller: WindowInsetsAnimationControllerCompat?) {
-                    // Refused by Android rather than replaced by a newer request.
-                    if (!cancellation.isCanceled) showOrHide(visible)
+                    // Refused by Android rather than replaced by a newer request. Not right away: Android may be
+                    // cancelling all of the window's animations (as when the window goes on rotation) and allows
+                    // no new one meanwhile. Posted to the view, it runs once that's done, and never once the window
+                    // is gone: its views are detached by then, and a detached view keeps what's posted until it's
+                    // attached again.
+                    view.post { if (!cancellation.isCanceled) showOrHide(visible) }
                 }
             },
         )
