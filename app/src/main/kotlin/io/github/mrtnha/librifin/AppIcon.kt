@@ -16,6 +16,9 @@ enum class AppIcon(val entry: String) {
 
     /** The book on Jellyfin's dark navy. Its entry is the one switched on after installing. */
     DARK("io.github.mrtnha.librifin.DarkIcon"),
+
+    /** The book on pure black, like the black app theme. */
+    BLACK("io.github.mrtnha.librifin.BlackIcon"),
 }
 
 /**
@@ -25,12 +28,15 @@ enum class AppIcon(val entry: String) {
 class AppIcons(context: Context) {
     private val appContext = context.applicationContext
 
-    /** The icon whose entry is switched on. LIGHT's is off until it's chosen (AndroidManifest.xml). */
+    /**
+     * The icon whose entry is switched on. Until another icon is chosen, that's DARK's by the manifest's default
+     * (AndroidManifest.xml), which isn't switched on explicitly; LIGHT's and BLACK's are off until they're chosen.
+     */
     val current: AppIcon
-        get() {
-            val light = appContext.packageManager.getComponentEnabledSetting(component(AppIcon.LIGHT))
-            return if (light == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) AppIcon.LIGHT else AppIcon.DARK
-        }
+        get() = AppIcon.entries.firstOrNull {
+            appContext.packageManager.getComponentEnabledSetting(component(it)) ==
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        } ?: AppIcon.DARK
 
     /**
      * Switches the entry of [icon] on and the others off. The launcher shows the new icon about a second later.

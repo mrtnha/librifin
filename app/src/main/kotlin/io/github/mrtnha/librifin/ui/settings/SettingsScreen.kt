@@ -340,6 +340,7 @@ private val AppIcon.label: String
     get() = when (this) {
         AppIcon.DARK -> "Dark"
         AppIcon.LIGHT -> "Light"
+        AppIcon.BLACK -> "Black"
     }
 
 /** "12 books · 34 MB", with the size the way Android's own settings show it, or that there are none. */
