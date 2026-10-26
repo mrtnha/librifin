@@ -160,7 +160,12 @@ fun ReaderScreen(
                     modifier = Modifier.align(Alignment.BottomCenter),
                 ) {
                     MaterialTheme(colorScheme = barsColors) {
-                        PageSlider(pages = vm.pages, currentPage = vm.currentPage, onPageSelected = vm::jumpToPage)
+                        PageSlider(
+                            pages = vm.pages,
+                            currentPage = vm.currentPage,
+                            color = theme.slider,
+                            onPageSelected = vm::jumpToPage,
+                        )
                     }
                 }
 
@@ -414,12 +419,12 @@ private val WHITESPACE = Regex("\\s+")
 private const val SNIPPET_BEFORE_LENGTH = 40
 
 /**
- * The page slider: the chapter and "page/pages" above a slider through the whole book. While dragging,
+ * The page slider: the chapter and "page/pages" above a slider through the whole book, in [color]. While dragging,
  * they follow the finger, and the book shows that page whenever the finger rests for a moment
  * (not on every move, which would make it flicker); letting go shows it right away.
  */
 @Composable
-private fun PageSlider(pages: List<BookPage>, currentPage: Int?, onPageSelected: (Int) -> Unit) {
+private fun PageSlider(pages: List<BookPage>, currentPage: Int?, color: Color, onPageSelected: (Int) -> Unit) {
     var draggedPage by remember { mutableStateOf<Int?>(null) }
     val page = (draggedPage ?: currentPage ?: 1).coerceIn(1, pages.size)
 
@@ -466,12 +471,16 @@ private fun PageSlider(pages: List<BookPage>, currentPage: Int?, onPageSelected:
                 // A bit closer to the text, with that room added below; the touch area keeps its full height.
                 modifier = Modifier.offset(y = (-4).dp),
                 // A thin line with a round dot instead of Material's thick track, tall handle, gaps and end dot.
-                thumb = { Box(Modifier.size(THUMB_SIZE).background(MaterialTheme.colorScheme.primary, CircleShape)) },
+                // In the theme's slider color, with the part still to read in the same color dimmed rather than gray.
+                thumb = { Box(Modifier.size(THUMB_SIZE).background(color, CircleShape)) },
                 track = { sliderState ->
                     SliderDefaults.Track(
                         sliderState = sliderState,
                         modifier = Modifier.height(6.dp),
-                        colors = SliderDefaults.colors(inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant),
+                        colors = SliderDefaults.colors(
+                            activeTrackColor = color,
+                            inactiveTrackColor = color.copy(alpha = 0.35f),
+                        ),
                         drawStopIndicator = null,
                         thumbTrackGapSize = 0.dp,
                     )

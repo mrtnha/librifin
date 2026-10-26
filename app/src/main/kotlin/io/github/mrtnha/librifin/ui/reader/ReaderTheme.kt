@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
  * page and a dark one.
  * No pure white: white text glows and blurs on a dark page, and white paper glares.
  * The app bar, page slider and appearance sheet are always dark, in a [bars] color that stands apart from the page.
+ * The page slider on them is in the theme's own [slider] color.
  */
 enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, val isDark: Boolean) {
     /**
@@ -68,7 +69,22 @@ enum class ReaderTheme(val background: Color, val text: Color, val bars: Color, 
     LAVENDER(background = Color(0xFFECE4F6), text = Color(0xFF362A43), bars = Color(0xFF1A1A1A), isDark = false),
 
     /** Dark plum with pale lilac text. Contrast about 11.5:1. Bars a lighter purple than the page. */
-    PLUM(background = Color(0xFF261C2D), text = Color(0xFFDED5E6), bars = Color(0xFF3A3141), isDark = true),
+    PLUM(background = Color(0xFF261C2D), text = Color(0xFFDED5E6), bars = Color(0xFF3A3141), isDark = true);
+
+    /**
+     * The page slider's color, standing out on the dark [bars] in every theme. A neutral page keeps it white, in its
+     * own light color: the text on a dark page, the paper on a light one. A colored page has a stronger shade of its
+     * color, about as light as Jellyfin blue and shared by the light and dark page of a pair.
+     */
+    val slider: Color
+        get() = when (this) {
+            DARK, BLACK, GRAY, CHARCOAL, LIGHT, PEWTER -> if (isDark) text else background
+            SAGE, FOREST -> Color(0xFF80B175)
+            ROSE, WINE -> Color(0xFFD9878A)
+            SKY, MIDNIGHT -> Color(0xFF72A5DE)
+            KRAFT, COFFEE -> Color(0xFFCB955A)
+            LAVENDER, PLUM -> Color(0xFFB191D3)
+        }
 }
 
 /**
