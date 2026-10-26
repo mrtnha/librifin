@@ -20,7 +20,6 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Librifin">
@@ -32,8 +31,8 @@
             android:name=".MainActivity" />
         <!-- One launcher entry per app icon (AppIcon.kt), declared after the activity they open, as Android requires.
              The app switches exactly one of them on. Android remembers which by these names, so they must never
-             change. android:icon is enough: Android takes it on devices with round icons too, as the entries have no
-             android:roundIcon. -->
+             change. android:icon is enough: with no android:roundIcon, here or on the application, Android takes it on
+             devices with round icons too. -->
         <activity-alias
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
