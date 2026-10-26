@@ -88,13 +88,11 @@ class ReaderViewModel(
         private set
 
     /** The text size in percent of the book's own, the same for all books and kept between app starts. */
-    override var fontSize by mutableStateOf(
-        settings.read(KEY_FONT_SIZE)?.toIntOrNull()?.coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE) ?: DEFAULT_FONT_SIZE,
-    )
+    override var fontSize by mutableStateOf(readerFontSizeOf(settings.read(KEY_FONT_SIZE)))
         private set
 
-    val canDecreaseFontSize get() = fontSize > MIN_FONT_SIZE
-    val canIncreaseFontSize get() = fontSize < MAX_FONT_SIZE
+    val canDecreaseFontSize get() = fontSize > READER_FONT_SIZES.first()
+    val canIncreaseFontSize get() = fontSize < READER_FONT_SIZES.last()
 
     /** The font of the book's text, the same for all books and kept between app starts. */
     override var font by mutableStateOf(
@@ -371,12 +369,17 @@ class ReaderViewModel(
         settings.write(KEY_ALIGNMENT, alignment.name)
     }
 
-    fun decreaseFontSize() = changeFontSize(fontSize - FONT_SIZE_STEP)
+    fun decreaseFontSize() {
+        smallerFontSize(fontSize)?.let(::selectFontSize)
+    }
 
-    fun increaseFontSize() = changeFontSize(fontSize + FONT_SIZE_STEP)
+    fun increaseFontSize() {
+        largerFontSize(fontSize)?.let(::selectFontSize)
+    }
 
-    private fun changeFontSize(percent: Int) {
-        fontSize = percent.coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE)
+    /** One of [READER_FONT_SIZES]. */
+    fun selectFontSize(selected: Int) {
+        fontSize = selected
         settings.write(KEY_FONT_SIZE, fontSize.toString())
     }
 
@@ -460,12 +463,5 @@ class ReaderViewModel(
         const val KEY_FONT_SIZE = "reader_font_size"
         const val KEY_FONT = "reader_font"
         const val KEY_ALIGNMENT = "reader_alignment"
-
-        // Readium allows 10–500 %; beyond these limits text on a phone is too small to read,
-        // or only a few words fit on a line.
-        const val DEFAULT_FONT_SIZE = 100
-        const val MIN_FONT_SIZE = 70
-        const val MAX_FONT_SIZE = 250
-        const val FONT_SIZE_STEP = 10
     }
 }
